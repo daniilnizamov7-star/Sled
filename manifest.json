@@ -1,1 +1,14 @@
-1
+{
+  "name": "Следопыт",
+  "short_name": "Следопыт",
+  "description": "Городские квесты — исследуй, находи, побеждай",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a150b",
+  "theme_color": "#0d1f0e",
+  "icons": [
+    { "src": "icons/192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

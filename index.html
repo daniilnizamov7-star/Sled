@@ -590,7 +590,7 @@ async function loadQuests(){
   try{
     // Грузим и активные и завершённые
     const allQuests=await sb(`quests?select=*&order=created_at.desc&limit=20`);
-    const quests=allQuests.filter(q=>q.status==='active'||new Date(q.end_date)>new Date(Date.now()-7*24*60*60*1000));
+    const quests=allQuests.filter(q=>q.status!=='archived'&&(q.status==='active'||new Date(q.end_date)>new Date(Date.now()-7*24*60*60*1000)));
     if(!quests.length){list.innerHTML='<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">Квесты скоро появятся</div></div>';return;}
     const active=quests.filter(q=>q.status==='active');
     const ended=quests.filter(q=>q.status==='ended');
@@ -950,11 +950,40 @@ async function loadAdminQuestList(){
   const list=document.getElementById('adminQuestList');
   try{
     const quests=await sb(`quests?select=*&order=created_at.desc`);
-    list.innerHTML=quests.length?quests.map(q=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:start"><div><div style="font-weight:600;color:var(--text)">${q.title}</div><div style="font-size:12px;color:var(--text3);margin-top:4px">${q.quest_type} · до ${formatDate(q.end_date)}</div><button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="loadCheckpointsList('${q.id}')">📋 Точки и QR</button></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
-              <button class="btn btn-sm ${q.status==='active'?'btn-red':'btn-primary'}" onclick="toggleQuestStatus('${q.id}','${q.status}')">${q.status==='active'?'Завершить':'Активировать'}</button>
-              <button class="btn btn-sm btn-secondary" style="font-size:11px;padding:6px 10px" onclick="deleteQuest('${q.id}','${q.title}')">🗑️ Удалить</button>
-            </div></div></div>`).join(''):'<div class="empty"><div class="empty-text">Нет квестов</div></div>';
-  }catch(e){}
+    const active=quests.filter(q=>q.status==='active'||q.status==='ended');
+    const archived=quests.filter(q=>q.status==='archived');
+    function renderQuest(q){
+      const isActive=q.status==='active';
+      const isArchived=q.status==='archived';
+      return `<div style="background:var(--bg3);border:1px solid ${isArchived?'var(--border)':'var(--border)'};border-radius:10px;padding:14px;margin-bottom:10px;opacity:${isArchived?'0.6':'1'}">
+        <div style="display:flex;justify-content:space-between;align-items:start">
+          <div style="flex:1">
+            <div style="font-weight:600;color:var(--text)">${q.title}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px">${q.quest_type} · до ${formatDate(q.end_date)}</div>
+            ${!isArchived?`<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="loadCheckpointsList('${q.id}')">📋 Точки и QR</button>`:''}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+            ${!isArchived?`<button class="btn btn-sm ${isActive?'btn-red':'btn-primary'}" onclick="toggleQuestStatus('${q.id}','${q.status}')">${isActive?'Завершить':'Активировать'}</button>`:''}
+            ${!isArchived?`<button class="btn btn-sm btn-secondary" style="font-size:11px;padding:6px 10px" onclick="deleteQuest('${q.id}','${q.title}')">📦 В архив</button>`:''}
+            ${isArchived?`
+              <button class="btn btn-sm btn-primary" style="font-size:11px;padding:6px 10px" onclick="unarchiveQuest('${q.id}')">↩ Вернуть</button>
+              <button class="btn btn-sm btn-red" style="font-size:11px;padding:6px 10px" onclick="hardDeleteQuest('${q.id}','${q.title}')">🗑 Удалить</button>
+            `:''}
+          </div>
+        </div>
+      </div>`;
+    }
+    let html='';
+    if(active.length){html+=active.map(renderQuest).join('');}
+    else{html+='<div class="empty" style="padding:20px 0"><div class="empty-text">Нет активных квестов</div></div>';}
+    if(archived.length){
+      html+=`<div style="margin-top:8px">
+        <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.textContent=this.textContent.includes('▶')?'▼ Архив (${archived.length})':'▶ Архив (${archived.length})'" style="background:none;border:none;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;padding:8px 0;letter-spacing:.5px">▶ Архив (${archived.length})</button>
+        <div style="display:none">${archived.map(renderQuest).join('')}</div>
+      </div>`;
+    }
+    list.innerHTML=html;
+  }catch(e){list.innerHTML='<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>';}
 }
 async function createQuest(){
   const title=document.getElementById('qTitle').value.trim(),desc=document.getElementById('qDesc').value.trim(),type=document.getElementById('qType').value,days=parseInt(document.getElementById('qDays').value)||7,prize=document.getElementById('qPrize').value.trim();
@@ -990,31 +1019,37 @@ async function loadCheckpointsList(questId){
 async function toggleQuestStatus(id,status){const s=status==='active'?'ended':'active';await sb(`quests?id=eq.${id}`,{method:'PATCH',body:{status:s},prefer:'return=minimal'});loadAdminQuestList();}
 
 async function deleteQuest(id,title){
-  if(!confirm(`Удалить квест "${title}"?\nВсе точки, прохождения и данные участников будут удалены.`))return;
+  if(!confirm(`Архивировать квест "${title}"?\nДанные сохранятся, квест скроется из списка.`))return;
   try{
-    // Удаляем в правильном порядке — сначала всё что ссылается на checkpoints
-    // 1. Сначала hits (ссылаются на checkpoints И quests)
+    await sb(`quests?id=eq.${id}`,{method:'PATCH',body:{status:'archived'},prefer:'return=minimal'});
+    showToast('📦 Квест в архиве');
+    loadAdminQuestList();loadAdminQuests();
+  }catch(e){showToast('❌ Ошибка: '+JSON.stringify(e));}
+}
+async function hardDeleteQuest(id,title){
+  if(!confirm(`УДАЛИТЬ НАВСЕГДА "${title}"?\nВосстановить невозможно!`))return;
+  if(!confirm(`Ещё раз: удалить все данные квеста "${title}"?`))return;
+  try{
     await sb(`checkpoint_hits?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
-    // 2. Завершения квеста
     await sb(`quest_completions?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
-    // 3. Команды и участники команд
     const teams=await sb(`teams?quest_id=eq.${id}&select=id`);
-    for(const t of teams){
-      await sb(`team_members?team_id=eq.${t.id}`,{method:'DELETE',prefer:'return=minimal'});
-    }
+    for(const t of teams){await sb(`team_members?team_id=eq.${t.id}`,{method:'DELETE',prefer:'return=minimal'});}
     await sb(`teams?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
-    // 4. Спонсоры
     await sb(`quest_sponsors?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
-    // 5. Теперь можно удалить checkpoints
     await sb(`checkpoints?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
-    // 6. Наконец сам квест
     await sb(`quests?id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
-    showToast('✅ Квест удалён');
-    loadAdminQuestList();
-    loadAdminQuests();
+    showToast('✅ Квест удалён навсегда');
+    loadAdminQuestList();loadAdminQuests();
   }catch(e){showToast('❌ Ошибка удаления: '+JSON.stringify(e));}
 }
 
+async function unarchiveQuest(id){
+  try{
+    await sb(`quests?id=eq.${id}`,{method:'PATCH',body:{status:'ended'},prefer:'return=minimal'});
+    showToast('✅ Квест возвращён из архива');
+    loadAdminQuestList();loadAdminQuests();
+  }catch(e){showToast('Ошибка');}
+}
 function generateToken(){return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');}
 function generateQR(text,name){if(window.QRCode){doGenerateQR(text,name);return;}const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';s.onload=()=>doGenerateQR(text,name);document.head.appendChild(s);}
 function doGenerateQR(text,name){

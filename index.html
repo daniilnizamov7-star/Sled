@@ -484,7 +484,7 @@ const SUPABASE_URL='https://yiqipulgofoschkccaxr.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpcWlwdWxnb2Zvc2Noa2NjYXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMjExMjksImV4cCI6MjA4OTg5NzEyOX0.Op4iBjGSOBcKh4pkVSd75_l8Fle3Cz15nBh9KF21YhI';
 const APP_URL='https://sledopyt.vercel.app';
 // ОЧКИ: +10 точка | +50 квест завершён | +25 бонус первому
-const PTS={CP:10,COMPLETE:50,FIRST:25};
+const PTS={CP:10,COMPLETE:50,FIRST:20};
 let currentUser=null,currentProfile=null,screenHistory=[],currentQuestId=null;
 let currentCheckpointToken=null,currentCheckpointData=null,selfieBlob=null,userGeo=null;
 let scanStream=null,scanInterval=null;
@@ -718,7 +718,10 @@ async function loadQuestRating(questId){
         el.innerHTML+=`<div class="leader-item" style="animation-delay:${i*.05}s"><div class="leader-rank ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div><div class="leader-avatar">${getEmoji(r.name)}</div><div class="leader-info"><div class="leader-name">${r.name} ${isMe?'<span class="me-badge">Я</span>':''} ${r.isFirst?'<span style="font-size:11px;color:var(--amber)">🏆первый</span>':''}</div><div class="leader-meta">${r.cps} из ${totalCps} точек ${r.finished?'· завершил':''}</div></div><div class="leader-pts">${r.pts}</div></div>`;
       });
     }
-  }catch(e){el.innerHTML='<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>';}
+  }catch(e){
+    const msg=e?.message||e?.hint||e?.code||JSON.stringify(e)||'неизвестная ошибка';
+    el.innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text" style="font-size:12px;color:var(--red)">Ошибка: ${msg}</div><div style="font-size:11px;color:var(--text3);margin-top:8px">Проверь таблицу quest_completions в Supabase</div></div>`;
+  }
 }
 
 async function loadTeamSection(questId){

@@ -364,7 +364,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       </div>
       <div class="form-group"><label class="form-label">Дней</label><input class="form-input" id="qDays" type="number" value="7" min="1"></div>
     </div>
-    <div class="form-group"><label class="form-label">Призовой фонд</label><input class="form-input" id="qPrize" placeholder="3 победителя — кофе в Meet.Point, остальным скидка 10%"></div>
+    <div class="form-group"><label class="form-label">Призовой фонд</label><input class="form-input" id="qPrize" placeholder="☕ Топ-3 — кофе в Friendly, остальным скидка 10%"></div>
     <button class="btn btn-secondary" onclick="fillDemoQuest()" style="margin-bottom:8px;font-size:12px">⚡ Заполнить «Свой район»</button>
     <button class="btn btn-amber" onclick="createQuest()" style="margin-bottom:12px">Создать квест</button>
   </div>
@@ -810,6 +810,20 @@ async function openCheckpointByToken(token){
     const cp=cps[0];if(cp.quests?.status!=='active')return showToast('Квест завершён');
     const hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=eq.${cp.id}`);
     if(hits.length){showToast('Эта точка уже засчитана');showMain();return;}
+    // Проверка порядка — нельзя пропустить предыдущие точки
+    if(cp.order_num>1){
+      const allCps=await sb(`checkpoints?quest_id=eq.${cp.quest_id}&order=order_num.asc&select=id,order_num`);
+      const prevCps=allCps.filter(function(c){return c.order_num<cp.order_num;});
+      if(prevCps.length>0){
+        const prevIds=prevCps.map(function(c){return c.id;}).join(',');
+        const prevHits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=in.(${prevIds})&select=checkpoint_id`);
+        if(prevHits.length<prevCps.length){
+          const missing=prevCps.length-prevHits.length;
+          showToast('Сначала нужно пройти точку '+cp.order_num+' — не хватает '+missing+' предыдущих');
+          showMain();return;
+        }
+      }
+    }
     currentCheckpointData=cp;
     document.getElementById('verifyIcon').textContent=cp.order_num===1?'🚀':'🏁';
     document.getElementById('verifyTitle').textContent=cp.name;
@@ -1046,7 +1060,7 @@ async function loadCheckpointsList(questId){
     const cps=await sb(`checkpoints?quest_id=eq.${questId}&order=order_num.asc&select=*`);
     if(!cps.length){container.innerHTML='';return;}
     container.innerHTML=`<div style="margin-top:16px"><div class="admin-title" style="margin-bottom:10px">Все точки и QR</div>`+
-      cps.map((cp,i)=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px"><div style="font-weight:600;color:var(--text);margin-bottom:4px">${i+1}. ${cp.name}</div>${cp.task_type?`<div style="font-size:11px;color:var(--blue);margin-bottom:4px">📋 ${cp.task_text||''}</div>`:''}<div style="font-size:12px;color:var(--text3);margin-bottom:8px">${cp.hint||''}</div><button class="btn btn-secondary btn-sm" onclick="generateQRAndDownload('${APP_URL}?cp=${cp.token}','${cp.name.replace(/'/g,"\\'")}')">📥 Скачать QR</button></div>`).join('')+'</div>';
+      cps.map((cp,i)=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:4px"><div style="font-weight:600;color:var(--text)">${i+1}. ${cp.name}</div><button class="btn btn-red btn-sm" style="padding:4px 8px;font-size:11px" onclick="deleteCheckpoint('${cp.id}','${cp.name.replace(/'/g,"\\'")}','${questId}')">✕ Убрать</button></div>${cp.task_type?`<div style="font-size:11px;color:var(--blue);margin-bottom:4px">📋 ${cp.task_text||''}</div>`:''}<div style="font-size:12px;color:var(--text3);margin-bottom:8px">${cp.hint||''}</div><button class="btn btn-secondary btn-sm" onclick="generateQRAndDownload('${APP_URL}?cp=${cp.token}','${cp.name.replace(/'/g,"\\'")}')">📥 Скачать QR</button></div>`).join('')+'</div>';
   }catch(e){}
 }
 async function toggleQuestStatus(id,status){if(status==='archived')return showToast('Сначала верните квест из архива');const s=status==='active'?'ended':'active';await sb(`quests?id=eq.${id}`,{method:'PATCH',body:{status:s},prefer:'return=minimal'});loadAdminQuestList();}
@@ -1089,6 +1103,26 @@ async function unarchiveQuest(id){
     showToast('✅ Квест возвращён из архива');
     loadAdminQuestList();loadAdminQuests();
   }catch(e){showToast('Ошибка');}
+}
+async function deleteCheckpoint(id, name, questId){
+  if(!confirm(`Удалить точку "${name}"?
+История прохождений этой точки участников тоже удалится.`))return;
+  try{
+    // Удаляем прохождения этой точки
+    await sb(`checkpoint_hits?checkpoint_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
+    // Удаляем саму точку
+    await sb(`checkpoints?id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
+    // Перенумерация оставшихся точек
+    const remaining=await sb(`checkpoints?quest_id=eq.${questId}&order=order_num.asc&select=id`);
+    for(let i=0;i<remaining.length;i++){
+      await sb(`checkpoints?id=eq.${remaining[i].id}`,{method:'PATCH',body:{order_num:i+1},prefer:'return=minimal'});
+    }
+    // Обновляем счётчик точек в квесте
+    await sb(`quests?id=eq.${questId}`,{method:'PATCH',body:{checkpoint_count:remaining.length},prefer:'return=minimal'});
+    showToast('✅ Точка удалена');
+    loadCheckpointsList(questId);
+    loadAdminQuests();
+  }catch(e){showToast('❌ Ошибка: '+JSON.stringify(e));}
 }
 function generateToken(){return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');}
 function generateQR(text,name){if(window.QRCode){doGenerateQR(text,name);return;}const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';s.onload=()=>doGenerateQR(text,name);document.head.appendChild(s);}
@@ -1234,7 +1268,7 @@ var _cpData={
   1:{name:'Природный парк — Старт',hint:'Деревянный стенд при главном входе со стороны ул. Аношкина',taskType:'selfie',taskText:'Сфотографируйся у входа в парк — это твой старт! Покажи что ты здесь.',taskTip:'Встань у деревянного стенда при входе',lat:'55.1944',lng:'61.2887',radius:'100'},
   2:{name:'Белки и тишина',hint:'На столбике у тренажёров в глубине парка',taskType:'find',taskText:'Найди белку в парке и сфотографируй её. Нет белки — сфотографируй дерево с дуплом.',taskTip:'Белки живут ближе к соснам, в центре парка',lat:'55.1938',lng:'61.2840',radius:'120'},
   3:{name:'ТК Ёлки',hint:'У главного входа, справа от автоматических дверей',taskType:'riddle',taskText:'В каком году построен этот торговый центр? Найди табличку или информационный стенд.',taskTip:'Ищи табличку у входа или на стенде внутри. Год постройки — 4 цифры.',lat:'55.1919',lng:'61.2821',radius:'100'},
-  4:{name:'Финиш: Meet.Point 🏁',hint:'На двери или витрине ресторана Meet.Point',taskType:'action',taskText:'Ты дошёл! Сфотографируй меню или витрину — что закажешь после прогулки? Заслужил!',taskTip:'Meet.Point внутри ТК Ёлки, 1 этаж',lat:'55.1919',lng:'61.2821',radius:'80'}
+  4:{name:'Финиш: Белый Рынок 🏁',hint:'Вход в фудкорт Белый Рынок внутри ТК Ёлки',taskType:'action',taskText:'Ты дошёл! Сфотографируй любое блюдо в фудкорте — что закажешь после прогулки? Заслужил!',taskTip:'Белый Рынок на 2 этаже ТК Ёлки',lat:'55.1919',lng:'61.2822',radius:'100'}
 };
 function fillCP(n){
   var d=_cpData[n];if(!d)return;
@@ -1251,10 +1285,10 @@ function fillCP(n){
 }
 function fillDemoQuest(){
   document.getElementById('qTitle').value='Свой район';
-  document.getElementById('qDesc').value='Исследуй Александровский за 30 минут. 4 точки, природа, кафе и финиш в ресторане. Старт — природный парк, финиш — Meet.Point.';
+  document.getElementById('qDesc').value='Исследуй Александровский за 30 минут. 4 точки, природа, ТК Ёлки, финиш в фудкорте Белый Рынок.';
   document.getElementById('qType').value='solo';
   document.getElementById('qDays').value='14';
-  document.getElementById('qPrize').value='☕ Топ-3 — кофе в Meet.Point, всем участникам скидка 10%';
+  document.getElementById('qPrize').value='🏆 Топ-3 — приз от организатора, финиш в Белом Рынке';
   showToast('✅ Квест заполнен — нажми «Создать квест»');
 }
 function closeModal(id){document.getElementById(id).classList.remove('show');}

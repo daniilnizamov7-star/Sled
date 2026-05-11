@@ -84,7 +84,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 .detail-tab.active{color:var(--green);border-bottom-color:var(--green)}
 .checkpoint-item{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:.2s;animation:slideUp .3s ease both}
 .checkpoint-item:active{transform:scale(.98)}
-.checkpoint-item.done{border-color:var(--green-dim);background:rgba(74,222,128,.05)}
+.checkpoint-item.done{border-color:var(--green-dim);background:rgba(74,222,128,.05)}.checkpoint-item.locked{opacity:.45;pointer-events:none}.checkpoint-item.locked{opacity:.45;pointer-events:none}
 .cp-num{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Unbounded','Arial Black',sans-serif;font-size:13px;font-weight:700;color:var(--text3);flex-shrink:0}
 .checkpoint-item.done .cp-num{border-color:var(--green);color:var(--green);background:rgba(74,222,128,.1)}
 .cp-info{flex:1}
@@ -190,7 +190,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 @keyframes fadeOut{to{opacity:0;pointer-events:none}}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes scanLine{0%{top:0}100%{top:calc(100% - 2px)}}
+@keyframes scanLine{0%{top:0}100%{top:calc(100% - 2px)}}@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(105vh) rotate(720deg) scale(0.5);opacity:0}}
 </style>
 </head>
 <body>
@@ -321,7 +321,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 </div>
 
 <div id="leaderScreen" class="screen">
-  <div class="topbar"><div><div class="topbar-title">Лидеры</div><div class="topbar-sub">Общий рейтинг</div></div></div>
+  <div class="topbar"><div><div class="topbar-title">Лидеры</div><div class="topbar-sub">Общий рейтинг</div></div><div id="rtDot" title="Обновление" style="width:8px;height:8px;border-radius:50%;background:var(--green);opacity:0;transition:opacity .5s;flex-shrink:0"></div></div>
   <div class="leader-tabs">
     <div class="leader-tab active" onclick="loadLeader('solo',this)">Личный</div>
     <div class="leader-tab" onclick="loadLeader('team',this)">Командный</div>
@@ -480,7 +480,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 </div>
 <div class="success-overlay" id="successOverlay">
   <div class="success-icon">🎯</div>
-  <div class="success-title">Точка засчитана!</div>
+  <div class="success-title" id="successTitle">Точка засчитана!</div>
   <div class="success-sub" id="successSub">+10 баллов</div>
   <button class="btn btn-primary btn-sm" style="margin-top:24px;width:auto;padding:12px 32px" onclick="afterSuccess()">Продолжить</button>
 </div>
@@ -518,11 +518,11 @@ window.addEventListener('load',async()=>{
   const token=sessionStorage.getItem('sb_token'),uid=sessionStorage.getItem('sb_uid');
   setTimeout(async()=>{
     document.getElementById('splash').style.display='none';
-    if(token&&uid){currentUser={id:uid};await loadProfile();if(currentCheckpointToken)await openCheckpointByToken(currentCheckpointToken);else showMain();}
+    if(token&&uid){currentUser={id:uid};await loadProfile();subscribeRealtime();if(currentCheckpointToken)await openCheckpointByToken(currentCheckpointToken);else showMain();}
     else goScreen('authScreen');
   },2400);
 });
-window.addEventListener('popstate',()=>{if(screenHistory.length>1){screenHistory.pop();showScreenDirect(screenHistory[screenHistory.length-1]);}});
+window.addEventListener('popstate',()=>{const _ov=document.getElementById('successOverlay');if(_ov&&_ov.classList.contains('show')){_ov.classList.remove('show');return;}if(screenHistory.length>1){screenHistory.pop();showScreenDirect(screenHistory[screenHistory.length-1]);}});
 
 function goScreen(id){screenHistory.push(id);history.pushState({},'','#');showScreenDirect(id);}
 function showScreenDirect(id){
@@ -547,7 +547,7 @@ async function doLogin(){
   if(!email||!pass)return showToast('Заполните все поля');
   try{const data=await sbAuth('token?grant_type=password',email,pass);if(data.error)return showToast('Ошибка: '+data.error_description);
   sessionStorage.setItem('sb_token',data.access_token);sessionStorage.setItem('sb_uid',data.user.id);currentUser=data.user;
-  await loadProfile();if(currentCheckpointToken)await openCheckpointByToken(currentCheckpointToken);else showMain();}
+  await loadProfile();subscribeRealtime();if(currentCheckpointToken)await openCheckpointByToken(currentCheckpointToken);else showMain();}
   catch(e){showToast('Ошибка входа');}
 }
 async function doRegister(){
@@ -635,6 +635,7 @@ async function openQuest(quest){
     </div>`;
   goScreen('questScreen');
   const firstTab=document.querySelector('#questScreen .detail-tab');switchDetailTab('route',firstTab);
+  if(quest.end_date)setTimeout(function(){startQuestTimer(quest.end_date);},60);
 }
 
 function switchDetailTab(tab,el){
@@ -657,7 +658,7 @@ async function loadCheckpoints(questId){
     // Текущая точка = первая непройденная
     const nextIdx=cps.findIndex(cp=>!hitIds.has(cp.id));
     el.innerHTML=`<div style="padding:16px 20px 8px">
-      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:10px">${cps.map(function(cp,idx){var done=hitIds.has(cp.id);var nxt=idx===cps.findIndex(function(x){return !hitIds.has(x.id);});var bc=done?"var(--green)":nxt?"var(--green-dim)":"var(--border)";var bg=done?"rgba(74,222,128,.2)":"transparent";var tc=done?"var(--green)":nxt?"var(--text2)":"var(--text3)";var lbl=done?"\u2713":(idx+1);return "<div style=\"width:26px;height:26px;border-radius:50%;border:2px solid "+bc+";background:"+bg+";display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:"+tc+";transition:all .5s cubic-bezier(.34,1.56,.64,1)\">"+lbl+"</div>";}).join("<div style=\"width:10px;height:2px;background:var(--border);border-radius:1px;flex-shrink:0\"></div>")}</div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
       <div class="progress-label">${hitIds.size} из ${cps.length} точек пройдено</div>
     </div>
     ${nextIdx>=0?`<div style="padding:0 20px 8px;font-size:12px;color:var(--text3)">📍 Следующая точка открыта · Остальные откроются после прохождения</div>`:''}
@@ -865,7 +866,7 @@ async function submitCheckpoint(){
     currentProfile.points=newPts;currentProfile.checkpoints_hit=newHits;
     const msg=await checkQuestCompletion(currentCheckpointData.quest_id);
     document.getElementById('successSub').textContent=msg||`+${PTS.CP} баллов за точку!`;
-    document.getElementById('successOverlay').classList.add('show');
+    var _fin=msg&&(msg.indexOf('\u0444\u0438\u043d\u0438\u0448')>=0||msg.indexOf('\u0437\u0430\u0432')>=0);if(_fin){launchConfetti();playHitSound('complete');}else{playHitSound('hit');}document.getElementById('successOverlay').classList.add('show');
     currentCheckpointData=null;selfieBlob=null;document.getElementById('captionInput').value='';
   }catch(e){btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';showToast('Ошибка: '+(e.message||'попробуй ещё раз'));}
 }
@@ -922,7 +923,7 @@ function doScan(video){
   },80);
 }
 function stopScan(){if(scanInterval){clearInterval(scanInterval);scanInterval=null;}if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;}goBack();}
-function handleQRResult(url){try{const token=new URL(url).searchParams.get('cp');if(token){currentCheckpointToken=token;openCheckpointByToken(token);}else showToast('Неверный QR-код');}catch(e){showToast('Неверный формат QR');}}
+function handleQRResult(url){try{const token=new URL(url).searchParams.get('cp');if(token){playHitSound('hit');currentCheckpointToken=token;openCheckpointByToken(token);}else showToast('Неверный QR-код');}catch(e){showToast('Неверный формат QR');}}
 
 async function loadLeader(type,tabEl){
   if(tabEl){document.querySelectorAll('.leader-tab').forEach(t=>t.classList.remove('active'));tabEl.classList.add('active');}
@@ -937,17 +938,11 @@ function toggleTaskFields(){const type=document.getElementById('cpTaskType').val
 function initAdminScreen(){
   loadAdminQuests();
   loadAdminQuestList();
-  // Синхронизировать селект спонсоров
-  setTimeout(()=>{
-    const spSel=document.getElementById('spQuestId');
-    const cpSel=document.getElementById('cpQuestId');
-    if(spSel&&cpSel) spSel.innerHTML=cpSel.innerHTML;
-  },800);
 }
 async function loadAdminQuests(){
   if(!currentProfile?.is_admin)return;
   const sel=document.getElementById('cpQuestId'),saved=sel.value;
-  try{const q=await sb(`quests?select=*&order=created_at.desc`);sel.innerHTML='<option value="">Выберите квест...</option>'+q.map(x=>`<option value="${x.id}">${x.title}</option>`).join('');if(saved)sel.value=saved;}catch(e){}
+  try{const q=await sb(`quests?select=*&order=created_at.desc`);sel.innerHTML='<option value="">Выберите квест...</option>'+q.map(x=>`<option value="${x.id}">${x.title}</option>`).join('');if(saved)sel.value=saved;const spEl=document.getElementById('spQuestId');if(spEl&&spEl.options.length<=1)spEl.innerHTML=sel.innerHTML;}catch(e){}
 }
 async function loadAdminQuestList(){
   if(!currentProfile?.is_admin)return;
@@ -1160,6 +1155,55 @@ async function givePointsByUsername() {
 }
 
 function closeModal(id){document.getElementById(id).classList.remove('show');}
+
+function launchConfetti(){
+  var cl=["#4ade80","#fbbf24","#60a5fa","#f87171","#a78bfa","#34d399"];
+  for(var i=0;i<90;i++){
+    var e=document.createElement("div");
+    var c=cl[Math.floor(Math.random()*cl.length)];
+    var sz=Math.random()*10+5,lf=Math.random()*100,dl=Math.random()*1.2,dr=Math.random()*1.8+1.8;
+    e.style.cssText="position:fixed;left:"+lf+"%;top:-20px;width:"+sz+"px;height:"+sz+"px;background:"+c+";border-radius:"+(Math.random()>.45?"50%":"2px")+";z-index:9999;pointer-events:none;animation:confettiFall "+dr+"s ease "+dl+"s forwards";
+    document.body.appendChild(e);
+    setTimeout((function(x,t){return function(){if(x.parentNode)x.parentNode.removeChild(x);};})(e,dr+dl),(dr+dl)*1000+300);
+  }
+}
+
+var _timerInt=null;
+function startQuestTimer(endDate){
+  if(_timerInt)clearInterval(_timerInt);
+  var el=document.getElementById("questTimer");if(!el)return;
+  var end=new Date(endDate).getTime();
+  function tick(){
+    var diff=end-Date.now();
+    if(diff<=0){el.textContent="Квест завершён";el.style.color="var(--red)";clearInterval(_timerInt);return;}
+    var d=Math.floor(diff/86400000),hh=Math.floor((diff%86400000)/3600000),mm=Math.floor((diff%3600000)/60000),ss=Math.floor((diff%60000)/1000);
+    el.textContent="⏱ "+(d>0?d+"д "+hh+"ч "+mm+"м":hh+"ч "+mm+"м "+ss+"с");
+    if(diff<3600000){el.style.color="var(--red)";el.style.fontWeight="700";}
+    else if(diff<86400000){el.style.color="var(--amber)";el.style.fontWeight="600";}
+    else{el.style.color="var(--text3)";el.style.fontWeight="400";}
+  }
+  tick();_timerInt=setInterval(tick,1000);
+}
+var _rtWS=null,_rtRetry=0;
+function subscribeRealtime(){
+  if(_rtWS&&_rtWS.readyState<2)return;
+  try{
+    var url=SUPABASE_URL.replace("https://","wss://")+"/realtime/v1/websocket?apikey="+SUPABASE_KEY+"&vsn=1.0.0";
+    _rtWS=new WebSocket(url);
+    _rtWS.onopen=function(){_rtRetry=0;_rtWS.send(JSON.stringify({topic:"realtime:public:checkpoint_hits",event:"phx_join",payload:{config:{postgres_changes:[{event:"INSERT",schema:"public",table:"checkpoint_hits"}]}},ref:"rt1"}));};
+    _rtWS.onmessage=function(ev){try{var m=JSON.parse(ev.data);if(m&&(m.event==="postgres_changes"||(m.payload&&m.payload.type==="INSERT"))){var ls=document.getElementById("leaderScreen");if(ls&&ls.classList.contains("active")){var at=document.querySelector(".leader-tab.active");loadLeader(at&&at.textContent.indexOf("\u041a\u043e\u043c\u0430\u043d\u0434")>=0?"team":"solo");}var d=document.getElementById("rtDot");if(d){d.style.opacity="1";setTimeout(function(){d.style.opacity="0";},1500);}}}catch(er){}};
+    _rtWS.onclose=function(){_rtRetry++;if(_rtRetry<6)setTimeout(subscribeRealtime,2000*_rtRetry);};
+    _rtWS.onerror=function(){};
+  }catch(e){}
+}
+function playHitSound(type){
+  try{
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    function note(f,s,d,v){var o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,ctx.currentTime+s);g.gain.linearRampToValueAtTime(v||0.2,ctx.currentTime+s+0.01);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+s+d);o.start(ctx.currentTime+s);o.stop(ctx.currentTime+s+d+0.05);}
+    if(type==='complete'){note(523,0,.12,.2);note(659,.13,.12,.2);note(784,.26,.12,.2);note(1047,.39,.28,.25);note(784,.67,.4,.18);}
+    else{note(880,0,.07,.18);note(1320,.08,.14,.14);}
+  }catch(e){}
+}
 </script>
 <script>
 if('serviceWorker'in navigator){

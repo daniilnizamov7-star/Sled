@@ -364,7 +364,8 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       </div>
       <div class="form-group"><label class="form-label">Дней</label><input class="form-input" id="qDays" type="number" value="7" min="1"></div>
     </div>
-    <div class="form-group"><label class="form-label">Призовой фонд</label><input class="form-input" id="qPrize" placeholder="Сертификат 3000₽ от CoffeeTime"></div>
+    <div class="form-group"><label class="form-label">Призовой фонд</label><input class="form-input" id="qPrize" placeholder="3 победителя — кофе в Meet.Point, остальным скидка 10%"></div>
+    <button class="btn btn-secondary" onclick="fillDemoQuest()" style="margin-bottom:8px;font-size:12px">⚡ Заполнить «Свой район»</button>
     <button class="btn btn-amber" onclick="createQuest()" style="margin-bottom:12px">Создать квест</button>
   </div>
   <div class="admin-section">
@@ -398,6 +399,12 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <div class="form-group"><label class="form-label">Долгота</label><input class="form-input" id="cpLng" placeholder="61.4290"></div>
     </div>
     <div class="form-group"><label class="form-label">Радиус проверки (м)</label><input class="form-input" id="cpRadius" type="number" value="150"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <button class="btn btn-secondary btn-sm" onclick="fillCP(1)">⚡ Точка 1: Парк-вход</button>
+      <button class="btn btn-secondary btn-sm" onclick="fillCP(2)">⚡ Точка 2: Белки</button>
+      <button class="btn btn-secondary btn-sm" onclick="fillCP(3)">⚡ Точка 3: Ёлки</button>
+      <button class="btn btn-secondary btn-sm" onclick="fillCP(4)">⚡ Точка 4: Meet.Point</button>
+    </div>
     <button class="btn btn-amber" onclick="createCheckpoint()">Добавить точку + QR</button>
     <div id="qrResult" style="margin-top:16px;text-align:center;display:none">
       <div class="qr-box"></div>
@@ -555,8 +562,13 @@ async function doRegister(){
   if(!name||!email||!pass)return showToast('Заполните все поля');if(pass.length<6)return showToast('Пароль минимум 6 символов');if(!document.getElementById('regConsent').checked)return showToast('⚠️ Необходимо согласие на обработку данных');
   try{const data=await sbAuth('signup',email,pass,{username:name,city});if(data.error)return showToast('Ошибка: '+data.error_description);
   sessionStorage.setItem('sb_token',data.access_token);sessionStorage.setItem('sb_uid',data.user.id);currentUser=data.user;
-  await sb('sledopyt_profiles',{method:'POST',body:{id:data.user.id,username:name,city,points:0,quests_completed:0,checkpoints_hit:0,is_admin:false},prefer:'return=minimal'});
-  await loadProfile();showMain();}catch(e){showToast('Ошибка регистрации: '+JSON.stringify(e));}
+  await sb('sledopyt_profiles',{method:'POST',body:{id:data.user.id,username:name,city,points:20,quests_completed:0,checkpoints_hit:0,is_admin:false},prefer:'return=minimal'});
+  // Приветственные баллы в историю
+  try{await sb('manual_points',{method:'POST',body:{user_id:data.user.id,points:20,reason:'🎉 Приветственный бонус за регистрацию',given_by:data.user.id},prefer:'return=minimal'});}catch(e2){}
+  await loadProfile();
+  // Показать экран приветствия с баллами
+  setTimeout(()=>{showToast('🎉 +20 баллов за регистрацию — добро пожаловать!');},600);
+  showMain();}catch(e){showToast('Ошибка регистрации: '+JSON.stringify(e));}
 }
 async function doLogout(){sessionStorage.clear();currentUser=null;currentProfile=null;goScreen('authScreen');}
 
@@ -857,6 +869,27 @@ async function compressImage(file,maxSize,quality){
 async function submitCheckpoint(){
   if(!currentCheckpointData)return;
   const btn=document.getElementById('submitBtn');btn.disabled=true;btn.textContent='Сохраняем...';
+  var geoOk=await new Promise(function(resolve){
+    if(!navigator.geolocation){resolve(true);return;}
+    navigator.geolocation.getCurrentPosition(function(pos){
+      userGeo=pos.coords;
+      var dist=getDistance(pos.coords.latitude,pos.coords.longitude,currentCheckpointData.lat,currentCheckpointData.lng);
+      var radius=currentCheckpointData.radius_meters||150;
+      var badge=document.getElementById('geoStatus');
+      if(dist<=radius){
+        if(badge){badge.textContent='✅ На месте ('+Math.round(dist)+'м)';badge.className='geo-badge';}
+        resolve(true);
+      }else{
+        if(badge){badge.textContent='~ '+Math.round(dist)+'м от точки';badge.className='geo-badge error';}
+        resolve(false);
+      }
+    },function(){resolve(true);},{timeout:6000,enableHighAccuracy:true,maximumAge:10000});
+  });
+  if(!geoOk){
+    btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';
+    showToast('Ты далеко от точки! Подойди ближе.');
+    return;
+  }
   try{
     let photoUrl=null;
     if(selfieBlob){const path=`selfies/${currentUser.id}/${currentCheckpointData.id}_${Date.now()}.jpg`;photoUrl=await uploadPhoto('checkpoint-photos',path,selfieBlob);}
@@ -1197,6 +1230,33 @@ async function givePointsByUsername() {
   } catch(e) { showToast('Ошибка: '+JSON.stringify(e)); }
 }
 
+var _cpData={
+  1:{name:'Природный парк — Старт',hint:'Деревянный стенд при главном входе со стороны ул. Аношкина',taskType:'selfie',taskText:'Сфотографируйся у входа в парк — это твой старт! Покажи что ты здесь.',taskTip:'Встань у деревянного стенда при входе',lat:'55.1944',lng:'61.2887',radius:'100'},
+  2:{name:'Белки и тишина',hint:'На столбике у тренажёров в глубине парка',taskType:'find',taskText:'Найди белку в парке и сфотографируй её. Нет белки — сфотографируй дерево с дуплом.',taskTip:'Белки живут ближе к соснам, в центре парка',lat:'55.1938',lng:'61.2840',radius:'120'},
+  3:{name:'ТК Ёлки',hint:'У главного входа, справа от автоматических дверей',taskType:'riddle',taskText:'В каком году построен этот торговый центр? Найди табличку или информационный стенд.',taskTip:'Ищи табличку у входа или на стенде внутри. Год постройки — 4 цифры.',lat:'55.1919',lng:'61.2821',radius:'100'},
+  4:{name:'Финиш: Meet.Point 🏁',hint:'На двери или витрине ресторана Meet.Point',taskType:'action',taskText:'Ты дошёл! Сфотографируй меню или витрину — что закажешь после прогулки? Заслужил!',taskTip:'Meet.Point внутри ТК Ёлки, 1 этаж',lat:'55.1919',lng:'61.2821',radius:'80'}
+};
+function fillCP(n){
+  var d=_cpData[n];if(!d)return;
+  document.getElementById('cpName').value=d.name;
+  document.getElementById('cpHint').value=d.hint;
+  document.getElementById('cpTaskType').value=d.taskType;
+  document.getElementById('cpTaskText').value=d.taskText;
+  document.getElementById('cpTaskTip').value=d.taskTip;
+  document.getElementById('cpLat').value=d.lat;
+  document.getElementById('cpLng').value=d.lng;
+  document.getElementById('cpRadius').value=d.radius;
+  toggleTaskFields();
+  showToast('✅ Точка '+n+' заполнена — выбери квест и нажми «Добавить»');
+}
+function fillDemoQuest(){
+  document.getElementById('qTitle').value='Свой район';
+  document.getElementById('qDesc').value='Исследуй Александровский за 30 минут. 4 точки, природа, кафе и финиш в ресторане. Старт — природный парк, финиш — Meet.Point.';
+  document.getElementById('qType').value='solo';
+  document.getElementById('qDays').value='14';
+  document.getElementById('qPrize').value='☕ Топ-3 — кофе в Meet.Point, всем участникам скидка 10%';
+  showToast('✅ Квест заполнен — нажми «Создать квест»');
+}
 function closeModal(id){document.getElementById(id).classList.remove('show');}
 
 function launchConfetti(){

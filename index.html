@@ -5,658 +5,413 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0d1f0e">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Следопыт</title>
 <link rel="manifest" href="manifest.json">
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg: #0a150b;
-  --bg2: #111f12;
-  --bg3: #192b1a;
-  --green: #4ade80;
-  --green2: #22c55e;
-  --green-dim: #16a34a;
-  --amber: #fbbf24;
-  --amber-dim: #d97706;
-  --red: #f87171;
-  --text: #e8f5e9;
-  --text2: #9ab89b;
-  --text3: #5a7a5b;
-  --border: #1e3a1f;
-  --card: #111f12;
-  --card2: #162817;
-  --radius: 16px;
-  --radius-sm: 10px;
-}
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:'Golos Text',sans-serif; }
-
-/* ══════════ LAYOUT ══════════ */
-#app { height:100%; display:flex; flex-direction:column; }
-.screen { display:none; flex:1; overflow-y:auto; overflow-x:hidden; flex-direction:column; }
-.screen.active { display:flex; }
-
-/* ══════════ TOPBAR ══════════ */
-.topbar {
-  padding: 16px 20px 12px;
-  display:flex; align-items:center; justify-content:space-between;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg);
-  position: sticky; top:0; z-index:10;
-  backdrop-filter: blur(12px);
-}
-.topbar-title { font-family:'Unbounded',sans-serif; font-size:18px; font-weight:800; color:var(--green); letter-spacing:-0.5px; }
-.topbar-sub { font-size:12px; color:var(--text3); margin-top:1px; }
-.topbar-right { display:flex; gap:8px; align-items:center; }
-.avatar { width:36px; height:36px; border-radius:50%; background:var(--bg3); border:2px solid var(--green-dim); display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer; }
-
-/* ══════════ BOTTOM NAV ══════════ */
-.bottom-nav {
-  display:flex; background:var(--bg2); border-top:1px solid var(--border);
-  padding: 8px 0 max(8px, env(safe-area-inset-bottom));
-}
-.nav-btn {
-  flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
-  background:none; border:none; color:var(--text3); cursor:pointer;
-  font-family:'Golos Text',sans-serif; font-size:10px; padding:6px 0;
-  transition: color .2s;
-}
-.nav-btn svg { width:22px; height:22px; transition: transform .2s; }
-.nav-btn.active { color:var(--green); }
-.nav-btn.active svg { transform: scale(1.15); }
-
-/* ══════════ SPLASH ══════════ */
-#splash {
-  background: var(--bg);
-  align-items:center; justify-content:center; gap:0;
-  position:fixed; inset:0; z-index:100;
-  animation: fadeOut .4s ease 2s forwards;
-}
-.splash-logo {
-  font-family:'Unbounded',sans-serif; font-size:42px; font-weight:800;
-  color:var(--green); letter-spacing:-2px;
-  animation: logoIn .6s cubic-bezier(.34,1.56,.64,1) .2s both;
-}
-.splash-tagline {
-  font-size:13px; color:var(--text3); margin-top:8px;
-  animation: logoIn .6s cubic-bezier(.34,1.56,.64,1) .4s both;
-}
-.splash-tracks {
-  position:absolute; inset:0; overflow:hidden; pointer-events:none;
-}
-.track-line {
-  position:absolute; width:1px; background:linear-gradient(to bottom, transparent, var(--green-dim), transparent);
-  opacity:.15; animation: trackScroll 3s linear infinite;
-}
-@keyframes trackScroll { 0%{top:-100%} 100%{top:200%} }
-@keyframes logoIn { from{opacity:0;transform:scale(.8) translateY(20px)} to{opacity:1;transform:scale(1) translateY(0)} }
-@keyframes fadeOut { to{opacity:0;pointer-events:none} }
-@keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-@keyframes slideUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
-@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
-@keyframes spin { to{transform:rotate(360deg)} }
-@keyframes scanLine { 0%{top:0} 100%{top:calc(100% - 2px)} }
-
-/* ══════════ AUTH SCREEN ══════════ */
-#authScreen {
-  align-items:center; justify-content:center; padding:32px 24px;
-  background: radial-gradient(ellipse 80% 60% at 50% 100%, #0d2e0e, var(--bg));
-}
-.auth-logo { font-family:'Unbounded',sans-serif; font-size:36px; font-weight:800; color:var(--green); letter-spacing:-1px; margin-bottom:6px; }
-.auth-tagline { font-size:14px; color:var(--text3); margin-bottom:48px; text-align:center; }
-.auth-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:28px 24px; width:100%; max-width:360px; }
-.auth-tabs { display:flex; background:var(--bg3); border-radius:var(--radius-sm); padding:4px; margin-bottom:24px; gap:4px; }
-.auth-tab { flex:1; text-align:center; padding:8px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; transition:.2s; color:var(--text3); border:none; background:none; font-family:'Golos Text',sans-serif; }
-.auth-tab.active { background:var(--green-dim); color:var(--text); }
-.form-group { margin-bottom:16px; }
-.form-label { font-size:12px; color:var(--text3); margin-bottom:6px; display:block; font-weight:500; }
-.form-input {
-  width:100%; padding:12px 14px; background:var(--bg3); border:1px solid var(--border);
-  border-radius:var(--radius-sm); color:var(--text); font-size:15px; font-family:'Golos Text',sans-serif;
-  outline:none; transition:.2s;
-}
-.form-input:focus { border-color:var(--green-dim); box-shadow:0 0 0 3px rgba(74,222,128,.1); }
-.form-input::placeholder { color:var(--text3); }
-.btn { width:100%; padding:14px; border-radius:var(--radius-sm); border:none; font-size:15px; font-weight:600; font-family:'Unbounded',sans-serif; cursor:pointer; transition:.2s; letter-spacing:-.3px; }
-.btn-primary { background:var(--green); color:#0a150b; }
-.btn-primary:active { background:var(--green2); transform:scale(.98); }
-.btn-secondary { background:var(--bg3); color:var(--text); border:1px solid var(--border); }
-.btn-secondary:active { transform:scale(.98); }
-.btn-amber { background:var(--amber); color:#1a0f00; }
-.btn-amber:active { background:var(--amber-dim); transform:scale(.98); }
-.btn-sm { padding:10px 16px; font-size:13px; width:auto; font-family:'Golos Text',sans-serif; font-weight:600; }
-.btn-outline { background:transparent; color:var(--green); border:1px solid var(--green-dim); }
-.btn-red { background:var(--red); color:#1a0000; }
-.auth-divider { text-align:center; color:var(--text3); font-size:12px; margin:16px 0; position:relative; }
-.auth-divider::before, .auth-divider::after { content:''; position:absolute; top:50%; width:40%; height:1px; background:var(--border); }
-.auth-divider::before { left:0; } .auth-divider::after { right:0; }
-
-/* ══════════ HOME ══════════ */
-#homeScreen { background:var(--bg); }
-.home-hero {
-  padding: 24px 20px 20px;
-  background: linear-gradient(160deg, var(--bg3) 0%, var(--bg) 100%);
-  border-bottom:1px solid var(--border);
-  position:relative; overflow:hidden;
-}
-.hero-greeting { font-size:13px; color:var(--text3); margin-bottom:4px; }
-.hero-name { font-family:'Unbounded',sans-serif; font-size:22px; font-weight:800; color:var(--text); letter-spacing:-.5px; }
-.hero-dots { position:absolute; right:-20px; top:-20px; width:140px; height:140px; border-radius:50%; border:1px solid var(--border); opacity:.4; }
-.hero-dots::after { content:''; position:absolute; inset:20px; border-radius:50%; border:1px solid var(--border); }
-.stat-row { display:flex; gap:10px; margin-top:20px; }
-.stat-card { flex:1; background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; }
-.stat-val { font-family:'Unbounded',sans-serif; font-size:22px; font-weight:800; color:var(--green); }
-.stat-label { font-size:11px; color:var(--text3); margin-top:2px; }
-.section { padding:20px; }
-.section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-.section-title { font-family:'Unbounded',sans-serif; font-size:14px; font-weight:700; color:var(--text); letter-spacing:-.3px; }
-.see-all { font-size:12px; color:var(--green); cursor:pointer; }
-
-/* ══════════ QUEST CARDS ══════════ */
-.quest-card {
-  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
-  padding:16px; margin-bottom:12px; cursor:pointer; transition:.2s;
-  animation: fadeIn .4s ease both;
-  position:relative; overflow:hidden;
-}
-.quest-card:active { transform:scale(.98); }
-.quest-card::before {
-  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
-  background:var(--green); border-radius:3px 0 0 3px;
-}
-.quest-card.team::before { background:var(--amber); }
-.quest-badge {
-  display:inline-flex; align-items:center; gap:5px; padding:3px 8px;
-  border-radius:20px; font-size:11px; font-weight:600; margin-bottom:10px;
-}
-.badge-solo { background:rgba(74,222,128,.15); color:var(--green); }
-.badge-team { background:rgba(251,191,36,.15); color:var(--amber); }
-.badge-active { background:rgba(74,222,128,.1); color:var(--green2); }
-.badge-ended { background:rgba(255,100,100,.1); color:var(--red); }
-.quest-title { font-family:'Unbounded',sans-serif; font-size:15px; font-weight:700; color:var(--text); letter-spacing:-.3px; margin-bottom:6px; }
-.quest-desc { font-size:13px; color:var(--text2); line-height:1.5; margin-bottom:12px; }
-.quest-meta { display:flex; gap:12px; flex-wrap:wrap; }
-.quest-meta-item { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text3); }
-.quest-progress { margin-top:12px; }
-.progress-bar { height:4px; background:var(--bg3); border-radius:2px; overflow:hidden; }
-.progress-fill { height:100%; background:var(--green); border-radius:2px; transition:width .5s ease; }
-.progress-label { font-size:11px; color:var(--text3); margin-top:4px; }
-
-/* ══════════ QUEST DETAIL ══════════ */
-#questScreen { background:var(--bg); }
-.quest-detail-hero {
-  padding:24px 20px 20px;
-  background:linear-gradient(160deg, #0d2a0e, var(--bg));
-  border-bottom:1px solid var(--border);
-}
-.back-btn { display:flex; align-items:center; gap:6px; color:var(--green); font-size:13px; cursor:pointer; margin-bottom:16px; background:none; border:none; font-family:'Golos Text',sans-serif; }
-.quest-detail-title { font-family:'Unbounded',sans-serif; font-size:20px; font-weight:800; color:var(--text); margin-bottom:8px; letter-spacing:-.5px; }
-.checkpoint-list { padding:20px; }
-.checkpoint-item {
-  display:flex; align-items:center; gap:14px;
-  background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm);
-  padding:14px 16px; margin-bottom:10px; cursor:pointer; transition:.2s;
-  animation: slideUp .3s ease both;
-  position:relative;
-}
-.checkpoint-item:active { transform:scale(.98); }
-.checkpoint-item.done { border-color:var(--green-dim); background:rgba(74,222,128,.05); }
-.checkpoint-item.locked { opacity:.5; cursor:default; }
-.cp-num {
-  width:36px; height:36px; border-radius:50%; border:2px solid var(--border);
-  display:flex; align-items:center; justify-content:center;
-  font-family:'Unbounded',sans-serif; font-size:13px; font-weight:700; color:var(--text3);
-  flex-shrink:0;
-}
-.checkpoint-item.done .cp-num { border-color:var(--green); color:var(--green); background:rgba(74,222,128,.1); }
-.cp-info { flex:1; }
-.cp-name { font-size:14px; font-weight:600; color:var(--text); }
-.cp-hint { font-size:12px; color:var(--text3); margin-top:2px; }
-.cp-check { color:var(--green); opacity:0; transition:.2s; }
-.checkpoint-item.done .cp-check { opacity:1; }
-
-/* ══════════ CHECKPOINT VERIFY ══════════ */
-#verifyScreen { background:var(--bg); align-items:center; }
-.verify-container { padding:32px 24px; display:flex; flex-direction:column; align-items:center; gap:24px; width:100%; max-width:400px; margin:auto; }
-.verify-icon { width:80px; height:80px; border-radius:50%; background:rgba(74,222,128,.1); border:2px solid var(--green-dim); display:flex; align-items:center; justify-content:center; font-size:36px; animation:pulse 2s ease infinite; }
-.verify-title { font-family:'Unbounded',sans-serif; font-size:20px; font-weight:800; text-align:center; color:var(--text); letter-spacing:-.5px; }
-.verify-sub { font-size:14px; color:var(--text2); text-align:center; line-height:1.6; }
-.verify-quest-name { color:var(--green); font-weight:600; }
-.selfie-area {
-  width:100%; aspect-ratio:1; background:var(--bg3); border-radius:var(--radius);
-  border:2px dashed var(--border); display:flex; flex-direction:column;
-  align-items:center; justify-content:center; gap:10px; cursor:pointer;
-  transition:.2s; position:relative; overflow:hidden;
-}
-.selfie-area:active { border-color:var(--green); }
-.selfie-area img { width:100%; height:100%; object-fit:cover; border-radius:14px; }
-.selfie-area .selfie-placeholder { display:flex; flex-direction:column; align-items:center; gap:8px; color:var(--text3); font-size:13px; }
-.geo-badge {
-  background:rgba(74,222,128,.1); border:1px solid var(--green-dim); border-radius:20px;
-  padding:6px 14px; font-size:12px; color:var(--green); display:flex; align-items:center; gap:6px;
-}
-.geo-badge.error { background:rgba(248,113,113,.1); border-color:var(--red); color:var(--red); }
-.success-overlay {
-  position:fixed; inset:0; background:rgba(0,0,0,.9); display:none;
-  flex-direction:column; align-items:center; justify-content:center; gap:16px; z-index:50;
-}
-.success-overlay.show { display:flex; animation:fadeIn .3s ease; }
-.success-icon { font-size:72px; animation:logoIn .5s cubic-bezier(.34,1.56,.64,1); }
-.success-title { font-family:'Unbounded',sans-serif; font-size:24px; font-weight:800; color:var(--green); animation:fadeIn .5s ease .2s both; }
-.success-sub { font-size:14px; color:var(--text2); animation:fadeIn .5s ease .3s both; }
-
-/* ══════════ SCANNER ══════════ */
-#scanScreen { background:#000; }
-.scan-container { position:relative; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-.scan-video { width:100%; height:100%; object-fit:cover; position:absolute; inset:0; }
-.scan-overlay { position:absolute; inset:0; background:rgba(0,0,0,.6); }
-.scan-frame {
-  position:absolute; width:240px; height:240px;
-  border-radius:20px; overflow:hidden;
-  box-shadow:0 0 0 9999px rgba(0,0,0,.6);
-}
-.scan-frame::before, .scan-frame::after,
-.scan-corner-bl, .scan-corner-br {
-  content:''; position:absolute; width:32px; height:32px; border-color:var(--green); border-style:solid;
-}
-.scan-frame::before { top:0; left:0; border-width:3px 0 0 3px; border-radius:4px 0 0 0; }
-.scan-frame::after { top:0; right:0; border-width:3px 3px 0 0; border-radius:0 4px 0 0; }
-.scan-corner-bl { bottom:0; left:0; border-width:0 0 3px 3px; border-radius:0 0 0 4px; }
-.scan-corner-br { bottom:0; right:0; border-width:0 3px 3px 0; border-radius:0 0 4px 0; }
-.scan-line { position:absolute; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--green),transparent); animation:scanLine 2s ease-in-out infinite alternate; top:0; }
-.scan-hint { position:absolute; bottom:120px; left:0; right:0; text-align:center; color:var(--text2); font-size:14px; }
-.scan-close { position:absolute; top:60px; right:20px; background:rgba(0,0,0,.6); border:1px solid var(--border); color:var(--text); border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:20px; }
-
-/* ══════════ LEADERBOARD ══════════ */
-#leaderScreen { background:var(--bg); }
-.leader-tabs { display:flex; gap:0; background:var(--bg2); border-bottom:1px solid var(--border); }
-.leader-tab { flex:1; padding:14px; text-align:center; font-size:13px; font-weight:600; color:var(--text3); cursor:pointer; border-bottom:2px solid transparent; transition:.2s; }
-.leader-tab.active { color:var(--green); border-bottom-color:var(--green); }
-.leader-item {
-  display:flex; align-items:center; gap:14px; padding:14px 20px;
-  border-bottom:1px solid var(--border); animation:fadeIn .3s ease both;
-}
-.leader-rank { width:28px; font-family:'Unbounded',sans-serif; font-size:14px; font-weight:800; color:var(--text3); text-align:center; }
-.leader-rank.top1 { color:var(--amber); }
-.leader-rank.top2 { color:#c0c0c0; }
-.leader-rank.top3 { color:#cd7f32; }
-.leader-avatar { width:40px; height:40px; border-radius:50%; background:var(--bg3); display:flex; align-items:center; justify-content:center; font-size:18px; border:2px solid var(--border); flex-shrink:0; }
-.leader-info { flex:1; }
-.leader-name { font-size:14px; font-weight:600; color:var(--text); }
-.leader-meta { font-size:12px; color:var(--text3); margin-top:2px; }
-.leader-pts { font-family:'Unbounded',sans-serif; font-size:16px; font-weight:800; color:var(--green); }
-.me-badge { background:rgba(74,222,128,.15); color:var(--green); font-size:10px; padding:1px 6px; border-radius:10px; font-weight:600; }
-
-/* ══════════ PROFILE ══════════ */
-#profileScreen { background:var(--bg); }
-.profile-hero { padding:32px 20px 24px; text-align:center; border-bottom:1px solid var(--border); background:linear-gradient(160deg,var(--bg3),var(--bg)); }
-.profile-avatar { width:72px; height:72px; border-radius:50%; background:var(--bg3); border:3px solid var(--green-dim); display:flex; align-items:center; justify-content:center; font-size:32px; margin:0 auto 12px; }
-.profile-name { font-family:'Unbounded',sans-serif; font-size:20px; font-weight:800; color:var(--text); }
-.profile-city { font-size:13px; color:var(--text3); margin-top:4px; }
-.profile-stats { display:flex; gap:0; margin-top:24px; background:var(--bg2); border-radius:var(--radius); border:1px solid var(--border); overflow:hidden; }
-.profile-stat { flex:1; padding:14px 8px; text-align:center; border-right:1px solid var(--border); }
-.profile-stat:last-child { border-right:none; }
-.profile-stat-val { font-family:'Unbounded',sans-serif; font-size:20px; font-weight:800; color:var(--green); }
-.profile-stat-label { font-size:10px; color:var(--text3); margin-top:2px; }
-.menu-list { padding:16px 20px; display:flex; flex-direction:column; gap:8px; }
-.menu-item { display:flex; align-items:center; gap:14px; padding:14px 16px; background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; transition:.2s; }
-.menu-item:active { transform:scale(.98); }
-.menu-icon { width:36px; height:36px; border-radius:10px; background:var(--bg3); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
-.menu-text { flex:1; font-size:14px; font-weight:500; color:var(--text); }
-.menu-arrow { color:var(--text3); }
-
-/* ══════════ TEAM ══════════ */
-.team-card { background:var(--card); border:1px solid var(--amber-dim); border-radius:var(--radius); padding:16px; margin-bottom:12px; }
-.team-name { font-family:'Unbounded',sans-serif; font-size:16px; font-weight:700; color:var(--amber); margin-bottom:10px; }
-.team-members { display:flex; flex-wrap:wrap; gap:8px; }
-.team-member { display:flex; align-items:center; gap:6px; background:var(--bg3); border-radius:20px; padding:4px 10px 4px 6px; font-size:12px; }
-.team-code { font-family:'Unbounded',sans-serif; font-size:24px; font-weight:800; color:var(--amber); letter-spacing:4px; text-align:center; padding:16px; background:rgba(251,191,36,.05); border-radius:var(--radius-sm); border:1px dashed var(--amber-dim); }
-
-/* ══════════ ADMIN ══════════ */
-#adminScreen { background:var(--bg); }
-.admin-section { padding:20px; border-bottom:1px solid var(--border); }
-.admin-title { font-family:'Unbounded',sans-serif; font-size:14px; font-weight:700; color:var(--amber); margin-bottom:14px; }
-.form-row { display:flex; gap:10px; }
-.form-row .form-group { flex:1; }
-
-/* ══════════ QR DISPLAY ══════════ */
-.qr-box { background:white; padding:16px; border-radius:var(--radius); display:inline-flex; align-items:center; justify-content:center; margin:0 auto; }
-.qr-caption { font-size:12px; color:var(--text3); text-align:center; margin-top:8px; }
-
-/* ══════════ LOADING / EMPTY ══════════ */
-.loader { display:flex; align-items:center; justify-content:center; padding:40px; }
-.spinner { width:32px; height:32px; border:3px solid var(--border); border-top-color:var(--green); border-radius:50%; animation:spin .8s linear infinite; }
-.empty { text-align:center; padding:48px 24px; color:var(--text3); }
-.empty-icon { font-size:48px; margin-bottom:12px; }
-.empty-text { font-size:14px; }
-.toast {
-  position:fixed; bottom:90px; left:20px; right:20px; z-index:200;
-  background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm);
-  padding:12px 16px; font-size:14px; color:var(--text);
-  animation:slideUp .3s ease, fadeOut .3s ease 2.7s forwards;
-  display:flex; align-items:center; gap:10px;
-}
-.update-banner {
-  background:var(--amber); color:#1a0f00; padding:10px 16px; text-align:center;
-  font-size:13px; font-weight:600; cursor:pointer; display:none;
-}
-canvas { display:none; }
-
-/* ══════════ MODAL ══════════ */
-.modal-overlay {
-  position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:50;
-  display:none; align-items:flex-end; justify-content:center;
-}
-.modal-overlay.show { display:flex; animation:fadeIn .2s ease; }
-.modal { background:var(--bg2); border-radius:var(--radius) var(--radius) 0 0; padding:24px; width:100%; max-width:480px; border-top:1px solid var(--border); animation:slideUp .3s ease; max-height:80vh; overflow-y:auto; }
-.modal-title { font-family:'Unbounded',sans-serif; font-size:16px; font-weight:700; margin-bottom:16px; }
+:root{--bg:#0a150b;--bg2:#111f12;--bg3:#192b1a;--green:#4ade80;--green2:#22c55e;--green-dim:#16a34a;--amber:#fbbf24;--amber-dim:#d97706;--red:#f87171;--blue:#60a5fa;--text:#e8f5e9;--text2:#9ab89b;--text3:#5a7a5b;--border:#1e3a1f;--card:#111f12;--radius:16px;--radius-sm:10px}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Golos Text','Segoe UI',system-ui,sans-serif}
+#app{height:100%;display:flex;flex-direction:column}
+.screen{display:none;flex:1;overflow-y:auto;overflow-x:hidden;flex-direction:column}
+.screen.active{display:flex}
+.topbar{padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:10}
+.topbar-title{font-family:'Unbounded','Arial Black',sans-serif;font-size:18px;font-weight:800;color:var(--green);letter-spacing:-.5px}
+.topbar-sub{font-size:12px;color:var(--text3);margin-top:1px}
+.topbar-right{display:flex;gap:8px;align-items:center}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--bg3);border:2px solid var(--green-dim);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer}
+.bottom-nav{display:flex;background:var(--bg2);border-top:1px solid var(--border);padding:8px 0 max(8px,env(safe-area-inset-bottom))}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--text3);cursor:pointer;font-family:'Golos Text',sans-serif;font-size:10px;padding:6px 0;transition:color .2s}
+.nav-btn svg{width:22px;height:22px}
+.nav-btn.active{color:var(--green)}
+#splash{background:var(--bg);align-items:center;justify-content:center;position:fixed;inset:0;z-index:100;animation:fadeOut .4s ease 2.2s forwards}
+.splash-logo{font-family:'Unbounded','Arial Black',sans-serif;font-size:42px;font-weight:800;color:var(--green);letter-spacing:-2px;animation:logoIn .6s cubic-bezier(.34,1.56,.64,1) .2s both}
+.splash-tagline{font-size:13px;color:var(--text3);margin-top:8px;animation:logoIn .6s cubic-bezier(.34,1.56,.64,1) .4s both}
+#authScreen{align-items:center;justify-content:center;padding:32px 24px;background:radial-gradient(ellipse 80% 60% at 50% 100%,#0d2e0e,var(--bg))}
+.auth-logo{font-family:'Unbounded','Arial Black',sans-serif;font-size:36px;font-weight:800;color:var(--green);letter-spacing:-1px;margin-bottom:6px}
+.auth-tagline{font-size:14px;color:var(--text3);margin-bottom:48px;text-align:center}
+.auth-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;width:100%;max-width:360px}
+.auth-tabs{display:flex;background:var(--bg3);border-radius:var(--radius-sm);padding:4px;margin-bottom:24px;gap:4px}
+.auth-tab{flex:1;text-align:center;padding:8px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:.2s;color:var(--text3);border:none;background:none;font-family:'Golos Text','Segoe UI',system-ui,sans-serif}
+.auth-tab.active{background:var(--green-dim);color:var(--text)}
+.form-group{margin-bottom:16px}
+.form-label{font-size:12px;color:var(--text3);margin-bottom:6px;display:block;font-weight:500}
+.form-input{width:100%;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:15px;font-family:'Golos Text',sans-serif;outline:none;transition:.2s}
+.form-input:focus{border-color:var(--green-dim);box-shadow:0 0 0 3px rgba(74,222,128,.1)}
+.form-input::placeholder{color:var(--text3)}
+select.form-input option{background:var(--bg2);color:var(--text)}
+.btn{width:100%;padding:14px;border-radius:var(--radius-sm);border:none;font-size:15px;font-weight:600;font-family:'Unbounded','Arial Black',sans-serif;cursor:pointer;transition:.2s;letter-spacing:-.3px}
+.btn-primary{background:var(--green);color:#0a150b}
+.btn-primary:active{transform:scale(.98)}
+.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
+.btn-amber{background:var(--amber);color:#1a0f00}
+.btn-sm{padding:10px 16px;font-size:13px;width:auto;font-family:'Golos Text',sans-serif;font-weight:600}
+.btn-outline{background:transparent;color:var(--green);border:1px solid var(--green-dim)}
+.btn-red{background:var(--red);color:#1a0000}
+.home-hero{padding:24px 20px 20px;background:linear-gradient(160deg,var(--bg3),var(--bg));border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.hero-dots{position:absolute;right:-20px;top:-20px;width:140px;height:140px;border-radius:50%;border:1px solid var(--border);opacity:.4}
+.hero-dots::after{content:'';position:absolute;inset:20px;border-radius:50%;border:1px solid var(--border)}
+.hero-greeting{font-size:13px;color:var(--text3);margin-bottom:4px}
+.hero-name{font-family:'Unbounded','Arial Black',sans-serif;font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.5px}
+.stat-row{display:flex;gap:10px;margin-top:20px}
+.stat-card{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px}
+.stat-val{font-family:'Unbounded','Arial Black',sans-serif;font-size:22px;font-weight:800;color:var(--green)}
+.stat-label{font-size:11px;color:var(--text3);margin-top:2px}
+.section{padding:20px}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.section-title{font-family:'Unbounded','Arial Black',sans-serif;font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+.see-all{font-size:12px;color:var(--green);cursor:pointer}
+.quest-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;cursor:pointer;transition:.2s;animation:fadeIn .4s ease both;position:relative;overflow:hidden}
+.quest-card:active{transform:scale(.98)}
+.quest-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--green);border-radius:3px 0 0 3px}
+.quest-card.team::before{background:var(--amber)}
+.quest-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:10px}
+.badge-solo{background:rgba(74,222,128,.15);color:var(--green)}
+.badge-team{background:rgba(251,191,36,.15);color:var(--amber)}
+.badge-active{background:rgba(74,222,128,.1);color:var(--green2)}
+.quest-title{font-family:'Unbounded','Arial Black',sans-serif;font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.3px;margin-bottom:6px}
+.quest-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:12px}
+.quest-meta{display:flex;gap:12px;flex-wrap:wrap}
+.quest-meta-item{font-size:12px;color:var(--text3)}
+.progress-bar{height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-top:12px}
+.progress-fill{height:100%;background:var(--green);border-radius:2px;transition:width .5s}
+.progress-label{font-size:11px;color:var(--text3);margin-top:4px}
+.quest-detail-hero{padding:24px 20px 20px;background:linear-gradient(160deg,#0d2a0e,var(--bg));border-bottom:1px solid var(--border)}
+.quest-detail-title{font-family:'Unbounded','Arial Black',sans-serif;font-size:20px;font-weight:800;color:var(--text);margin-bottom:8px;letter-spacing:-.5px}
+.back-btn{display:flex;align-items:center;gap:6px;color:var(--green);font-size:13px;cursor:pointer;margin-bottom:16px;background:none;border:none;font-family:'Golos Text','Segoe UI',system-ui,sans-serif}
+.detail-tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border)}
+.detail-tab{flex:1;padding:12px;text-align:center;font-size:13px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:.2s}
+.detail-tab.active{color:var(--green);border-bottom-color:var(--green)}
+.checkpoint-item{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:.2s;animation:slideUp .3s ease both}
+.checkpoint-item:active{transform:scale(.98)}
+.checkpoint-item.done{border-color:var(--green-dim);background:rgba(74,222,128,.05)}
+.cp-num{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Unbounded','Arial Black',sans-serif;font-size:13px;font-weight:700;color:var(--text3);flex-shrink:0}
+.checkpoint-item.done .cp-num{border-color:var(--green);color:var(--green);background:rgba(74,222,128,.1)}
+.cp-info{flex:1}
+.cp-name{font-size:14px;font-weight:600;color:var(--text)}
+.cp-hint{font-size:12px;color:var(--text3);margin-top:2px}
+.cp-task-badge{display:inline-flex;align-items:center;gap:4px;margin-top:4px;padding:2px 8px;background:rgba(96,165,250,.1);border-radius:20px;font-size:11px;color:var(--blue)}
+#verifyScreen{background:var(--bg);align-items:center}
+.verify-container{padding:24px 24px 32px;display:flex;flex-direction:column;align-items:center;gap:20px;width:100%;max-width:400px;margin:auto}
+.verify-icon{width:72px;height:72px;border-radius:50%;background:rgba(74,222,128,.1);border:2px solid var(--green-dim);display:flex;align-items:center;justify-content:center;font-size:32px;animation:pulse 2s ease infinite}
+.verify-title{font-family:'Unbounded','Arial Black',sans-serif;font-size:18px;font-weight:800;text-align:center;color:var(--text);letter-spacing:-.5px}
+.task-card{background:var(--bg3);border:1px solid var(--amber-dim);border-radius:var(--radius);padding:16px;width:100%;border-left:4px solid var(--amber)}
+.task-label{font-size:11px;color:var(--amber);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.task-text{font-size:15px;color:var(--text);line-height:1.5;font-weight:500}
+.task-tip{font-size:12px;color:var(--text3);margin-top:8px}
+.caption-area{width:100%;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;font-family:'Golos Text',sans-serif;outline:none;resize:none;min-height:72px;transition:.2s}
+.caption-area:focus{border-color:var(--amber-dim)}
+.caption-area::placeholder{color:var(--text3)}
+.selfie-area{width:100%;aspect-ratio:1;background:var(--bg3);border-radius:var(--radius);border:2px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:.2s;position:relative;overflow:hidden}
+.selfie-area:active{border-color:var(--green)}
+.selfie-area img{width:100%;height:100%;object-fit:cover;border-radius:14px}
+.selfie-placeholder{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text3);font-size:13px}
+.geo-badge{background:rgba(74,222,128,.1);border:1px solid var(--green-dim);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--green);display:flex;align-items:center;gap:6px}
+.geo-badge.error{background:rgba(248,113,113,.1);border-color:var(--red);color:var(--red)}
+#scanScreen{background:#000}
+.scan-container{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.scan-video{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.scan-frame{position:absolute;width:240px;height:240px;border-radius:20px;overflow:hidden;box-shadow:0 0 0 9999px rgba(0,0,0,.6)}
+.scan-frame::before,.scan-frame::after,.scan-corner-bl,.scan-corner-br{content:'';position:absolute;width:32px;height:32px;border-color:var(--green);border-style:solid}
+.scan-frame::before{top:0;left:0;border-width:3px 0 0 3px;border-radius:4px 0 0 0}
+.scan-frame::after{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 4px 0 0}
+.scan-corner-bl{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 4px}
+.scan-corner-br{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 4px 0}
+.scan-line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--green),transparent);animation:scanLine 2s ease-in-out infinite alternate;top:0}
+.scan-hint{position:absolute;bottom:120px;left:0;right:0;text-align:center;color:var(--text2);font-size:14px}
+.scan-close{position:absolute;top:60px;right:20px;background:rgba(0,0,0,.6);border:1px solid var(--border);color:var(--text);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px}
+.leader-tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border)}
+.leader-tab{flex:1;padding:14px;text-align:center;font-size:13px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:.2s}
+.leader-tab.active{color:var(--green);border-bottom-color:var(--green)}
+.leader-item{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border);animation:fadeIn .3s ease both}
+.leader-rank{width:28px;font-family:'Unbounded','Arial Black',sans-serif;font-size:14px;font-weight:800;color:var(--text3);text-align:center}
+.leader-rank.top1{color:var(--amber)}.leader-rank.top2{color:#c0c0c0}.leader-rank.top3{color:#cd7f32}
+.leader-avatar{width:40px;height:40px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid var(--border);flex-shrink:0}
+.leader-info{flex:1}
+.leader-name{font-size:14px;font-weight:600;color:var(--text)}
+.leader-meta{font-size:12px;color:var(--text3);margin-top:2px}
+.leader-pts{font-family:'Unbounded','Arial Black',sans-serif;font-size:16px;font-weight:800;color:var(--green)}
+.me-badge{background:rgba(74,222,128,.15);color:var(--green);font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600}
+.profile-hero{padding:32px 20px 24px;text-align:center;border-bottom:1px solid var(--border);background:linear-gradient(160deg,var(--bg3),var(--bg))}
+.profile-avatar{width:72px;height:72px;border-radius:50%;background:var(--bg3);border:3px solid var(--green-dim);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px}
+.profile-name{font-family:'Unbounded','Arial Black',sans-serif;font-size:20px;font-weight:800;color:var(--text)}
+.profile-city{font-size:13px;color:var(--text3);margin-top:4px}
+.profile-stats{display:flex;margin-top:24px;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden}
+.profile-stat{flex:1;padding:14px 8px;text-align:center;border-right:1px solid var(--border)}
+.profile-stat:last-child{border-right:none}
+.profile-stat-val{font-family:'Unbounded','Arial Black',sans-serif;font-size:20px;font-weight:800;color:var(--green)}
+.profile-stat-label{font-size:10px;color:var(--text3);margin-top:2px}
+.menu-list{padding:16px 20px;display:flex;flex-direction:column;gap:8px}
+.menu-item{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:.2s}
+.menu-item:active{transform:scale(.98)}
+.menu-icon{width:36px;height:36px;border-radius:10px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.menu-text{flex:1;font-size:14px;font-weight:500;color:var(--text)}
+.admin-section{padding:20px;border-bottom:1px solid var(--border)}
+.admin-title{font-family:'Unbounded','Arial Black',sans-serif;font-size:14px;font-weight:700;color:var(--amber);margin-bottom:14px}
+.form-row{display:flex;gap:10px}
+.form-row .form-group{flex:1}
+.qr-box{background:white;padding:16px;border-radius:var(--radius);display:inline-flex;align-items:center;justify-content:center;margin:0 auto}
+.qr-caption{font-size:12px;color:var(--text3);text-align:center;margin-top:8px}
+.loader{display:flex;align-items:center;justify-content:center;padding:40px}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
+.empty{text-align:center;padding:48px 24px;color:var(--text3)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.toast{position:fixed;bottom:90px;left:20px;right:20px;z-index:200;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 16px;font-size:14px;color:var(--text);animation:slideUp .3s ease,fadeOut .3s ease 2.7s forwards}
+.update-banner{background:var(--amber);color:#1a0f00;padding:10px 16px;text-align:center;font-size:13px;font-weight:600;cursor:pointer;display:none}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:50;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.show{display:flex;animation:fadeIn .2s ease}
+.modal{background:var(--bg2);border-radius:var(--radius) var(--radius) 0 0;padding:24px;width:100%;max-width:480px;border-top:1px solid var(--border);animation:slideUp .3s ease;max-height:80vh;overflow-y:auto}
+.modal-title{font-family:'Unbounded','Arial Black',sans-serif;font-size:16px;font-weight:700;margin-bottom:16px}
+.team-card{background:var(--card);border:1px solid var(--amber-dim);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.team-name{font-family:'Unbounded','Arial Black',sans-serif;font-size:16px;font-weight:700;color:var(--amber);margin-bottom:10px}
+.team-code{font-family:'Unbounded','Arial Black',sans-serif;font-size:24px;font-weight:800;color:var(--amber);letter-spacing:4px;text-align:center;padding:16px;background:rgba(251,191,36,.05);border-radius:var(--radius-sm);border:1px dashed var(--amber-dim)}
+.success-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:50}
+.success-overlay.show{display:flex;animation:fadeIn .3s ease}
+.success-icon{font-size:72px;animation:logoIn .5s cubic-bezier(.34,1.56,.64,1)}
+.success-title{font-family:'Unbounded','Arial Black',sans-serif;font-size:24px;font-weight:800;color:var(--green);animation:fadeIn .5s ease .2s both}
+.success-sub{font-size:14px;color:var(--text2);text-align:center;padding:0 32px;animation:fadeIn .5s ease .3s both}
+.score-legend{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:16px}
+.score-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;color:var(--text2)}
+.score-pts{font-family:'Unbounded','Arial Black',sans-serif;font-weight:700;color:var(--green);font-size:13px}
+.score-pts.amber{color:var(--amber)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes logoIn{from{opacity:0;transform:scale(.8) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes fadeOut{to{opacity:0;pointer-events:none}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes scanLine{0%{top:0}100%{top:calc(100% - 2px)}}
 </style>
 </head>
 <body>
-
 <div id="app">
-  <div id="updateBanner" class="update-banner" onclick="location.reload()">🔄 Доступно обновление — нажмите чтобы обновить</div>
+<div id="updateBanner" class="update-banner" onclick="location.reload()">Обновление доступно — нажмите</div>
 
-  <!-- SPLASH -->
-  <div id="splash" class="screen active">
-    <div class="splash-tracks" id="splashTracks"></div>
-    <div class="splash-logo">СЛЕДОПЫТ</div>
-    <div class="splash-tagline">Исследуй. Находи. Побеждай.</div>
-  </div>
-
-  <!-- AUTH -->
-  <div id="authScreen" class="screen">
-    <div class="auth-logo">СЛЕДОПЫТ</div>
-    <div class="auth-tagline">Городские квесты · Реальные призы</div>
-    <div class="auth-card">
-      <div class="auth-tabs">
-        <button class="auth-tab active" onclick="switchAuthTab('login')">Войти</button>
-        <button class="auth-tab" onclick="switchAuthTab('register')">Регистрация</button>
-      </div>
-      <div id="loginForm">
-        <div class="form-group">
-          <label class="form-label">Телефон или email</label>
-          <input class="form-input" id="loginEmail" type="text" placeholder="+7 900 000 00 00">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Пароль</label>
-          <input class="form-input" id="loginPass" type="password" placeholder="••••••••">
-        </div>
-        <button class="btn btn-primary" onclick="doLogin()">Войти</button>
-      </div>
-      <div id="registerForm" style="display:none">
-        <div class="form-group">
-          <label class="form-label">Имя в игре</label>
-          <input class="form-input" id="regName" type="text" placeholder="Следопыт42">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Email</label>
-          <input class="form-input" id="regEmail" type="email" placeholder="you@example.com">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Пароль</label>
-          <input class="form-input" id="regPass" type="password" placeholder="Минимум 6 символов">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Город</label>
-          <input class="form-input" id="regCity" type="text" placeholder="Челябинск">
-        </div>
-        <button class="btn btn-primary" onclick="doRegister()">Создать аккаунт</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- HOME -->
-  <div id="homeScreen" class="screen">
-    <div class="topbar">
-      <div>
-        <div class="topbar-title">СЛЕДОПЫТ</div>
-        <div class="topbar-sub" id="homeCity">📍 Загрузка...</div>
-      </div>
-      <div class="topbar-right">
-        <button class="btn btn-sm btn-outline" onclick="showScan()" style="padding:8px 12px;font-size:12px">
-          <span>📷 Сканировать</span>
-        </button>
-        <div class="avatar" onclick="goScreen('profileScreen')" id="homeAvatar">👤</div>
-      </div>
-    </div>
-    <div class="home-hero">
-      <div class="hero-dots"></div>
-      <div class="hero-greeting">Добро пожаловать,</div>
-      <div class="hero-name" id="heroName">Следопыт</div>
-      <div class="stat-row">
-        <div class="stat-card">
-          <div class="stat-val" id="statQuests">0</div>
-          <div class="stat-label">Квестов пройдено</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-val" id="statPoints">0</div>
-          <div class="stat-label">Баллов</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-val" id="statRank">—</div>
-          <div class="stat-label">Место</div>
-        </div>
-      </div>
-    </div>
-    <div class="section">
-      <div class="section-header">
-        <div class="section-title">Активные квесты</div>
-        <div class="see-all" onclick="goScreen('leaderScreen')">Таблица лидеров →</div>
-      </div>
-      <div id="questsList"><div class="loader"><div class="spinner"></div></div></div>
-    </div>
-  </div>
-
-  <!-- QUEST DETAIL -->
-  <div id="questScreen" class="screen">
-    <div class="topbar">
-      <button class="back-btn" onclick="goBack()">← Назад</button>
-    </div>
-    <div class="quest-detail-hero" id="questDetailHero"></div>
-    <div class="section">
-      <div class="section-title" style="margin-bottom:14px">Маршрут</div>
-    </div>
-    <div class="checkpoint-list" id="checkpointList"></div>
-    <div style="padding:0 20px 20px">
-      <div id="teamSection" style="display:none">
-        <div class="section-title" style="margin-bottom:14px">Команда</div>
-        <div id="teamContent"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- VERIFY CHECKPOINT -->
-  <div id="verifyScreen" class="screen">
-    <div class="topbar">
-      <button class="back-btn" onclick="goBack()">← Назад</button>
-      <div class="topbar-right">
-        <div id="geoStatus" class="geo-badge">📍 Определяем...</div>
-      </div>
-    </div>
-    <div class="verify-container">
-      <div class="verify-icon" id="verifyIcon">🏁</div>
-      <div class="verify-title" id="verifyTitle">Точка найдена!</div>
-      <div class="verify-sub" id="verifySub">Ты добрался до точки квеста <span class="verify-quest-name" id="verifyQuestName"></span>. Сделай селфи для подтверждения.</div>
-      <div class="selfie-area" id="selfieArea" onclick="takeSelfie()">
-        <div class="selfie-placeholder">
-          <div style="font-size:48px">📸</div>
-          <div>Нажми чтобы сделать фото</div>
-          <div style="font-size:11px;color:var(--text3)">Фронтальная камера</div>
-        </div>
-      </div>
-      <input type="file" id="selfieInput" accept="image/*" capture="user" style="display:none" onchange="handleSelfie(event)">
-      <button class="btn btn-primary" id="submitBtn" onclick="submitCheckpoint()" disabled style="opacity:.5">
-        Подтвердить точку
-      </button>
-      <div style="font-size:11px;color:var(--text3);text-align:center">Геолокация и время фиксируются автоматически</div>
-    </div>
-  </div>
-
-  <!-- SCANNER -->
-  <div id="scanScreen" class="screen">
-    <div class="scan-container">
-      <video id="scanVideo" class="scan-video" playsinline autoplay muted></video>
-      <div class="scan-overlay"></div>
-      <div class="scan-frame">
-        <div class="scan-corner-bl"></div>
-        <div class="scan-corner-br"></div>
-        <div class="scan-line"></div>
-      </div>
-      <div class="scan-hint">Наведи на QR-код точки</div>
-      <button class="scan-close" onclick="stopScan()">✕</button>
-    </div>
-  </div>
-
-  <!-- LEADERBOARD -->
-  <div id="leaderScreen" class="screen">
-    <div class="topbar">
-      <div>
-        <div class="topbar-title">Лидеры</div>
-        <div class="topbar-sub">Общий рейтинг</div>
-      </div>
-    </div>
-    <div class="leader-tabs">
-      <div class="leader-tab active" onclick="loadLeader('solo',this)">Личный</div>
-      <div class="leader-tab" onclick="loadLeader('team',this)">Командный</div>
-    </div>
-    <div id="leaderList"><div class="loader"><div class="spinner"></div></div></div>
-  </div>
-
-  <!-- PROFILE -->
-  <div id="profileScreen" class="screen">
-    <div class="topbar">
-      <div class="topbar-title">Профиль</div>
-    </div>
-    <div class="profile-hero">
-      <div class="profile-avatar" id="profileAvatar">👤</div>
-      <div class="profile-name" id="profileName">—</div>
-      <div class="profile-city" id="profileCity">📍 —</div>
-      <div class="profile-stats">
-        <div class="profile-stat">
-          <div class="profile-stat-val" id="pStatQ">0</div>
-          <div class="profile-stat-label">Квестов</div>
-        </div>
-        <div class="profile-stat">
-          <div class="profile-stat-val" id="pStatP">0</div>
-          <div class="profile-stat-label">Баллов</div>
-        </div>
-        <div class="profile-stat">
-          <div class="profile-stat-val" id="pStatC">0</div>
-          <div class="profile-stat-label">Точек</div>
-        </div>
-      </div>
-    </div>
-    <div class="menu-list">
-      <div class="menu-item" onclick="showTeamModal()">
-        <div class="menu-icon">🤝</div>
-        <div class="menu-text">Моя команда</div>
-        <div class="menu-arrow">›</div>
-      </div>
-      <div class="menu-item" onclick="showHistoryModal()">
-        <div class="menu-icon">📋</div>
-        <div class="menu-text">История квестов</div>
-        <div class="menu-arrow">›</div>
-      </div>
-      <div class="menu-item" id="adminMenuItem" style="display:none" onclick="goScreen('adminScreen')">
-        <div class="menu-icon">⚙️</div>
-        <div class="menu-text">Панель организатора</div>
-        <div class="menu-arrow">›</div>
-      </div>
-      <div class="menu-item" onclick="doLogout()">
-        <div class="menu-icon">🚪</div>
-        <div class="menu-text" style="color:var(--red)">Выйти</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ADMIN -->
-  <div id="adminScreen" class="screen">
-    <div class="topbar">
-      <button class="back-btn" onclick="goScreen('profileScreen')">← Назад</button>
-      <div class="topbar-title" style="color:var(--amber)">Организатор</div>
-    </div>
-    <div class="admin-section">
-      <div class="admin-title">Создать квест</div>
-      <div class="form-group"><label class="form-label">Название</label><input class="form-input" id="qTitle" placeholder="Осенний Челябинск"></div>
-      <div class="form-group"><label class="form-label">Описание</label><input class="form-input" id="qDesc" placeholder="Пройди 6 точек по центру города"></div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Тип</label>
-          <select class="form-input" id="qType"><option value="solo">Личный</option><option value="team">Командный</option><option value="both">Оба</option></select>
-        </div>
-        <div class="form-group"><label class="form-label">Дней активности</label><input class="form-input" id="qDays" type="number" value="7" min="1"></div>
-      </div>
-      <div class="form-group"><label class="form-label">Размер призового фонда</label><input class="form-input" id="qPrize" placeholder="Сертификат 3000₽ от CoffeeTime"></div>
-      <button class="btn btn-amber" onclick="createQuest()" style="margin-bottom:12px">Создать квест</button>
-    </div>
-    <div class="admin-section">
-      <div class="admin-title">Добавить точку к квесту</div>
-      <div class="form-group"><label class="form-label">Квест</label>
-        <select class="form-input" id="cpQuestId"><option value="">Выберите квест...</option></select>
-      </div>
-      <div class="form-group"><label class="form-label">Название точки</label><input class="form-input" id="cpName" placeholder="Кофейня Coffee Time"></div>
-      <div class="form-group"><label class="form-label">Подсказка для участника</label><input class="form-input" id="cpHint" placeholder="Ищи у входа с большой вывеской"></div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Широта</label><input class="form-input" id="cpLat" placeholder="55.1540"></div>
-        <div class="form-group"><label class="form-label">Долгота</label><input class="form-input" id="cpLng" placeholder="61.4290"></div>
-      </div>
-      <div class="form-group"><label class="form-label">Радиус проверки (метры)</label><input class="form-input" id="cpRadius" type="number" value="100"></div>
-      <button class="btn btn-amber" onclick="createCheckpoint()">Добавить точку + QR</button>
-      <div id="qrResult" style="margin-top:16px;text-align:center;display:none">
-        <div class="qr-box"></div>
-        <div class="qr-caption" id="qrCaption">QR-код для печати</div>
-        <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:auto;padding:8px 16px" onclick="downloadQR()">Скачать QR</button>
-      </div>
-      <div id="cpListContainer"></div>
-    </div>
-    <div class="admin-section">
-      <div class="admin-title">Управление квестами</div>
-      <div id="adminQuestList"><div class="loader"><div class="spinner"></div></div></div>
-    </div>
-  </div>
-
-  <!-- BOTTOM NAV -->
-  <nav class="bottom-nav" id="bottomNav" style="display:none">
-    <button class="nav-btn active" onclick="goTab('homeScreen',this)" id="tabHome">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
-      Главная
-    </button>
-    <button class="nav-btn" onclick="goTab('leaderScreen',this)" id="tabLeader">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-      Лидеры
-    </button>
-    <button class="nav-btn" onclick="showScan()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-      Скан
-    </button>
-    <button class="nav-btn" onclick="goTab('profileScreen',this)" id="tabProfile">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      Профиль
-    </button>
-  </nav>
+<div id="splash" class="screen active">
+  <div class="splash-logo">СЛЕДОПЫТ</div>
+  <div class="splash-tagline">Исследуй. Находи. Побеждай.</div>
 </div>
 
-<!-- TEAM MODAL -->
+<div id="authScreen" class="screen">
+  <div class="auth-logo">СЛЕДОПЫТ</div>
+  <div class="auth-tagline">Городские квесты · Реальные призы</div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Войти</button>
+      <button class="auth-tab" onclick="switchAuthTab('register')">Регистрация</button>
+    </div>
+    <div id="loginForm">
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="loginEmail" type="email" placeholder="you@example.com"></div>
+      <div class="form-group"><label class="form-label">Пароль</label><input class="form-input" id="loginPass" type="password" placeholder="••••••••"></div>
+      <button class="btn btn-primary" onclick="doLogin()">Войти</button>
+    </div>
+    <div id="registerForm" style="display:none">
+      <div class="form-group"><label class="form-label">Имя в игре</label><input class="form-input" id="regName" type="text" placeholder="Следопыт42"></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="regEmail" type="email" placeholder="you@example.com"></div>
+      <div class="form-group"><label class="form-label">Пароль</label><input class="form-input" id="regPass" type="password" placeholder="Минимум 6 символов"></div>
+      <div class="form-group"><label class="form-label">Город</label><input class="form-input" id="regCity" type="text" placeholder="Челябинск"></div>
+      <button class="btn btn-primary" onclick="doRegister()">Создать аккаунт</button>
+    </div>
+  </div>
+</div>
+
+<div id="homeScreen" class="screen">
+  <div class="topbar">
+    <div><div class="topbar-title">СЛЕДОПЫТ</div><div class="topbar-sub" id="homeCity">Загрузка...</div></div>
+    <div class="topbar-right">
+      <button class="btn btn-sm btn-outline" onclick="showScan()" style="padding:8px 12px;font-size:12px">📷 Скан</button>
+      <div class="avatar" onclick="goScreen('profileScreen')" id="homeAvatar">👤</div>
+    </div>
+  </div>
+  <div class="home-hero">
+    <div class="hero-dots"></div>
+    <div class="hero-greeting">Добро пожаловать,</div>
+    <div class="hero-name" id="heroName">Следопыт</div>
+    <div class="stat-row">
+      <div class="stat-card"><div class="stat-val" id="statQuests">0</div><div class="stat-label">Квестов</div></div>
+      <div class="stat-card"><div class="stat-val" id="statPoints">0</div><div class="stat-label">Баллов</div></div>
+      <div class="stat-card"><div class="stat-val" id="statRank">—</div><div class="stat-label">Место</div></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Активные квесты</div>
+      <div class="see-all" onclick="goTab('leaderScreen',document.getElementById('tabLeader'))">Лидеры →</div>
+    </div>
+    <div id="questsList"><div class="loader"><div class="spinner"></div></div></div>
+  </div>
+</div>
+
+<div id="questScreen" class="screen">
+  <div class="topbar"><button class="back-btn" onclick="goBack()">← Назад</button></div>
+  <div class="quest-detail-hero" id="questDetailHero"></div>
+  <div class="detail-tabs">
+    <div class="detail-tab active" onclick="switchDetailTab('route',this)">🗺️ Маршрут</div>
+    <div class="detail-tab" onclick="switchDetailTab('rating',this)">🏆 Рейтинг</div>
+    <div class="detail-tab" onclick="switchDetailTab('team',this)">🤝 Команда</div>
+  </div>
+  <div id="detailRoute"></div>
+  <div id="detailRating" style="display:none"></div>
+  <div id="detailTeam" style="display:none"></div>
+</div>
+
+<div id="verifyScreen" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">← Назад</button>
+    <div class="topbar-right"><div id="geoStatus" class="geo-badge">📍 Определяем...</div></div>
+  </div>
+  <div class="verify-container">
+    <div class="verify-icon" id="verifyIcon">🏁</div>
+    <div class="verify-title" id="verifyTitle">Точка найдена!</div>
+    <div style="font-size:13px;color:var(--text2);text-align:center" id="verifyQuestName"></div>
+    <div class="task-card" id="taskCard" style="display:none">
+      <div class="task-label">📋 Задание</div>
+      <div class="task-text" id="taskText"></div>
+      <div class="task-tip" id="taskTip"></div>
+    </div>
+    <div class="selfie-area" id="selfieArea" onclick="takeSelfie()">
+      <div class="selfie-placeholder">
+        <div style="font-size:48px">📸</div>
+        <div id="selfiePrompt">Сделай фото</div>
+        <div style="font-size:11px;color:var(--text3)">Нажми чтобы открыть камеру</div>
+      </div>
+    </div>
+    <input type="file" id="selfieInput" accept="image/*" capture="environment" style="display:none" onchange="handleSelfie(event)">
+    <div id="captionBlock" style="width:100%;display:none">
+      <div class="form-label">Твой ответ</div>
+      <textarea class="caption-area" id="captionInput" placeholder="Напиши ответ..."></textarea>
+    </div>
+    <button class="btn btn-primary" id="submitBtn" onclick="submitCheckpoint()" disabled style="opacity:.5;width:100%">Подтвердить точку</button>
+    <div style="font-size:11px;color:var(--text3);text-align:center">Геолокация и время фиксируются автоматически</div>
+  </div>
+</div>
+
+<div id="scanScreen" class="screen">
+  <div class="scan-container">
+    <video id="scanVideo" class="scan-video" playsinline autoplay muted></video>
+    <div class="scan-frame">
+      <div class="scan-corner-bl"></div><div class="scan-corner-br"></div>
+      <div class="scan-line"></div>
+    </div>
+    <div class="scan-hint">Наведи на QR-код точки</div>
+    <button class="scan-close" onclick="stopScan()">✕</button>
+  </div>
+</div>
+
+<div id="leaderScreen" class="screen">
+  <div class="topbar"><div><div class="topbar-title">Лидеры</div><div class="topbar-sub">Общий рейтинг</div></div></div>
+  <div class="leader-tabs">
+    <div class="leader-tab active" onclick="loadLeader('solo',this)">Личный</div>
+    <div class="leader-tab" onclick="loadLeader('team',this)">Командный</div>
+  </div>
+  <div id="leaderList"><div class="loader"><div class="spinner"></div></div></div>
+</div>
+
+<div id="profileScreen" class="screen">
+  <div class="topbar"><div class="topbar-title">Профиль</div></div>
+  <div class="profile-hero">
+    <div class="profile-avatar" id="profileAvatar">👤</div>
+    <div class="profile-name" id="profileName">—</div>
+    <div class="profile-city" id="profileCity">—</div>
+    <div class="profile-stats">
+      <div class="profile-stat"><div class="profile-stat-val" id="pStatQ">0</div><div class="profile-stat-label">Квестов</div></div>
+      <div class="profile-stat"><div class="profile-stat-val" id="pStatP">0</div><div class="profile-stat-label">Баллов</div></div>
+      <div class="profile-stat"><div class="profile-stat-val" id="pStatC">0</div><div class="profile-stat-label">Точек</div></div>
+    </div>
+  </div>
+  <div class="menu-list">
+    <div class="menu-item" onclick="showTeamModal()"><div class="menu-icon">🤝</div><div class="menu-text">Моя команда</div><div>›</div></div>
+    <div class="menu-item" onclick="showHistoryModal()"><div class="menu-icon">📋</div><div class="menu-text">История</div><div>›</div></div>
+    <div class="menu-item" id="adminMenuItem" style="display:none" onclick="goScreen('adminScreen');setTimeout(initAdminScreen,100)"><div class="menu-icon">⚙️</div><div class="menu-text">Панель организатора</div><div>›</div></div>
+    <div class="menu-item" onclick="doLogout()"><div class="menu-icon">🚪</div><div class="menu-text" style="color:var(--red)">Выйти</div></div>
+  </div>
+</div>
+
+<div id="adminScreen" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goScreen('profileScreen')">← Назад</button>
+    <div class="topbar-title" style="color:var(--amber)">Организатор</div>
+  </div>
+  <div class="admin-section">
+    <div class="admin-title">Создать квест</div>
+    <div class="form-group"><label class="form-label">Название</label><input class="form-input" id="qTitle" placeholder="Осенний Челябинск"></div>
+    <div class="form-group"><label class="form-label">Описание</label><input class="form-input" id="qDesc" placeholder="Пройди 5 точек по центру города"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Тип</label>
+        <select class="form-input" id="qType"><option value="solo">Личный</option><option value="team">Командный</option><option value="both">Оба</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Дней</label><input class="form-input" id="qDays" type="number" value="7" min="1"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Призовой фонд</label><input class="form-input" id="qPrize" placeholder="Сертификат 3000₽ от CoffeeTime"></div>
+    <button class="btn btn-amber" onclick="createQuest()" style="margin-bottom:12px">Создать квест</button>
+  </div>
+  <div class="admin-section">
+    <div class="admin-title">Добавить точку</div>
+    <div class="form-group"><label class="form-label">Квест</label>
+      <select class="form-input" id="cpQuestId" onchange="loadCheckpointsList(this.value)"><option value="">Выберите квест...</option></select>
+    </div>
+    <div class="form-group"><label class="form-label">Название точки</label><input class="form-input" id="cpName" placeholder="Кофейня Coffee Time"></div>
+    <div class="form-group"><label class="form-label">Подсказка где искать QR</label><input class="form-input" id="cpHint" placeholder="У входа, рядом с вывеской"></div>
+    <div class="form-group">
+      <label class="form-label">Задание для участника</label>
+      <select class="form-input" id="cpTaskType" onchange="toggleTaskFields()">
+        <option value="">Без задания — просто фото на точке</option>
+        <option value="selfie">📸 Селфи в конкретном месте</option>
+        <option value="riddle">🧩 Загадка (ответ в подписи)</option>
+        <option value="find">🔍 Найти и сфотографировать объект</option>
+        <option value="action">🤸 Выполнить действие и снять</option>
+        <option value="sign">🪧 Найти табличку / надпись</option>
+      </select>
+    </div>
+    <div id="taskTextBlock" class="form-group" style="display:none">
+      <label class="form-label">Текст задания</label>
+      <input class="form-input" id="cpTaskText" placeholder="Найди год постройки здания на табличке">
+    </div>
+    <div id="taskTipBlock" class="form-group" style="display:none">
+      <label class="form-label">Подсказка к заданию (необязательно)</label>
+      <input class="form-input" id="cpTaskTip" placeholder="Табличка у главного входа">
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Широта</label><input class="form-input" id="cpLat" placeholder="55.1540"></div>
+      <div class="form-group"><label class="form-label">Долгота</label><input class="form-input" id="cpLng" placeholder="61.4290"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Радиус проверки (м)</label><input class="form-input" id="cpRadius" type="number" value="150"></div>
+    <button class="btn btn-amber" onclick="createCheckpoint()">Добавить точку + QR</button>
+    <div id="qrResult" style="margin-top:16px;text-align:center;display:none">
+      <div class="qr-box"></div>
+      <div class="qr-caption" id="qrCaption">QR-код для печати</div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:auto;padding:8px 16px" onclick="downloadQR()">📥 Скачать QR</button>
+    </div>
+    <div id="cpListContainer"></div>
+  </div>
+  <div class="admin-section">
+    <div class="admin-title">Управление квестами</div>
+    <div id="adminQuestList"><div class="loader"><div class="spinner"></div></div></div>
+  </div>
+</div>
+
+<nav class="bottom-nav" id="bottomNav" style="display:none">
+  <button class="nav-btn active" onclick="goTab('homeScreen',this)" id="tabHome">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>Главная
+  </button>
+  <button class="nav-btn" onclick="goTab('leaderScreen',this)" id="tabLeader">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Лидеры
+  </button>
+  <button class="nav-btn" onclick="showScan()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Скан
+  </button>
+  <button class="nav-btn" onclick="goTab('profileScreen',this)" id="tabProfile">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Профиль
+  </button>
+</nav>
+</div>
+
 <div class="modal-overlay" id="teamModal">
-  <div class="modal">
-    <div class="modal-title">🤝 Команда</div>
-    <div id="teamModalContent"></div>
-    <button class="btn btn-secondary" style="margin-top:12px" onclick="closeModal('teamModal')">Закрыть</button>
-  </div>
+  <div class="modal"><div class="modal-title">🤝 Команда</div><div id="teamModalContent"></div><button class="btn btn-secondary" style="margin-top:12px" onclick="closeModal('teamModal')">Закрыть</button></div>
 </div>
-
-<!-- HISTORY MODAL -->
 <div class="modal-overlay" id="historyModal">
-  <div class="modal">
-    <div class="modal-title">📋 История квестов</div>
-    <div id="historyModalContent"></div>
-    <button class="btn btn-secondary" style="margin-top:12px" onclick="closeModal('historyModal')">Закрыть</button>
-  </div>
+  <div class="modal"><div class="modal-title">📋 История</div><div id="historyModalContent"></div><button class="btn btn-secondary" style="margin-top:12px" onclick="closeModal('historyModal')">Закрыть</button></div>
 </div>
-
-<!-- SUCCESS OVERLAY -->
 <div class="success-overlay" id="successOverlay">
   <div class="success-icon">🎯</div>
   <div class="success-title">Точка засчитана!</div>
@@ -664,927 +419,418 @@ canvas { display:none; }
   <button class="btn btn-primary btn-sm" style="margin-top:24px;width:auto;padding:12px 32px" onclick="afterSuccess()">Продолжить</button>
 </div>
 
-<canvas id="qrCanvas" style="display:none"></canvas>
-
 <script>
-// ══════════════════════════════════════
-// CONFIG — замените на свои значения
-// ══════════════════════════════════════
-const SUPABASE_URL = 'https://yiqipulgofoschkccaxr.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpcWlwdWxnb2Zvc2Noa2NjYXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMjExMjksImV4cCI6MjA4OTg5NzEyOX0.Op4iBjGSOBcKh4pkVSd75_l8Fle3Cz15nBh9KF21YhI';
-const APP_URL = 'https://sledopyt.vercel.app'; // замени после деплоя
+const SUPABASE_URL='https://yiqipulgofoschkccaxr.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpcWlwdWxnb2Zvc2Noa2NjYXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMjExMjksImV4cCI6MjA4OTg5NzEyOX0.Op4iBjGSOBcKh4pkVSd75_l8Fle3Cz15nBh9KF21YhI';
+const APP_URL='https://sledopyt.vercel.app';
+// ОЧКИ: +10 точка | +50 квест завершён | +25 бонус первому
+const PTS={CP:10,COMPLETE:50,FIRST:25};
+let currentUser=null,currentProfile=null,screenHistory=[],currentQuestId=null;
+let currentCheckpointToken=null,currentCheckpointData=null,selfieBlob=null,userGeo=null;
+let scanStream=null,scanInterval=null;
 
-// ══════════════════════════════════════
-// STATE
-// ══════════════════════════════════════
-let currentUser = null;
-let currentProfile = null;
-let screenHistory = [];
-let currentQuestId = null;
-let currentCheckpointToken = null;
-let currentCheckpointData = null;
-let selfieBlob = null;
-let userGeo = null;
-let scanStream = null;
-let scanInterval = null;
-
-// ══════════════════════════════════════
-// SUPABASE HELPERS
-// ══════════════════════════════════════
-async function sb(path, opts = {}) {
-  const url = `${SUPABASE_URL}/rest/v1/${path}`;
-  const headers = {
-    'apikey': SUPABASE_KEY,
-    'Authorization': `Bearer ${sessionStorage.getItem('sb_token') || SUPABASE_KEY}`,
-    'Content-Type': 'application/json',
-    'Prefer': opts.prefer || 'return=representation',
-    ...opts.headers
-  };
-  const res = await fetch(url, { method: opts.method || 'GET', headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
-  if (!res.ok) { const e = await res.json(); throw e; }
-  const text = await res.text();
-  return text ? JSON.parse(text) : [];
+async function sb(path,opts={}){
+  const url=`${SUPABASE_URL}/rest/v1/${path}`;
+  const headers={'apikey':SUPABASE_KEY,'Authorization':`Bearer ${sessionStorage.getItem('sb_token')||SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':opts.prefer||'return=representation',...opts.headers};
+  const res=await fetch(url,{method:opts.method||'GET',headers,body:opts.body?JSON.stringify(opts.body):undefined});
+  if(!res.ok){const e=await res.json();throw e;}
+  const t=await res.text();return t?JSON.parse(t):[];
 }
-
-async function sbAuth(action, email, password, meta = {}) {
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/${action}`, {
-    method: 'POST',
-    headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, data: meta })
-  });
+async function sbAuth(action,email,password,meta={}){
+  const res=await fetch(`${SUPABASE_URL}/auth/v1/${action}`,{method:'POST',headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password,data:meta})});
   return await res.json();
 }
-
-async function uploadPhoto(bucket, path, blob) {
-  const token = sessionStorage.getItem('sb_token') || SUPABASE_KEY;
-  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${path}`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': blob.type, 'x-upsert': 'true' },
-    body: blob
-  });
-  const data = await res.json();
+async function uploadPhoto(bucket,path,blob){
+  const token=sessionStorage.getItem('sb_token')||SUPABASE_KEY;
+  await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${path}`,{method:'POST',headers:{'Authorization':`Bearer ${token}`,'Content-Type':blob.type,'x-upsert':'true'},body:blob});
   return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
 }
 
-// ══════════════════════════════════════
-// INIT
-// ══════════════════════════════════════
-window.addEventListener('load', async () => {
-  // Splash tracks animation
-  const tracks = document.getElementById('splashTracks');
-  for (let i = 0; i < 8; i++) {
-    const line = document.createElement('div');
-    line.className = 'track-line';
-    line.style.left = `${10 + i * 12}%`;
-    line.style.height = `${30 + Math.random() * 40}%`;
-    line.style.animationDelay = `${Math.random() * 2}s`;
-    tracks.appendChild(line);
-  }
-
-  // Check URL for checkpoint token
-  const urlParams = new URLSearchParams(window.location.search);
-  const cpToken = urlParams.get('cp');
-  if (cpToken) { currentCheckpointToken = cpToken; }
-
-  // Check session
-  const token = sessionStorage.getItem('sb_token');
-  const userId = sessionStorage.getItem('sb_uid');
-
-  setTimeout(async () => {
-    document.getElementById('splash').style.display = 'none';
-    if (token && userId) {
-      currentUser = { id: userId };
-      await loadProfile();
-      if (currentCheckpointToken) {
-        await openCheckpointByToken(currentCheckpointToken);
-      } else {
-        showMain();
-      }
-    } else {
-      goScreen('authScreen');
-    }
-  }, 2200);
+window.addEventListener('load',async()=>{
+  const cpToken=new URLSearchParams(window.location.search).get('cp');
+  if(cpToken)currentCheckpointToken=cpToken;
+  const token=sessionStorage.getItem('sb_token'),uid=sessionStorage.getItem('sb_uid');
+  setTimeout(async()=>{
+    document.getElementById('splash').style.display='none';
+    if(token&&uid){currentUser={id:uid};await loadProfile();if(currentCheckpointToken)await openCheckpointByToken(currentCheckpointToken);else showMain();}
+    else goScreen('authScreen');
+  },2400);
 });
+window.addEventListener('popstate',()=>{if(screenHistory.length>1){screenHistory.pop();showScreenDirect(screenHistory[screenHistory.length-1]);}});
 
-// Handle back button
-window.addEventListener('popstate', (e) => {
-  if (screenHistory.length > 1) {
-    screenHistory.pop();
-    const prev = screenHistory[screenHistory.length - 1];
-    showScreenDirect(prev);
-  }
-});
-
-// ══════════════════════════════════════
-// NAVIGATION
-// ══════════════════════════════════════
-function goScreen(id) {
-  screenHistory.push(id);
-  history.pushState({}, '', '#');
-  showScreenDirect(id);
-}
-
-function showScreenDirect(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+function goScreen(id){screenHistory.push(id);history.pushState({},'','#');showScreenDirect(id);}
+function showScreenDirect(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id)?.classList.add('active');
+  document.getElementById('bottomNav').style.display=['authScreen','scanScreen','splash'].includes(id)?'none':'flex';
+}
+function goBack(){if(screenHistory.length>1){screenHistory.pop();showScreenDirect(screenHistory[screenHistory.length-1]);}}
+function goTab(id,btn){
+  goScreen(id);document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));btn?.classList.add('active');
+  if(id==='leaderScreen')loadLeader('solo');if(id==='homeScreen'){loadQuests();loadUserStats();}
+}
+function showMain(){document.getElementById('bottomNav').style.display='flex';goScreen('homeScreen');loadQuests();loadUserStats();}
 
-  const showNav = !['authScreen','scanScreen','splash'].includes(id);
-  document.getElementById('bottomNav').style.display = showNav ? 'flex' : 'none';
+function switchAuthTab(tab){
+  document.getElementById('loginForm').style.display=tab==='login'?'block':'none';
+  document.getElementById('registerForm').style.display=tab==='register'?'block':'none';
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0)===(tab==='login')));
+}
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim(),pass=document.getElementById('loginPass').value;
+  if(!email||!pass)return showToast('Заполните все поля');
+  try{const data=await sbAuth('token?grant_type=password',email,pass);if(data.error)return showToast('Ошибка: '+data.error_description);
+  sessionStorage.setItem('sb_token',data.access_token);sessionStorage.setItem('sb_uid',data.user.id);currentUser=data.user;
+  await loadProfile();if(currentCheckpointToken)await openCheckpointByToken(currentCheckpointToken);else showMain();}
+  catch(e){showToast('Ошибка входа');}
+}
+async function doRegister(){
+  const name=document.getElementById('regName').value.trim(),email=document.getElementById('regEmail').value.trim(),pass=document.getElementById('regPass').value,city=document.getElementById('regCity').value.trim()||'Челябинск';
+  if(!name||!email||!pass)return showToast('Заполните все поля');if(pass.length<6)return showToast('Пароль минимум 6 символов');
+  try{const data=await sbAuth('signup',email,pass,{username:name,city});if(data.error)return showToast('Ошибка: '+data.error_description);
+  sessionStorage.setItem('sb_token',data.access_token);sessionStorage.setItem('sb_uid',data.user.id);currentUser=data.user;
+  await sb('sledopyt_profiles',{method:'POST',body:{id:data.user.id,username:name,city,points:0,quests_completed:0,checkpoints_hit:0,is_admin:false},prefer:'return=minimal'});
+  await loadProfile();showMain();}catch(e){showToast('Ошибка регистрации: '+JSON.stringify(e));}
+}
+async function doLogout(){sessionStorage.clear();currentUser=null;currentProfile=null;goScreen('authScreen');}
+
+async function loadProfile(){
+  try{const d=await sb(`sledopyt_profiles?id=eq.${currentUser.id}&select=*`);if(d.length){currentProfile=d[0];updateProfileUI();}}catch(e){}
+}
+function updateProfileUI(){
+  if(!currentProfile)return;
+  const{username,city,points,quests_completed,checkpoints_hit,is_admin}=currentProfile;
+  const emoji=getEmoji(username);
+  document.getElementById('heroName').textContent=username;
+  document.getElementById('homeAvatar').textContent=emoji;
+  document.getElementById('homeCity').textContent='📍 '+(city||'Город');
+  document.getElementById('statPoints').textContent=points||0;
+  document.getElementById('statQuests').textContent=quests_completed||0;
+  document.getElementById('profileAvatar').textContent=emoji;
+  document.getElementById('profileName').textContent=username;
+  document.getElementById('profileCity').textContent='📍 '+(city||'—');
+  document.getElementById('pStatQ').textContent=quests_completed||0;
+  document.getElementById('pStatP').textContent=points||0;
+  document.getElementById('pStatC').textContent=checkpoints_hit||0;
+  if(is_admin)document.getElementById('adminMenuItem').style.display='flex';
+}
+function getEmoji(name){const e=['🐺','🦊','🐻','🦁','🐯','🦅','🐍','🦋','🐬','🦄'];let h=0;for(let c of(name||''))h=(h*31+c.charCodeAt(0))&0xffff;return e[h%e.length];}
+async function loadUserStats(){
+  try{const r=await sb(`sledopyt_profiles?select=id,points&order=points.desc`);const i=r.findIndex(x=>x.id===currentUser.id);if(i>=0)document.getElementById('statRank').textContent='#'+(i+1);}catch(e){}
 }
 
-function goBack() {
-  if (screenHistory.length > 1) {
-    screenHistory.pop();
-    const prev = screenHistory[screenHistory.length - 1];
-    showScreenDirect(prev);
-  }
-}
-
-function goTab(id, btn) {
-  goScreen(id);
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  btn?.classList.add('active');
-  if (id === 'leaderScreen') loadLeader('solo');
-  if (id === 'homeScreen') loadQuests();
-}
-
-function showMain() {
-  document.getElementById('bottomNav').style.display = 'flex';
-  goScreen('homeScreen');
-  loadQuests();
-  loadUserStats();
-}
-
-// ══════════════════════════════════════
-// AUTH
-// ══════════════════════════════════════
-function switchAuthTab(tab) {
-  document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
-  document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
-  document.querySelectorAll('.auth-tab').forEach((t, i) => t.classList.toggle('active', (i === 0) === (tab === 'login')));
-}
-
-async function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPass').value;
-  if (!email || !pass) return showToast('⚠️ Заполните все поля');
-  try {
-    const data = await sbAuth('token?grant_type=password', email, pass);
-    if (data.error) return showToast('❌ ' + data.error_description);
-    sessionStorage.setItem('sb_token', data.access_token);
-    sessionStorage.setItem('sb_uid', data.user.id);
-    currentUser = data.user;
-    await loadProfile();
-    if (currentCheckpointToken) await openCheckpointByToken(currentCheckpointToken);
-    else showMain();
-  } catch(e) { showToast('❌ Ошибка входа'); }
-}
-
-async function doRegister() {
-  const name = document.getElementById('regName').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const pass = document.getElementById('regPass').value;
-  const city = document.getElementById('regCity').value.trim() || 'Челябинск';
-  if (!name || !email || !pass) return showToast('⚠️ Заполните все поля');
-  if (pass.length < 6) return showToast('⚠️ Пароль минимум 6 символов');
-  try {
-    const data = await sbAuth('signup', email, pass, { username: name, city });
-    if (data.error) return showToast('❌ ' + data.error_description);
-    sessionStorage.setItem('sb_token', data.access_token);
-    sessionStorage.setItem('sb_uid', data.user.id);
-    currentUser = data.user;
-    // Create profile
-    await sb('sledopyt_profiles', { method:'POST', body:{ id:data.user.id, username:name, city, points:0, quests_completed:0, checkpoints_hit:0, is_admin:false }, prefer:'return=minimal' });
-    await loadProfile();
-    showMain();
-  } catch(e) { showToast('❌ Ошибка регистрации'); }
-}
-
-async function doLogout() {
-  sessionStorage.clear();
-  currentUser = null; currentProfile = null;
-  goScreen('authScreen');
-}
-
-// ══════════════════════════════════════
-// PROFILE
-// ══════════════════════════════════════
-async function loadProfile() {
-  try {
-    const data = await sb(`sledopyt_profiles?id=eq.${currentUser.id}&select=*`);
-    if (data.length) {
-      currentProfile = data[0];
-      updateProfileUI();
-    }
-  } catch(e) {}
-}
-
-function updateProfileUI() {
-  if (!currentProfile) return;
-  const { username, city, points, quests_completed, checkpoints_hit, is_admin } = currentProfile;
-  const emoji = getEmoji(username);
-  document.getElementById('heroName').textContent = username;
-  document.getElementById('homeAvatar').textContent = emoji;
-  document.getElementById('homeCity').textContent = '📍 ' + (city || 'Город');
-  document.getElementById('statPoints').textContent = points || 0;
-  document.getElementById('statQuests').textContent = quests_completed || 0;
-  document.getElementById('profileAvatar').textContent = emoji;
-  document.getElementById('profileName').textContent = username;
-  document.getElementById('profileCity').textContent = '📍 ' + (city || '—');
-  document.getElementById('pStatQ').textContent = quests_completed || 0;
-  document.getElementById('pStatP').textContent = points || 0;
-  document.getElementById('pStatC').textContent = checkpoints_hit || 0;
-  if (is_admin) document.getElementById('adminMenuItem').style.display = 'flex';
-}
-
-function getEmoji(name) {
-  const emojis = ['🐺','🦊','🐻','🦁','🐯','🦅','🐍','🦋','🐬','🦄'];
-  let h = 0; for (let c of (name||'')) h = (h*31 + c.charCodeAt(0)) & 0xffff;
-  return emojis[h % emojis.length];
-}
-
-async function loadUserStats() {
-  if (!currentProfile) return;
-  // Get rank
-  try {
-    const ranked = await sb(`sledopyt_profiles?select=id,points&order=points.desc`);
-    const idx = ranked.findIndex(r => r.id === currentUser.id);
-    if (idx >= 0) document.getElementById('statRank').textContent = '#' + (idx + 1);
-  } catch(e) {}
-}
-
-// ══════════════════════════════════════
-// QUESTS
-// ══════════════════════════════════════
-async function loadQuests() {
-  const list = document.getElementById('questsList');
-  list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
-  try {
-    const quests = await sb(`quests?status=eq.active&select=*&order=created_at.desc`);
-    if (!quests.length) { list.innerHTML = '<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">Квесты скоро появятся</div></div>'; return; }
-    list.innerHTML = '';
-    quests.forEach((q, i) => {
-      const el = document.createElement('div');
-      el.className = `quest-card ${q.quest_type === 'team' ? 'team' : ''}`;
-      el.style.animationDelay = `${i * 0.08}s`;
-      el.innerHTML = `
-        <div>
-          <span class="quest-badge ${q.quest_type === 'team' ? 'badge-team' : q.quest_type === 'both' ? 'badge-team' : 'badge-solo'}">
-            ${q.quest_type === 'team' ? '🤝 Командный' : q.quest_type === 'both' ? '⚡ Любой' : '🏃 Личный'}
-          </span>
-          <span class="quest-badge badge-active" style="margin-left:6px">● Активен</span>
-        </div>
-        <div class="quest-title">${q.title}</div>
-        <div class="quest-desc">${q.description || ''}</div>
-        <div class="quest-meta">
-          <div class="quest-meta-item">📍 ${q.checkpoint_count || '?'} точек</div>
-          <div class="quest-meta-item">🏆 ${q.prize_description || 'Приз от спонсора'}</div>
-          <div class="quest-meta-item">📅 До ${formatDate(q.end_date)}</div>
-        </div>
-      `;
-      el.onclick = () => openQuest(q);
-      list.appendChild(el);
+async function loadQuests(){
+  const list=document.getElementById('questsList');list.innerHTML='<div class="loader"><div class="spinner"></div></div>';
+  try{
+    const quests=await sb(`quests?status=eq.active&select=*&order=created_at.desc`);
+    if(!quests.length){list.innerHTML='<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">Квесты скоро появятся</div></div>';return;}
+    list.innerHTML='';
+    quests.forEach((q,i)=>{
+      const el=document.createElement('div');el.className=`quest-card ${q.quest_type==='team'?'team':''}`;el.style.animationDelay=`${i*.08}s`;
+      el.innerHTML=`<div><span class="quest-badge ${q.quest_type==='team'?'badge-team':q.quest_type==='both'?'badge-team':'badge-solo'}">${q.quest_type==='team'?'🤝 Командный':q.quest_type==='both'?'⚡ Любой':'🏃 Личный'}</span><span class="quest-badge badge-active" style="margin-left:6px">● Активен</span></div>
+      <div class="quest-title">${q.title}</div><div class="quest-desc">${q.description||''}</div>
+      <div class="quest-meta"><div class="quest-meta-item">📍 ${q.checkpoint_count||'?'} точек</div><div class="quest-meta-item">🏆 ${q.prize_description||'Приз'}</div><div class="quest-meta-item">📅 До ${formatDate(q.end_date)}</div></div>`;
+      el.onclick=()=>openQuest(q);list.appendChild(el);
     });
-  } catch(e) { list.innerHTML = '<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>'; }
+  }catch(e){list.innerHTML='<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>';}
 }
 
-async function openQuest(quest) {
-  currentQuestId = quest.id;
-  const hero = document.getElementById('questDetailHero');
-  hero.innerHTML = `
+async function openQuest(quest){
+  currentQuestId=quest.id;
+  document.getElementById('questDetailHero').innerHTML=`
     <div class="quest-detail-title">${quest.title}</div>
-    <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px">${quest.description || ''}</div>
-    <div class="quest-meta">
-      <div class="quest-meta-item">🏆 ${quest.prize_description || 'Приз от спонсора'}</div>
-      <div class="quest-meta-item">📅 До ${formatDate(quest.end_date)}</div>
-    </div>
-  `;
+    <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px">${quest.description||''}</div>
+    <div class="quest-meta"><div class="quest-meta-item">🏆 ${quest.prize_description||'Приз'}</div><div class="quest-meta-item">📅 До ${formatDate(quest.end_date)}</div></div>
+    <div class="score-legend" style="margin-top:16px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:600;letter-spacing:.5px">СИСТЕМА ОЧКОВ</div>
+      <div class="score-row"><span>За каждую точку</span><span class="score-pts">+${PTS.CP}</span></div>
+      <div class="score-row"><span>Прошёл все точки</span><span class="score-pts">+${PTS.COMPLETE}</span></div>
+      <div class="score-row"><span>🥇 Первый кто завершил</span><span class="score-pts amber">+${PTS.COMPLETE+PTS.FIRST}</span></div>
+    </div>`;
   goScreen('questScreen');
-  loadCheckpoints(quest.id);
-  if (quest.quest_type !== 'solo') loadTeamSection(quest.id);
+  const firstTab=document.querySelector('#questScreen .detail-tab');switchDetailTab('route',firstTab);
 }
 
-async function loadCheckpoints(questId) {
-  const list = document.getElementById('checkpointList');
-  list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
-  try {
-    const cps = await sb(`checkpoints?quest_id=eq.${questId}&order=order_num.asc&select=*`);
-    // Load user's hits
-    let hits = [];
-    try { hits = await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&select=checkpoint_id`); } catch(e) {}
-    const hitIds = new Set(hits.map(h => h.checkpoint_id));
+function switchDetailTab(tab,el){
+  document.querySelectorAll('.detail-tab').forEach(t=>t.classList.remove('active'));el?.classList.add('active');
+  document.getElementById('detailRoute').style.display=tab==='route'?'block':'none';
+  document.getElementById('detailRating').style.display=tab==='rating'?'block':'none';
+  document.getElementById('detailTeam').style.display=tab==='team'?'block':'none';
+  if(tab==='route')loadCheckpoints(currentQuestId);
+  if(tab==='rating')loadQuestRating(currentQuestId);
+  if(tab==='team')loadTeamSection(currentQuestId);
+}
 
-    list.innerHTML = '';
-    cps.forEach((cp, i) => {
-      const done = hitIds.has(cp.id);
-      const el = document.createElement('div');
-      el.className = `checkpoint-item ${done ? 'done' : ''}`;
-      el.style.animationDelay = `${i * 0.07}s`;
-      el.innerHTML = `
-        <div class="cp-num">${done ? '✓' : (i + 1)}</div>
-        <div class="cp-info">
-          <div class="cp-name">${cp.name}</div>
-          <div class="cp-hint">${done ? '✅ Пройдено' : (cp.hint || 'Найди точку в городе')}</div>
-        </div>
-        <div class="cp-check">✓</div>
-      `;
-      if (!done) el.onclick = () => showToast('📷 Отсканируй QR-код на точке');
-      list.appendChild(el);
+async function loadCheckpoints(questId){
+  const el=document.getElementById('detailRoute');el.innerHTML='<div class="loader"><div class="spinner"></div></div>';
+  try{
+    const cps=await sb(`checkpoints?quest_id=eq.${questId}&order=order_num.asc&select=*`);
+    let hits=[];try{hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&select=checkpoint_id`);}catch(e){}
+    const hitIds=new Set(hits.map(h=>h.checkpoint_id));
+    const pct=cps.length?Math.round(hitIds.size/cps.length*100):0;
+    el.innerHTML=`<div style="padding:16px 20px 8px"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><div class="progress-label">${hitIds.size} из ${cps.length} точек пройдено</div></div><div style="padding:0 20px 20px" id="cpItemsContainer"></div>`;
+    const container=document.getElementById('cpItemsContainer');
+    cps.forEach((cp,i)=>{
+      const done=hitIds.has(cp.id);const hasTask=cp.task_type&&cp.task_type!=='';
+      const div=document.createElement('div');div.className=`checkpoint-item ${done?'done':''}`;div.style.animationDelay=`${i*.07}s`;
+      div.innerHTML=`<div class="cp-num">${done?'✓':(i+1)}</div><div class="cp-info"><div class="cp-name">${cp.name}</div><div class="cp-hint">${done?'✅ Пройдено':(cp.hint||'Найди точку в городе')}</div>${hasTask&&!done?'<div class="cp-task-badge">📋 Есть задание</div>':''}</div>`;
+      if(!done)div.onclick=()=>showToast('📷 Отсканируй QR-код на этой точке');
+      container.appendChild(div);
     });
-
-    // Progress
-    const pct = cps.length ? Math.round(hitIds.size / cps.length * 100) : 0;
-    const prog = document.createElement('div');
-    prog.innerHTML = `<div class="quest-progress" style="padding:0 20px 20px"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><div class="progress-label">${hitIds.size} из ${cps.length} точек пройдено</div></div>`;
-    list.parentNode.insertBefore(prog, list);
-  } catch(e) { list.innerHTML = '<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>'; }
+  }catch(e){el.innerHTML='<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>';}
 }
 
-// ══════════════════════════════════════
-// TEAMS
-// ══════════════════════════════════════
-async function loadTeamSection(questId) {
-  const sec = document.getElementById('teamSection');
-  const content = document.getElementById('teamContent');
-  sec.style.display = 'block';
-  try {
-    const membership = await sb(`team_members?user_id=eq.${currentUser.id}&select=team_id,teams(*)`);
-    const myTeam = membership.find(m => m.teams?.quest_id === questId);
-    if (myTeam) {
-      const members = await sb(`team_members?team_id=eq.${myTeam.team_id}&select=user_id,sledopyt_profiles(username)`);
-      content.innerHTML = `
-        <div class="team-card">
-          <div class="team-name">🤝 ${myTeam.teams.name}</div>
-          <div class="team-members">${members.map(m => `<div class="team-member">${getEmoji(m.sledopyt_profiles?.username)} ${m.sledopyt_profiles?.username || '—'}</div>`).join('')}</div>
-        </div>`;
-    } else {
-      content.innerHTML = `
-        <div style="display:flex;gap:10px;margin-bottom:12px">
-          <button class="btn btn-amber btn-sm" onclick="createTeam('${questId}')">Создать команду</button>
-          <button class="btn btn-secondary btn-sm" onclick="joinTeamPrompt('${questId}')">Вступить по коду</button>
-        </div>`;
+async function loadQuestRating(questId){
+  const el=document.getElementById('detailRating');el.innerHTML='<div class="loader"><div class="spinner"></div></div>';
+  try{
+    const[hits,completions,cps]=await Promise.all([
+      sb(`checkpoint_hits?quest_id=eq.${questId}&select=user_id`),
+      sb(`quest_completions?quest_id=eq.${questId}&select=user_id,bonus_points,is_first`),
+      sb(`checkpoints?quest_id=eq.${questId}&select=id`)
+    ]);
+    const totalCps=cps.length;
+    const userHits={};hits.forEach(h=>{userHits[h.user_id]=(userHits[h.user_id]||0)+PTS.CP;});
+    const userBonus={};completions.forEach(c=>{userBonus[c.user_id]=c.bonus_points;});
+    const userIds=[...new Set([...Object.keys(userHits),...Object.keys(userBonus)])];
+    if(!userIds.length){el.innerHTML='<div class="empty"><div class="empty-icon">🏁</div><div class="empty-text">Пока нет участников</div></div>';return;}
+    const profiles=await sb(`sledopyt_profiles?id=in.(${userIds.join(',')})&select=id,username`);
+    const nameMap={};profiles.forEach(p=>nameMap[p.id]=p.username);
+    const ranked=userIds.map(uid=>({uid,name:nameMap[uid]||'—',pts:(userHits[uid]||0)+(userBonus[uid]||0),cps:Math.round((userHits[uid]||0)/PTS.CP),finished:!!userBonus[uid],isFirst:completions.find(c=>c.user_id===uid)?.is_first||false})).sort((a,b)=>b.pts-a.pts);
+    el.innerHTML='<div style="padding:12px 20px;font-size:11px;color:var(--text3)">Живой рейтинг · Победитель определяется по окончании квеста</div>';
+    ranked.forEach((r,i)=>{
+      const isMe=r.uid===currentUser.id;
+      el.innerHTML+=`<div class="leader-item" style="animation-delay:${i*.05}s"><div class="leader-rank ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div><div class="leader-avatar">${getEmoji(r.name)}</div><div class="leader-info"><div class="leader-name">${r.name} ${isMe?'<span class="me-badge">Я</span>':''} ${r.isFirst?'<span style="font-size:11px;color:var(--amber)">🏆первый</span>':''}</div><div class="leader-meta">${r.cps} из ${totalCps} точек ${r.finished?'· завершил':''}</div></div><div class="leader-pts">${r.pts}</div></div>`;
+    });
+  }catch(e){el.innerHTML='<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>';}
+}
+
+async function loadTeamSection(questId){
+  const el=document.getElementById('detailTeam');
+  try{
+    const membership=await sb(`team_members?user_id=eq.${currentUser.id}&select=team_id,teams(*)`);
+    const myTeam=membership.find(m=>m.teams?.quest_id===questId);
+    if(myTeam){
+      const members=await sb(`team_members?team_id=eq.${myTeam.team_id}&select=user_id,sledopyt_profiles(username)`);
+      el.innerHTML=`<div style="padding:20px"><div class="team-card"><div class="team-name">🤝 ${myTeam.teams.name}</div><div class="team-code">${myTeam.teams.invite_code||'—'}</div><div style="font-size:11px;color:var(--text3);text-align:center;margin-top:8px">Код для приглашения</div><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">${members.map(m=>`<div style="display:flex;align-items:center;gap:6px;background:var(--bg3);border-radius:20px;padding:4px 10px 4px 6px;font-size:12px">${getEmoji(m.sledopyt_profiles?.username)} ${m.sledopyt_profiles?.username||'—'}</div>`).join('')}</div></div></div>`;
+    }else{
+      el.innerHTML=`<div style="padding:20px"><div style="display:flex;gap:10px;margin-bottom:12px"><button class="btn btn-amber btn-sm" onclick="createTeam('${questId}')">Создать команду</button><button class="btn btn-secondary btn-sm" onclick="joinTeamPrompt('${questId}')">Вступить по коду</button></div></div>`;
     }
-  } catch(e) {}
+  }catch(e){}
+}
+async function createTeam(questId){const name=prompt('Название команды:');if(!name)return;try{const t=await sb('teams',{method:'POST',body:{name,quest_id:questId,created_by:currentUser.id}});await sb('team_members',{method:'POST',body:{team_id:t[0].id,user_id:currentUser.id},prefer:'return=minimal'});showToast('Команда создана! Код: '+t[0].invite_code);loadTeamSection(questId);}catch(e){showToast('Ошибка');}}
+async function joinTeamPrompt(questId){const code=prompt('Код команды:');if(!code)return;try{const t=await sb(`teams?invite_code=eq.${code.toUpperCase()}&quest_id=eq.${questId}`);if(!t.length)return showToast('Команда не найдена');await sb('team_members',{method:'POST',body:{team_id:t[0].id,user_id:currentUser.id},prefer:'return=minimal'});showToast('Вступил в '+t[0].name+'!');loadTeamSection(questId);}catch(e){showToast('Ошибка');}}
+async function showTeamModal(){
+  const content=document.getElementById('teamModalContent');content.innerHTML='<div class="loader"><div class="spinner"></div></div>';document.getElementById('teamModal').classList.add('show');
+  try{const m=await sb(`team_members?user_id=eq.${currentUser.id}&select=team_id,teams(*)`);content.innerHTML=m.length?m.map(x=>`<div class="team-card"><div class="team-name">${x.teams?.name}</div><div class="team-code">${x.teams?.invite_code||'—'}</div></div>`).join(''):'<div class="empty"><div class="empty-icon">🤝</div><div class="empty-text">Ты пока не в команде</div></div>';}catch(e){content.innerHTML='<div class="empty"><div class="empty-text">Ошибка</div></div>';}
 }
 
-async function createTeam(questId) {
-  const name = prompt('Название команды:');
-  if (!name) return;
-  try {
-    const teams = await sb('teams', { method:'POST', body:{ name, quest_id:questId, created_by:currentUser.id } });
-    const team = teams[0];
-    await sb('team_members', { method:'POST', body:{ team_id:team.id, user_id:currentUser.id }, prefer:'return=minimal' });
-    showToast('🎉 Команда создана! Код: ' + team.invite_code);
-    loadTeamSection(questId);
-  } catch(e) { showToast('❌ Ошибка создания команды'); }
-}
-
-async function joinTeamPrompt(questId) {
-  const code = prompt('Введи код команды:');
-  if (!code) return;
-  try {
-    const teams = await sb(`teams?invite_code=eq.${code.toUpperCase()}&quest_id=eq.${questId}&select=*`);
-    if (!teams.length) return showToast('❌ Команда не найдена');
-    await sb('team_members', { method:'POST', body:{ team_id:teams[0].id, user_id:currentUser.id }, prefer:'return=minimal' });
-    showToast('🎉 Ты в команде ' + teams[0].name + '!');
-    loadTeamSection(questId);
-  } catch(e) { showToast('❌ Ошибка вступления'); }
-}
-
-async function showTeamModal() {
-  const content = document.getElementById('teamModalContent');
-  content.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
-  document.getElementById('teamModal').classList.add('show');
-  try {
-    const members = await sb(`team_members?user_id=eq.${currentUser.id}&select=team_id,teams(*)`);
-    if (!members.length) {
-      content.innerHTML = '<div class="empty"><div class="empty-icon">🤝</div><div class="empty-text">Ты пока не в команде</div></div>';
-    } else {
-      content.innerHTML = members.map(m => `
-        <div class="team-card">
-          <div class="team-name">${m.teams?.name}</div>
-          <div class="team-code">${m.teams?.invite_code || '—'}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center">Код для приглашения друзей</div>
-        </div>`).join('');
+async function openCheckpointByToken(token){
+  try{
+    const cps=await sb(`checkpoints?token=eq.${token}&select=*,quests(title,status)`);
+    if(!cps.length)return showToast('Точка не найдена');
+    const cp=cps[0];if(cp.quests?.status!=='active')return showToast('Квест завершён');
+    const hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=eq.${cp.id}`);
+    if(hits.length){showToast('Эта точка уже засчитана');showMain();return;}
+    currentCheckpointData=cp;
+    document.getElementById('verifyIcon').textContent=cp.order_num===1?'🚀':'🏁';
+    document.getElementById('verifyTitle').textContent=cp.name;
+    document.getElementById('verifyQuestName').textContent='Квест: '+(cp.quests?.title||'');
+    const taskCard=document.getElementById('taskCard');
+    const captionBlock=document.getElementById('captionBlock');
+    if(cp.task_type&&cp.task_type!==''){
+      document.getElementById('taskText').textContent=cp.task_text||'Выполни задание и сфотографируй';
+      document.getElementById('taskTip').textContent=cp.task_tip||'';
+      taskCard.style.display='block';
+      captionBlock.style.display=(cp.task_type==='riddle'||cp.task_type==='sign')?'block':'none';
+      document.getElementById('selfiePrompt').textContent='Сфотографируй доказательство';
+    }else{
+      taskCard.style.display='none';captionBlock.style.display='none';
+      document.getElementById('selfiePrompt').textContent='Сделай селфи на точке';
     }
-  } catch(e) { content.innerHTML = '<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>'; }
+    document.getElementById('selfieArea').innerHTML=`<div class="selfie-placeholder"><div style="font-size:48px">📸</div><div id="selfiePrompt">${cp.task_type&&cp.task_type!==''?'Сфотографируй доказательство':'Сделай селфи на точке'}</div><div style="font-size:11px;color:var(--text3)">Нажми чтобы открыть камеру</div></div>`;
+    selfieBlob=null;const btn=document.getElementById('submitBtn');btn.disabled=true;btn.style.opacity='.5';btn.textContent='Подтвердить точку';
+    document.getElementById('captionInput').value='';
+    startGeoCheck(cp);goScreen('verifyScreen');window.history.replaceState({},'','/');
+  }catch(e){showToast('Ошибка загрузки точки');showMain();}
 }
 
-// ══════════════════════════════════════
-// CHECKPOINT VERIFY (QR flow)
-// ══════════════════════════════════════
-async function openCheckpointByToken(token) {
-  try {
-    const cps = await sb(`checkpoints?token=eq.${token}&select=*,quests(title,status)`);
-    if (!cps.length) return showToast('❌ Точка не найдена');
-    const cp = cps[0];
-    if (cp.quests?.status !== 'active') return showToast('⏰ Квест уже завершён');
-
-    // Check already done
-    const hits = await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=eq.${cp.id}`);
-    if (hits.length) { showToast('✅ Эта точка уже засчитана'); showMain(); return; }
-
-    currentCheckpointData = cp;
-    document.getElementById('verifyIcon').textContent = cp.order_num === 1 ? '🚀' : '🏁';
-    document.getElementById('verifyTitle').textContent = cp.name;
-    document.getElementById('verifyQuestName').textContent = cp.quests?.title || '';
-    document.getElementById('verifySub').innerHTML = `Квест: <span class="verify-quest-name">${cp.quests?.title || ''}</span><br>Сделай селфи для подтверждения что ты здесь`;
-
-    startGeoCheck(cp);
-    goScreen('verifyScreen');
-    window.history.replaceState({}, '', '/');
-  } catch(e) { showToast('❌ Ошибка загрузки точки'); showMain(); }
+function startGeoCheck(cp){
+  const badge=document.getElementById('geoStatus');
+  if(!navigator.geolocation){badge.textContent='GPS недоступен';badge.className='geo-badge error';return;}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    userGeo=pos.coords;const dist=getDistance(pos.coords.latitude,pos.coords.longitude,cp.lat,cp.lng);
+    if(dist<=(cp.radius_meters||150)){badge.textContent=`✅ На месте (${Math.round(dist)}м)`;badge.className='geo-badge';}
+    else{badge.textContent=`📍 ~${Math.round(dist)}м от точки`;badge.className='geo-badge error';}
+  },()=>{badge.textContent='GPS недоступен';badge.className='geo-badge error';},{timeout:8000,enableHighAccuracy:true});
 }
-
-function startGeoCheck(cp) {
-  const badge = document.getElementById('geoStatus');
-  if (!navigator.geolocation) { badge.textContent = '📍 GPS недоступен'; badge.className = 'geo-badge error'; return; }
-  badge.textContent = '📍 Определяем...';
-  navigator.geolocation.getCurrentPosition(pos => {
-    userGeo = pos.coords;
-    const dist = getDistance(pos.coords.latitude, pos.coords.longitude, cp.lat, cp.lng);
-    if (dist <= (cp.radius_meters || 100)) {
-      badge.textContent = `✅ Ты на месте (${Math.round(dist)}м)`;
-      badge.className = 'geo-badge';
-    } else {
-      badge.textContent = `📍 ~${Math.round(dist)}м от точки`;
-      badge.className = 'geo-badge error';
-    }
-  }, () => { badge.textContent = '📍 GPS недоступен'; badge.className = 'geo-badge error'; });
+function takeSelfie(){
+  const input=document.getElementById('selfieInput');
+  // Для задания "selfie" — фронтальная камера, для остальных — задняя
+  const taskType=currentCheckpointData?.task_type||'';
+  input.setAttribute('capture', taskType==='selfie'?'user':'environment');
+  input.click();
 }
-
-function takeSelfie() {
-  document.getElementById('selfieInput').click();
+async function handleSelfie(e){
+  const file=e.target.files[0];if(!file)return;
+  selfieBlob=await compressImage(file,900,.82);
+  document.getElementById('selfieArea').innerHTML=`<img src="${URL.createObjectURL(selfieBlob)}">`;
+  const btn=document.getElementById('submitBtn');btn.disabled=false;btn.style.opacity='1';
 }
-
-async function handleSelfie(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  // Compress
-  selfieBlob = await compressImage(file, 800, 0.8);
-  const url = URL.createObjectURL(selfieBlob);
-  const area = document.getElementById('selfieArea');
-  area.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:14px">`;
-  const btn = document.getElementById('submitBtn');
-  btn.disabled = false; btn.style.opacity = '1';
-}
-
-async function compressImage(file, maxSize, quality) {
-  return new Promise(resolve => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let w = img.width, h = img.height;
-      if (w > maxSize || h > maxSize) {
-        if (w > h) { h = h * maxSize / w; w = maxSize; }
-        else { w = w * maxSize / h; h = maxSize; }
-      }
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      canvas.toBlob(resolve, 'image/jpeg', quality);
-    };
-    img.src = URL.createObjectURL(file);
+async function compressImage(file,maxSize,quality){
+  return new Promise(resolve=>{
+    const img=new Image();img.onload=()=>{
+      const canvas=document.createElement('canvas');let w=img.width,h=img.height;
+      if(w>maxSize||h>maxSize){if(w>h){h=h*maxSize/w;w=maxSize;}else{w=w*maxSize/h;h=maxSize;}}
+      canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);
+      canvas.toBlob(resolve,'image/jpeg',quality);
+    };img.src=URL.createObjectURL(file);
   });
 }
 
-async function submitCheckpoint() {
-  if (!currentCheckpointData) return;
-  const btn = document.getElementById('submitBtn');
-  btn.disabled = true; btn.textContent = 'Сохраняем...';
-
-  try {
-    let photoUrl = null;
-    if (selfieBlob) {
-      const path = `selfies/${currentUser.id}/${currentCheckpointData.id}_${Date.now()}.jpg`;
-      photoUrl = await uploadPhoto('checkpoint-photos', path, selfieBlob);
-    }
-
-    // Record hit
-    await sb('checkpoint_hits', {
-      method: 'POST',
-      body: {
-        user_id: currentUser.id,
-        checkpoint_id: currentCheckpointData.id,
-        quest_id: currentCheckpointData.quest_id,
-        photo_url: photoUrl,
-        lat: userGeo?.latitude || null,
-        lng: userGeo?.longitude || null,
-        hit_at: new Date().toISOString()
-      },
-      prefer: 'return=minimal'
-    });
-
-    // Update points
-    await sb(`sledopyt_profiles?id=eq.${currentUser.id}`, {
-      method: 'PATCH',
-      body: { points: (currentProfile?.points || 0) + 10, checkpoints_hit: (currentProfile?.checkpoints_hit || 0) + 1 },
-      prefer: 'return=minimal'
-    });
-
-    // Check if quest complete
-    await checkQuestCompletion(currentCheckpointData.quest_id);
-
-    // Show success
-    document.getElementById('successSub').textContent = '+10 баллов за точку!';
+async function submitCheckpoint(){
+  if(!currentCheckpointData)return;
+  const btn=document.getElementById('submitBtn');btn.disabled=true;btn.textContent='Сохраняем...';
+  try{
+    let photoUrl=null;
+    if(selfieBlob){const path=`selfies/${currentUser.id}/${currentCheckpointData.id}_${Date.now()}.jpg`;photoUrl=await uploadPhoto('checkpoint-photos',path,selfieBlob);}
+    const caption=document.getElementById('captionInput').value.trim()||null;
+    await sb('checkpoint_hits',{method:'POST',body:{user_id:currentUser.id,checkpoint_id:currentCheckpointData.id,quest_id:currentCheckpointData.quest_id,photo_url:photoUrl,caption,lat:userGeo?.latitude||null,lng:userGeo?.longitude||null,hit_at:new Date().toISOString()},prefer:'return=minimal'});
+    const newPts=(currentProfile?.points||0)+PTS.CP,newHits=(currentProfile?.checkpoints_hit||0)+1;
+    await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{points:newPts,checkpoints_hit:newHits},prefer:'return=minimal'});
+    currentProfile.points=newPts;currentProfile.checkpoints_hit=newHits;
+    const msg=await checkQuestCompletion(currentCheckpointData.quest_id);
+    document.getElementById('successSub').textContent=msg||`+${PTS.CP} баллов за точку!`;
     document.getElementById('successOverlay').classList.add('show');
-    currentCheckpointData = null; selfieBlob = null;
-  } catch(e) {
-    btn.disabled = false; btn.textContent = 'Подтвердить точку'; btn.style.opacity = '1';
-    showToast('❌ Ошибка сохранения: ' + (e.message || 'попробуй ещё раз'));
-  }
+    currentCheckpointData=null;selfieBlob=null;document.getElementById('captionInput').value='';
+  }catch(e){btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';showToast('Ошибка: '+(e.message||'попробуй ещё раз'));}
 }
 
-async function checkQuestCompletion(questId) {
-  try {
-    const total = await sb(`checkpoints?quest_id=eq.${questId}&select=id`);
-    const hits = await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&select=id`);
-    if (hits.length >= total.length) {
-      // Bonus points
-      await sb(`sledopyt_profiles?id=eq.${currentUser.id}`, {
-        method:'PATCH', body:{ quests_completed: (currentProfile?.quests_completed||0)+1, points:(currentProfile?.points||0)+50 }, prefer:'return=minimal'
-      });
-      document.getElementById('successSub').textContent = '🎉 Квест завершён! +50 бонусных баллов!';
-    }
-  } catch(e) {}
+async function checkQuestCompletion(questId){
+  try{
+    const[total,hits]=await Promise.all([sb(`checkpoints?quest_id=eq.${questId}&select=id`),sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&select=id`)]);
+    if(hits.length<total.length)return null;
+    let bonus=PTS.COMPLETE,isFirst=false;
+    try{
+      const completions=await sb(`quest_completions?quest_id=eq.${questId}&select=id&limit=1`);
+      isFirst=completions.length===0;if(isFirst)bonus=PTS.COMPLETE+PTS.FIRST;
+      await sb('quest_completions',{method:'POST',body:{user_id:currentUser.id,quest_id:questId,finished_at:new Date().toISOString(),is_first:isFirst,bonus_points:bonus},prefer:'return=minimal'});
+    }catch(e2){}
+    const newPts=(currentProfile?.points||0)+bonus,newQ=(currentProfile?.quests_completed||0)+1;
+    await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{quests_completed:newQ,points:newPts},prefer:'return=minimal'});
+    currentProfile.points=newPts;currentProfile.quests_completed=newQ;
+    return isFirst?`🏆 Первый финиш! +${bonus} баллов!`:`🎉 Квест завершён! +${bonus} баллов!`;
+  }catch(e){return '🎉 Квест завершён!';}
 }
+function afterSuccess(){document.getElementById('successOverlay').classList.remove('show');loadProfile();showMain();}
 
-function afterSuccess() {
-  document.getElementById('successOverlay').classList.remove('show');
-  loadProfile();
-  showMain();
-}
-
-// ══════════════════════════════════════
-// QR SCANNER
-// ══════════════════════════════════════
-async function showScan() {
+async function showScan(){
   goScreen('scanScreen');
-  try {
-    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    const video = document.getElementById('scanVideo');
-    video.srcObject = scanStream;
-    await video.play();
-    startQRScan(video);
-  } catch(e) { showToast('❌ Нет доступа к камере'); stopScan(); }
+  try{scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});const video=document.getElementById('scanVideo');video.srcObject=scanStream;await video.play();startQRScan(video);}
+  catch(e){showToast('Нет доступа к камере');stopScan();}
+}
+function startQRScan(video){if(window.jsQR){doScan(video);return;}const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.js';s.onload=()=>doScan(video);document.head.appendChild(s);}
+function doScan(video){
+  const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
+  scanInterval=setInterval(()=>{if(video.readyState===video.HAVE_ENOUGH_DATA){canvas.width=video.videoWidth;canvas.height=video.videoHeight;ctx.drawImage(video,0,0);const img=ctx.getImageData(0,0,canvas.width,canvas.height);const code=jsQR(img.data,img.width,img.height);if(code?.data){clearInterval(scanInterval);stopScan();handleQRResult(code.data);}}},200);
+}
+function stopScan(){if(scanInterval){clearInterval(scanInterval);scanInterval=null;}if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;}goBack();}
+function handleQRResult(url){try{const token=new URL(url).searchParams.get('cp');if(token){currentCheckpointToken=token;openCheckpointByToken(token);}else showToast('Неверный QR-код');}catch(e){showToast('Неверный формат QR');}}
+
+async function loadLeader(type,tabEl){
+  if(tabEl){document.querySelectorAll('.leader-tab').forEach(t=>t.classList.remove('active'));tabEl.classList.add('active');}
+  const list=document.getElementById('leaderList');list.innerHTML='<div class="loader"><div class="spinner"></div></div>';
+  try{
+    if(type==='team'){const data=await sb(`teams?select=name,points&order=points.desc&limit=50`);list.innerHTML=data.length?data.map((t,i)=>`<div class="leader-item"><div class="leader-rank ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div><div class="leader-avatar">🤝</div><div class="leader-info"><div class="leader-name">${t.name}</div></div><div class="leader-pts">${t.points||0}</div></div>`).join(''):'<div class="empty"><div class="empty-icon">🤝</div><div class="empty-text">Нет команд</div></div>';}
+    else{const data=await sb(`sledopyt_profiles?select=id,username,city,points,quests_completed&order=points.desc&limit=50`);list.innerHTML=data.length?data.map((p,i)=>`<div class="leader-item" style="animation-delay:${i*.04}s"><div class="leader-rank ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div><div class="leader-avatar">${getEmoji(p.username)}</div><div class="leader-info"><div class="leader-name">${p.username} ${p.id===currentUser?.id?'<span class="me-badge">Я</span>':''}</div><div class="leader-meta">📍 ${p.city||'—'} · ${p.quests_completed||0} квестов</div></div><div class="leader-pts">${p.points||0}</div></div>`).join(''):'<div class="empty"><div class="empty-icon">🏆</div><div class="empty-text">Нет участников</div></div>';}
+  }catch(e){list.innerHTML='<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>';}
 }
 
-function startQRScan(video) {
-  // Use jsQR via CDN dynamically
-  if (window.jsQR) { doScan(video); return; }
-  const script = document.createElement('script');
-  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.js';
-  script.onload = () => doScan(video);
-  document.head.appendChild(script);
+function toggleTaskFields(){const type=document.getElementById('cpTaskType').value;const show=type!=='';document.getElementById('taskTextBlock').style.display=show?'block':'none';document.getElementById('taskTipBlock').style.display=show?'block':'none';}
+function initAdminScreen(){loadAdminQuests();loadAdminQuestList();}
+async function loadAdminQuests(){
+  if(!currentProfile?.is_admin)return;
+  const sel=document.getElementById('cpQuestId'),saved=sel.value;
+  try{const q=await sb(`quests?select=*&order=created_at.desc`);sel.innerHTML='<option value="">Выберите квест...</option>'+q.map(x=>`<option value="${x.id}">${x.title}</option>`).join('');if(saved)sel.value=saved;}catch(e){}
 }
-
-function doScan(video) {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  scanInterval = setInterval(() => {
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0);
-      const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(img.data, img.width, img.height);
-      if (code && code.data) {
-        clearInterval(scanInterval);
-        stopScan();
-        handleQRResult(code.data);
-      }
-    }
-  }, 200);
+async function loadAdminQuestList(){
+  if(!currentProfile?.is_admin)return;
+  const list=document.getElementById('adminQuestList');
+  try{
+    const quests=await sb(`quests?select=*&order=created_at.desc`);
+    list.innerHTML=quests.length?quests.map(q=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:start"><div><div style="font-weight:600;color:var(--text)">${q.title}</div><div style="font-size:12px;color:var(--text3);margin-top:4px">${q.quest_type} · до ${formatDate(q.end_date)}</div><button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="loadCheckpointsList('${q.id}')">📋 Точки и QR</button></div><button class="btn btn-sm ${q.status==='active'?'btn-red':'btn-primary'}" onclick="toggleQuestStatus('${q.id}','${q.status}')">${q.status==='active'?'Завершить':'Активировать'}</button></div></div>`).join(''):'<div class="empty"><div class="empty-text">Нет квестов</div></div>';
+  }catch(e){}
 }
-
-function stopScan() {
-  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
-  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
-  goBack();
+async function createQuest(){
+  const title=document.getElementById('qTitle').value.trim(),desc=document.getElementById('qDesc').value.trim(),type=document.getElementById('qType').value,days=parseInt(document.getElementById('qDays').value)||7,prize=document.getElementById('qPrize').value.trim();
+  if(!title)return showToast('Введи название');
+  const end=new Date();end.setDate(end.getDate()+days);
+  try{await sb('quests',{method:'POST',body:{title,description:desc,quest_type:type,status:'active',end_date:end.toISOString(),prize_description:prize,created_by:currentUser.id,checkpoint_count:0},prefer:'return=minimal'});showToast('Квест создан!');document.getElementById('qTitle').value='';document.getElementById('qDesc').value='';initAdminScreen();}
+  catch(e){showToast('Ошибка: '+JSON.stringify(e));}
 }
-
-function handleQRResult(url) {
-  try {
-    const parsed = new URL(url);
-    const token = parsed.searchParams.get('cp');
-    if (token) {
-      currentCheckpointToken = token;
-      openCheckpointByToken(token);
-    } else {
-      showToast('❌ Неверный QR-код');
-    }
-  } catch(e) { showToast('❌ Неверный формат QR'); }
-}
-
-// ══════════════════════════════════════
-// LEADERBOARD
-// ══════════════════════════════════════
-async function loadLeader(type, tabEl) {
-  if (tabEl) {
-    document.querySelectorAll('.leader-tab').forEach(t => t.classList.remove('active'));
-    tabEl.classList.add('active');
-  }
-  const list = document.getElementById('leaderList');
-  list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
-  try {
-    let data;
-    if (type === 'team') {
-      data = await sb(`teams?select=name,points,quest_id&order=points.desc&limit=50`);
-      list.innerHTML = data.length ? data.map((t, i) => `
-        <div class="leader-item">
-          <div class="leader-rank ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div>
-          <div class="leader-avatar">🤝</div>
-          <div class="leader-info"><div class="leader-name">${t.name}</div></div>
-          <div class="leader-pts">${t.points||0}</div>
-        </div>`).join('') : '<div class="empty"><div class="empty-icon">🤝</div><div class="empty-text">Нет команд</div></div>';
-    } else {
-      data = await sb(`sledopyt_profiles?select=id,username,city,points,quests_completed&order=points.desc&limit=50`);
-      list.innerHTML = data.length ? data.map((p, i) => `
-        <div class="leader-item" style="animation-delay:${i*.04}s">
-          <div class="leader-rank ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div>
-          <div class="leader-avatar">${getEmoji(p.username)}</div>
-          <div class="leader-info">
-            <div class="leader-name">${p.username} ${p.id===currentUser?.id?'<span class="me-badge">Я</span>':''}</div>
-            <div class="leader-meta">📍 ${p.city||'—'} · ${p.quests_completed||0} квестов</div>
-          </div>
-          <div class="leader-pts">${p.points||0}</div>
-        </div>`).join('') : '<div class="empty"><div class="empty-icon">🏆</div><div class="empty-text">Нет участников</div></div>';
-    }
-  } catch(e) { list.innerHTML = '<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>'; }
-}
-
-// ══════════════════════════════════════
-// ADMIN PANEL
-// ══════════════════════════════════════
-async function loadAdminQuests() {
-  if (!currentProfile?.is_admin) return;
-  const sel = document.getElementById('cpQuestId');
-  const savedVal = sel.value;
-  try {
-    const quests = await sb(`quests?select=*&order=created_at.desc`);
-    sel.innerHTML = '<option value="">Выберите квест...</option>' + quests.map(q => `<option value="${q.id}">${q.title}</option>`).join('');
-    if (savedVal) sel.value = savedVal;
-  } catch(e) {}
-}
-
-async function loadAdminQuestList() {
-  if (!currentProfile?.is_admin) return;
-  const list = document.getElementById('adminQuestList');
-  try {
-    const quests = await sb(`quests?select=*&order=created_at.desc`);
-    list.innerHTML = quests.length ? quests.map(q => `
-      <div class="team-card" style="border-color:var(--border);margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:start">
-          <div>
-            <div style="font-weight:600;color:var(--text)">${q.title}</div>
-            <div style="font-size:12px;color:var(--text3);margin-top:4px">${q.quest_type} · до ${formatDate(q.end_date)}</div>
-            <button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="loadCheckpointsList('${q.id}')">📋 Показать точки и QR</button>
-          </div>
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-sm ${q.status==='active'?'btn-red':'btn-primary'}" onclick="toggleQuestStatus('${q.id}','${q.status}')">
-              ${q.status==='active'?'Завершить':'Активировать'}
-            </button>
-          </div>
-        </div>
-      </div>`).join('') : '<div class="empty"><div class="empty-text">Нет квестов</div></div>';
-  } catch(e) {}
-}
-
-async function createQuest() {
-  const title = document.getElementById('qTitle').value.trim();
-  const desc = document.getElementById('qDesc').value.trim();
-  const type = document.getElementById('qType').value;
-  const days = parseInt(document.getElementById('qDays').value) || 7;
-  const prize = document.getElementById('qPrize').value.trim();
-  if (!title) return showToast('⚠️ Введи название');
-  const end = new Date(); end.setDate(end.getDate() + days);
-  try {
-    await sb('quests', { method:'POST', body:{ title, description:desc, quest_type:type, status:'active', end_date:end.toISOString(), prize_description:prize, created_by:currentUser.id }, prefer:'return=minimal' });
-    showToast('✅ Квест создан!');
-    document.getElementById('qTitle').value = '';
-    document.getElementById('qDesc').value = '';
-    loadAdminQuests();
-  } catch(e) { showToast('❌ Ошибка создания квеста'); }
-}
-
-async function createCheckpoint() {
-  const questId = document.getElementById('cpQuestId').value;
-  const name = document.getElementById('cpName').value.trim();
-  const hint = document.getElementById('cpHint').value.trim();
-  const lat = parseFloat(document.getElementById('cpLat').value);
-  const lng = parseFloat(document.getElementById('cpLng').value);
-  const radius = parseInt(document.getElementById('cpRadius').value) || 100;
-  if (!questId || !name || isNaN(lat) || isNaN(lng)) return showToast('⚠️ Заполните все поля');
-
-  const token = generateToken();
-  try {
-    // Get order
-    const existing = await sb(`checkpoints?quest_id=eq.${questId}&select=id`);
-    const orderNum = existing.length + 1;
-
-    await sb('checkpoints', { method:'POST', body:{ quest_id:questId, name, hint, lat, lng, radius_meters:radius, token, order_num:orderNum }, prefer:'return=minimal' });
-
-    // Update quest checkpoint count
-    await sb(`quests?id=eq.${questId}`, { method:'PATCH', body:{ checkpoint_count:orderNum }, prefer:'return=minimal' });
-
-    // Generate QR
-    const qrUrl = `${APP_URL}?cp=${token}`;
-    generateQR(qrUrl, name);
-    showToast('✅ Точка добавлена!');
-    document.getElementById('cpName').value = '';
-    document.getElementById('cpHint').value = '';
-    // Показываем список точек для текущего квеста
+async function createCheckpoint(){
+  const questId=document.getElementById('cpQuestId').value,name=document.getElementById('cpName').value.trim(),hint=document.getElementById('cpHint').value.trim(),lat=parseFloat(document.getElementById('cpLat').value),lng=parseFloat(document.getElementById('cpLng').value),radius=parseInt(document.getElementById('cpRadius').value)||150;
+  const taskType=document.getElementById('cpTaskType').value,taskText=document.getElementById('cpTaskText').value.trim(),taskTip=document.getElementById('cpTaskTip').value.trim();
+  if(!questId||!name||isNaN(lat)||isNaN(lng))return showToast('Заполните все обязательные поля');
+  if(taskType&&!taskText)return showToast('Введи текст задания');
+  const token=generateToken();
+  try{
+    const existing=await sb(`checkpoints?quest_id=eq.${questId}&select=id`);const orderNum=existing.length+1;
+    await sb('checkpoints',{method:'POST',body:{quest_id:questId,name,hint,lat,lng,radius_meters:radius,token,order_num:orderNum,task_type:taskType||null,task_text:taskText||null,task_tip:taskTip||null},prefer:'return=minimal'});
+    await sb(`quests?id=eq.${questId}`,{method:'PATCH',body:{checkpoint_count:orderNum},prefer:'return=minimal'});
+    generateQR(`${APP_URL}?cp=${token}`,name);showToast('Точка добавлена!');
+    document.getElementById('cpName').value='';document.getElementById('cpHint').value='';document.getElementById('cpTaskType').value='';document.getElementById('cpTaskText').value='';document.getElementById('cpTaskTip').value='';toggleTaskFields();
     loadCheckpointsList(questId);
-  } catch(e) { showToast('❌ Ошибка: ' + JSON.stringify(e)); }
+  }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
+}
+async function loadCheckpointsList(questId){
+  const container=document.getElementById('cpListContainer');if(!container||!questId)return;
+  try{
+    const cps=await sb(`checkpoints?quest_id=eq.${questId}&order=order_num.asc&select=*`);
+    if(!cps.length){container.innerHTML='';return;}
+    container.innerHTML=`<div style="margin-top:16px"><div class="admin-title" style="margin-bottom:10px">Все точки и QR</div>`+
+      cps.map((cp,i)=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px"><div style="font-weight:600;color:var(--text);margin-bottom:4px">${i+1}. ${cp.name}</div>${cp.task_type?`<div style="font-size:11px;color:var(--blue);margin-bottom:4px">📋 ${cp.task_text||''}</div>`:''}<div style="font-size:12px;color:var(--text3);margin-bottom:8px">${cp.hint||''}</div><button class="btn btn-secondary btn-sm" onclick="generateQRAndDownload('${APP_URL}?cp=${cp.token}','${cp.name.replace(/'/g,"\\'")}')">📥 Скачать QR</button></div>`).join('')+'</div>';
+  }catch(e){}
+}
+async function toggleQuestStatus(id,status){const s=status==='active'?'ended':'active';await sb(`quests?id=eq.${id}`,{method:'PATCH',body:{status:s},prefer:'return=minimal'});loadAdminQuestList();}
+
+function generateToken(){return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');}
+function generateQR(text,name){if(window.QRCode){doGenerateQR(text,name);return;}const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';s.onload=()=>doGenerateQR(text,name);document.head.appendChild(s);}
+function doGenerateQR(text,name){
+  const result=document.getElementById('qrResult'),box=result.querySelector('.qr-box');
+  box.innerHTML='';const div=document.createElement('div');box.appendChild(div);
+  new QRCode(div,{text,width:200,height:200,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+  document.getElementById('qrCaption').textContent=`📍 ${name} — распечатай и размести на точке`;
+  result.style.display='block';
+}
+function downloadQR(){
+  const result=document.getElementById('qrResult');const img=result.querySelector('img');const canvas=result.querySelector('canvas');
+  const a=document.createElement('a');a.download=`sledopyt-qr-${Date.now()}.png`;
+  if(img&&img.src)a.href=img.src;else if(canvas)a.href=canvas.toDataURL('image/png');else{showToast('Подожди секунду');return;}a.click();
+}
+function generateQRAndDownload(text,name){if(!window.QRCode){const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';s.onload=()=>doQRDownload(text,name);document.head.appendChild(s);}else doQRDownload(text,name);}
+function doQRDownload(text,name){
+  const tmp=document.createElement('div');tmp.style.cssText='position:fixed;left:-9999px;top:-9999px;background:#fff;padding:10px';document.body.appendChild(tmp);
+  new QRCode(tmp,{text,width:300,height:300,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+  setTimeout(()=>{const img=tmp.querySelector('img'),canvas=tmp.querySelector('canvas');const a=document.createElement('a');a.download=`sledopyt-${name.replace(/[^а-яёa-z0-9]/gi,'-')}.png`;if(img?.src)a.href=img.src;else if(canvas)a.href=canvas.toDataURL('image/png');a.click();document.body.removeChild(tmp);},600);
 }
 
-async function loadCheckpointsList(questId) {
-  const container = document.getElementById('cpListContainer');
-  if (!container || !questId) return;
-  try {
-    const cps = await sb(`checkpoints?quest_id=eq.${questId}&order=order_num.asc&select=*`);
-    if (!cps.length) { container.innerHTML = ''; return; }
-    container.innerHTML = '<div style="margin-top:16px"><div class="admin-title" style="margin-bottom:10px">Точки квеста — все QR</div>' +
-      cps.map((cp, i) => `
-        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px">
-          <div style="font-weight:600;color:var(--text);margin-bottom:4px">${i+1}. ${cp.name}</div>
-          <div style="font-size:12px;color:var(--text3);margin-bottom:8px">${cp.hint || ''}</div>
-          <button class="btn btn-secondary btn-sm" onclick="showAndDownloadQR('${APP_URL}?cp=${cp.token}','${cp.name.replace(/'/g,"\'")}')">
-            📥 Скачать QR
-          </button>
-        </div>`).join('') + '</div>';
-  } catch(e) {}
+async function showHistoryModal(){
+  const content=document.getElementById('historyModalContent');content.innerHTML='<div class="loader"><div class="spinner"></div></div>';document.getElementById('historyModal').classList.add('show');
+  try{const hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&select=*,checkpoints(name),quests(title)&order=hit_at.desc&limit=30`);content.innerHTML=hits.length?hits.map(h=>`<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center"><div style="font-size:24px">📍</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${h.checkpoints?.name||'—'}</div><div style="font-size:11px;color:var(--text3)">${h.quests?.title||''} · ${formatDate(h.hit_at)}</div></div><div style="color:var(--green);font-family:'Unbounded','Arial Black',sans-serif;font-size:13px">+10</div></div>`).join(''):'<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">Ещё нет пройденных точек</div></div>';}catch(e){content.innerHTML='<div class="empty"><div class="empty-text">Ошибка</div></div>';}
 }
 
-async function showAndDownloadQR(url, name) {
-  generateQRAndDownload(url, name);
-}
-
-async function toggleQuestStatus(id, status) {
-  const newStatus = status === 'active' ? 'ended' : 'active';
-  await sb(`quests?id=eq.${id}`, { method:'PATCH', body:{ status:newStatus }, prefer:'return=minimal' });
-  loadAdminQuests();
-}
-
-// ══════════════════════════════════════
-// QR CODE GENERATION
-// ══════════════════════════════════════
-function generateToken() {
-  return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-
-function generateQR(text, name) {
-  // Load qrcode.js dynamically
-  if (window.QRCode) { doGenerateQR(text, name); return; }
-  const s = document.createElement('script');
-  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-  s.onload = () => doGenerateQR(text, name);
-  document.head.appendChild(s);
-}
-
-function doGenerateQR(text, name) {
-  const result = document.getElementById('qrResult');
-  const box = result.querySelector('.qr-box');
-  box.innerHTML = '';
-  const div = document.createElement('div');
-  div.id = 'qrCanvasGen';
-  box.appendChild(div);
-  new QRCode(div, { text, width:200, height:200, colorDark:'#000000', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.H });
-  document.getElementById('qrCaption').textContent = `📍 ${name} — распечатай и размести на точке`;
-  result.style.display = 'block';
-  // Store URL for download
-  result.dataset.url = text;
-  result.dataset.name = name;
-}
-
-function downloadQR() {
-  const result = document.getElementById('qrResult');
-  const img = result.querySelector('img');
-  const canvas = result.querySelector('canvas');
-  if (img) {
-    const a = document.createElement('a');
-    a.download = `sledopyt-qr-${Date.now()}.png`;
-    a.href = img.src;
-    a.click();
-  } else if (canvas) {
-    const a = document.createElement('a');
-    a.download = `sledopyt-qr-${Date.now()}.png`;
-    a.href = canvas.toDataURL('image/png');
-    a.click();
-  }
-}
-
-function generateQRAndDownload(text, name) {
-  if (!window.QRCode) {
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-    s.onload = () => doQRDownload(text, name);
-    document.head.appendChild(s);
-  } else {
-    doQRDownload(text, name);
-  }
-}
-
-function doQRDownload(text, name) {
-  const tmp = document.createElement('div');
-  tmp.style.cssText = 'position:fixed;left:-9999px;top:-9999px;background:#fff;padding:10px';
-  document.body.appendChild(tmp);
-  const qr = new QRCode(tmp, { text, width:300, height:300, colorDark:'#000000', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.H });
-  setTimeout(() => {
-    const img = tmp.querySelector('img');
-    const canvas = tmp.querySelector('canvas');
-    const a = document.createElement('a');
-    a.download = `sledopyt-${name.replace(/[^а-яёa-z0-9]/gi,'-')}.png`;
-    if (img && img.src && img.src !== window.location.href) {
-      a.href = img.src;
-    } else if (canvas) {
-      a.href = canvas.toDataURL('image/png');
-    }
-    a.click();
-    document.body.removeChild(tmp);
-  }, 500);
-}
-
-// ══════════════════════════════════════
-// HISTORY
-// ══════════════════════════════════════
-async function showHistoryModal() {
-  const content = document.getElementById('historyModalContent');
-  content.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
-  document.getElementById('historyModal').classList.add('show');
-  try {
-    const hits = await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&select=*,checkpoints(name,quest_id),quests(title)&order=hit_at.desc&limit=30`);
-    if (!hits.length) {
-      content.innerHTML = '<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">Ещё нет пройденных точек</div></div>';
-    } else {
-      content.innerHTML = hits.map(h => `
-        <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center">
-          <div style="font-size:24px">📍</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:600">${h.checkpoints?.name || '—'}</div>
-            <div style="font-size:11px;color:var(--text3)">${h.quests?.title || ''} · ${formatDate(h.hit_at)}</div>
-          </div>
-          <div style="color:var(--green);font-family:'Unbounded',sans-serif;font-size:13px">+10</div>
-        </div>`).join('');
-    }
-  } catch(e) { content.innerHTML = '<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>'; }
-}
-
-// ══════════════════════════════════════
-// UTILS
-// ══════════════════════════════════════
-function getDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371000;
-  const dLat = (lat2-lat1)*Math.PI/180;
-  const dLon = (lon2-lon1)*Math.PI/180;
-  const a = Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-function formatDate(d) {
-  if (!d) return '—';
-  return new Date(d).toLocaleDateString('ru-RU', { day:'numeric', month:'short' });
-}
-
-function showToast(msg) {
-  const old = document.querySelector('.toast');
-  if (old) old.remove();
-  const t = document.createElement('div');
-  t.className = 'toast';
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 3100);
-}
-
-function closeModal(id) {
-  document.getElementById(id).classList.remove('show');
-}
-
-// Admin screen init
-function initAdminScreen() { loadAdminQuests(); loadAdminQuestList(); }
-document.querySelectorAll('[onclick*="adminScreen"]').forEach(el => {
-  const orig = el.onclick;
-  el.onclick = function(e) { orig?.call(this,e); setTimeout(initAdminScreen, 100); };
-});
-
-// Check admin on profile screen open
-document.getElementById('profileScreen').addEventListener('click', () => {}, { once:false });
+function getDistance(lat1,lon1,lat2,lon2){const R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+function formatDate(d){if(!d)return '—';return new Date(d).toLocaleDateString('ru-RU',{day:'numeric',month:'short'});}
+function showToast(msg){const old=document.querySelector('.toast');if(old)old.remove();const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3100);}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
 </script>
-
-<!-- Service Worker registration -->
 <script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').then(reg => {
+if('serviceWorker'in navigator){
+  navigator.serviceWorker.register('/sw.js').then(reg=>{
     reg.update();
-    reg.addEventListener('updatefound', () => {
-      const nw = reg.installing;
-      nw.addEventListener('statechange', () => {
-        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-          document.getElementById('updateBanner').style.display = 'block';
-        }
-      });
-    });
+    reg.addEventListener('updatefound',()=>{const nw=reg.installing;nw.addEventListener('statechange',()=>{if(nw.state==='installed'&&navigator.serviceWorker.controller)document.getElementById('updateBanner').style.display='block';});});
   });
-  navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+  navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload());
 }
 </script>
 </body>

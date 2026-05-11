@@ -220,6 +220,12 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="regEmail" type="email" placeholder="you@example.com"></div>
       <div class="form-group"><label class="form-label">Пароль</label><input class="form-input" id="regPass" type="password" placeholder="Минимум 6 символов"></div>
       <div class="form-group"><label class="form-label">Город</label><input class="form-input" id="regCity" type="text" placeholder="Челябинск"></div>
+      <div class="form-group" style="display:flex;align-items:flex-start;gap:10px">
+        <input type="checkbox" id="regConsent" style="margin-top:3px;width:18px;height:18px;flex-shrink:0;accent-color:var(--green)">
+        <label for="regConsent" style="font-size:12px;color:var(--text3);line-height:1.5;cursor:pointer">
+          Я согласен на обработку персональных данных, включая геолокацию и фотографии, в соответствии с <span style="color:var(--green)">152-ФЗ</span>
+        </label>
+      </div>
       <button class="btn btn-primary" onclick="doRegister()">Создать аккаунт</button>
     </div>
   </div>
@@ -546,7 +552,7 @@ async function doLogin(){
 }
 async function doRegister(){
   const name=document.getElementById('regName').value.trim(),email=document.getElementById('regEmail').value.trim(),pass=document.getElementById('regPass').value,city=document.getElementById('regCity').value.trim()||'Челябинск';
-  if(!name||!email||!pass)return showToast('Заполните все поля');if(pass.length<6)return showToast('Пароль минимум 6 символов');
+  if(!name||!email||!pass)return showToast('Заполните все поля');if(pass.length<6)return showToast('Пароль минимум 6 символов');if(!document.getElementById('regConsent').checked)return showToast('⚠️ Необходимо согласие на обработку данных');
   try{const data=await sbAuth('signup',email,pass,{username:name,city});if(data.error)return showToast('Ошибка: '+data.error_description);
   sessionStorage.setItem('sb_token',data.access_token);sessionStorage.setItem('sb_uid',data.user.id);currentUser=data.user;
   await sb('sledopyt_profiles',{method:'POST',body:{id:data.user.id,username:name,city,points:0,quests_completed:0,checkpoints_hit:0,is_admin:false},prefer:'return=minimal'});
@@ -648,15 +654,54 @@ async function loadCheckpoints(questId){
     let hits=[];try{hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&select=checkpoint_id`);}catch(e){}
     const hitIds=new Set(hits.map(h=>h.checkpoint_id));
     const pct=cps.length?Math.round(hitIds.size/cps.length*100):0;
-    el.innerHTML=`<div style="padding:16px 20px 8px"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><div class="progress-label">${hitIds.size} из ${cps.length} точек пройдено</div></div><div style="padding:0 20px 20px" id="cpItemsContainer"></div>`;
+    // Текущая точка = первая непройденная
+    const nextIdx=cps.findIndex(cp=>!hitIds.has(cp.id));
+    el.innerHTML=`<div style="padding:16px 20px 8px">
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="progress-label">${hitIds.size} из ${cps.length} точек пройдено</div>
+    </div>
+    ${nextIdx>=0?`<div style="padding:0 20px 8px;font-size:12px;color:var(--text3)">📍 Следующая точка открыта · Остальные откроются после прохождения</div>`:''}
+    <div style="padding:0 20px 20px" id="cpItemsContainer"></div>`;
     const container=document.getElementById('cpItemsContainer');
     cps.forEach((cp,i)=>{
-      const done=hitIds.has(cp.id);const hasTask=cp.task_type&&cp.task_type!=='';
-      const div=document.createElement('div');div.className=`checkpoint-item ${done?'done':''}`;div.style.animationDelay=`${i*.07}s`;
-      div.innerHTML=`<div class="cp-num">${done?'✓':(i+1)}</div><div class="cp-info"><div class="cp-name">${cp.name}</div><div class="cp-hint">${done?'✅ Пройдено':(cp.hint||'Найди точку в городе')}</div>${hasTask&&!done?'<div class="cp-task-badge">📋 Есть задание</div>':''}</div>`;
-      if(!done)div.onclick=()=>showToast('📷 Отсканируй QR-код на этой точке');
+      const done=hitIds.has(cp.id);
+      const isNext=i===nextIdx; // Текущая открытая точка
+      const isLocked=!done&&!isNext; // Ещё не открыта
+      const hasTask=cp.task_type&&cp.task_type!=='';
+      const div=document.createElement('div');
+      div.className=`checkpoint-item ${done?'done':isLocked?'locked':''}`;
+      div.style.animationDelay=`${i*.07}s`;
+      if(done){
+        div.innerHTML=`<div class="cp-num">✓</div><div class="cp-info"><div class="cp-name">${cp.name}</div><div class="cp-hint">✅ Пройдено</div></div>`;
+      } else if(isNext){
+        // Текущая точка — показываем подсказку
+        div.innerHTML=`
+          <div class="cp-num" style="border-color:var(--green);color:var(--green);background:rgba(74,222,128,.1)">${i+1}</div>
+          <div class="cp-info">
+            <div class="cp-name">${cp.name}</div>
+            <div class="cp-hint" style="color:var(--green2)">${cp.hint||'Найди QR-код и отсканируй'}</div>
+            ${hasTask?'<div class="cp-task-badge">📋 Есть задание</div>':''}
+          </div>
+          <div style="color:var(--green);font-size:20px">→</div>`;
+        div.onclick=()=>showToast('📷 Найди точку и отсканируй QR-код');
+      } else {
+        // Закрытая точка — только номер и замок
+        div.innerHTML=`
+          <div class="cp-num" style="opacity:.4">${i+1}</div>
+          <div class="cp-info">
+            <div class="cp-name" style="opacity:.4">Точка ${i+1}</div>
+            <div class="cp-hint">🔒 Откроется после прохождения предыдущей</div>
+          </div>`;
+      }
       container.appendChild(div);
     });
+    // Если всё пройдено
+    if(nextIdx===-1&&cps.length>0){
+      const fin=document.createElement('div');
+      fin.style.cssText='text-align:center;padding:20px;color:var(--green)';
+      fin.innerHTML='<div style="font-size:32px">🏁</div><div style="font-size:14px;font-weight:700;margin-top:8px;color:var(--green)">Все точки пройдены!</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Смотри результат во вкладке Рейтинг</div>';
+      container.appendChild(fin);
+    }
   }catch(e){el.innerHTML='<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>';}
 }
 

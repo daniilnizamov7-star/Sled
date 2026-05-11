@@ -174,6 +174,16 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 .score-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;color:var(--text2)}
 .score-pts{font-family:'Unbounded','Arial Black',sans-serif;font-weight:700;color:var(--green);font-size:13px}
 .score-pts.amber{color:var(--amber)}
+.sponsor-banner{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;animation:fadeIn .4s ease}
+.sponsor-header{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.sponsor-list{display:flex;flex-direction:column;gap:8px}
+.sponsor-item{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg3);border-radius:var(--radius-sm);border:1px solid var(--border)}
+.sponsor-place{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:800;width:28px;text-align:center;flex-shrink:0}
+.sponsor-place.p1{color:var(--amber)}.sponsor-place.p2{color:#c0c0c0}.sponsor-place.p3{color:#cd7f32}
+.sponsor-info{flex:1}
+.sponsor-name{font-size:13px;font-weight:600;color:var(--text)}
+.sponsor-prize{font-size:12px;color:var(--text3);margin-top:2px}
+.sponsor-logo{font-size:22px;flex-shrink:0}
 @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
 @keyframes logoIn{from{opacity:0;transform:scale(.8) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
@@ -232,6 +242,12 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <div class="stat-card"><div class="stat-val" id="statPoints">0</div><div class="stat-label">Баллов</div></div>
       <div class="stat-card"><div class="stat-val" id="statRank">—</div><div class="stat-label">Место</div></div>
     </div>
+  </div>
+  <div class="section" id="sponsorSection" style="display:none;padding-bottom:0">
+    <div class="section-header" style="margin-bottom:10px">
+      <div class="section-title">🏆 Призы квеста</div>
+    </div>
+    <div id="sponsorBanner"></div>
   </div>
   <div class="section">
     <div class="section-header">
@@ -388,6 +404,50 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     <div class="admin-title">Управление квестами</div>
     <div id="adminQuestList"><div class="loader"><div class="spinner"></div></div></div>
   </div>
+  <div class="admin-section">
+    <div class="admin-title">Спонсоры и призы</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px">Отображаются на главном экране у всех участников</div>
+    <div class="form-group"><label class="form-label">Квест</label>
+      <select class="form-input" id="spQuestId"><option value="">Выберите квест...</option></select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Место</label>
+        <select class="form-input" id="spPlace">
+          <option value="1">🥇 1 место</option>
+          <option value="2">🥈 2 место</option>
+          <option value="3">🥉 3 место</option>
+          <option value="0">🎁 Спонсор квеста</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Эмодзи / логотип</label>
+        <input class="form-input" id="spEmoji" placeholder="🎡" maxlength="4">
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Название спонсора</label>
+      <input class="form-input" id="spName" placeholder="Парк Ракета">
+    </div>
+    <div class="form-group"><label class="form-label">Описание приза</label>
+      <input class="form-input" id="spPrize" placeholder="3 билета на аттракционы">
+    </div>
+    <button class="btn btn-amber" onclick="addSponsor()" style="margin-bottom:12px">Добавить спонсора</button>
+    <div id="sponsorAdminList"></div>
+  </div>
+  <div class="admin-section">
+    <div class="admin-title">Начислить баллы вручную</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px">Для партнёров, победителей конкурсов, приветственных бонусов</div>
+    <div class="form-group"><label class="form-label">Имя участника в игре</label>
+      <input class="form-input" id="bonusEmail" placeholder="Даниил">
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Баллы</label>
+        <input class="form-input" id="bonusPoints" type="number" placeholder="20" min="1" max="1000">
+      </div>
+      <div class="form-group"><label class="form-label">Причина</label>
+        <input class="form-input" id="bonusReason" placeholder="Бонус от Ракеты">
+      </div>
+    </div>
+    <button class="btn btn-amber" onclick="givePointsByUsername()">Начислить баллы</button>
+  </div>
 </div>
 
 <nav class="bottom-nav" id="bottomNav" style="display:none">
@@ -524,6 +584,8 @@ async function loadQuests(){
   try{
     const quests=await sb(`quests?status=eq.active&select=*&order=created_at.desc`);
     if(!quests.length){list.innerHTML='<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">Квесты скоро появятся</div></div>';return;}
+    // Грузим спонсоров первого квеста
+    if(quests[0]) loadSponsors(quests[0].id);
     list.innerHTML='';
     quests.forEach((q,i)=>{
       const el=document.createElement('div');el.className=`quest-card ${q.quest_type==='team'?'team':''}`;el.style.animationDelay=`${i*.08}s`;
@@ -746,7 +808,16 @@ async function loadLeader(type,tabEl){
 }
 
 function toggleTaskFields(){const type=document.getElementById('cpTaskType').value;const show=type!=='';document.getElementById('taskTextBlock').style.display=show?'block':'none';document.getElementById('taskTipBlock').style.display=show?'block':'none';}
-function initAdminScreen(){loadAdminQuests();loadAdminQuestList();}
+function initAdminScreen(){
+  loadAdminQuests();
+  loadAdminQuestList();
+  // Синхронизировать селект спонсоров
+  setTimeout(()=>{
+    const spSel=document.getElementById('spQuestId');
+    const cpSel=document.getElementById('cpQuestId');
+    if(spSel&&cpSel) spSel.innerHTML=cpSel.innerHTML;
+  },800);
+}
 async function loadAdminQuests(){
   if(!currentProfile?.is_admin)return;
   const sel=document.getElementById('cpQuestId'),saved=sel.value;
@@ -822,6 +893,117 @@ async function showHistoryModal(){
 function getDistance(lat1,lon1,lat2,lon2){const R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
 function formatDate(d){if(!d)return '—';return new Date(d).toLocaleDateString('ru-RU',{day:'numeric',month:'short'});}
 function showToast(msg){const old=document.querySelector('.toast');if(old)old.remove();const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3100);}
+// ══════════════════════════════════════
+// СПОНСОРЫ
+// ══════════════════════════════════════
+async function loadSponsors(questId) {
+  if (!questId) return;
+  const section = document.getElementById('sponsorSection');
+  const banner = document.getElementById('sponsorBanner');
+  try {
+    const sponsors = await sb(`quest_sponsors?quest_id=eq.${questId}&order=place.asc&select=*`);
+    if (!sponsors.length) { section.style.display='none'; return; }
+    section.style.display = 'block';
+    const placeEmoji = {1:'🥇',2:'🥈',3:'🥉',0:'🎁'};
+    const placeClass = {1:'p1',2:'p2',3:'p3',0:'p1'};
+    const placeLabel = {1:'1 место',2:'2 место',3:'3 место',0:'Спонсор'};
+    banner.innerHTML = `<div class="sponsor-banner">
+      <div class="sponsor-header">При поддержке</div>
+      <div class="sponsor-list">${sponsors.map(s=>`
+        <div class="sponsor-item">
+          <div class="sponsor-logo">${s.emoji||'🏆'}</div>
+          <div class="sponsor-info">
+            <div class="sponsor-name">${s.name}</div>
+            <div class="sponsor-prize">${s.prize_description||''}</div>
+          </div>
+          <div class="sponsor-place ${placeClass[s.place]||'p1'}">${placeEmoji[s.place]||'🎁'}<div style="font-size:9px;font-family:'Golos Text',sans-serif;font-weight:400;color:var(--text3);margin-top:2px">${placeLabel[s.place]||''}</div></div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  } catch(e) { section.style.display='none'; }
+}
+
+async function loadSponsorAdmin(questId) {
+  const list = document.getElementById('sponsorAdminList');
+  if (!questId || !list) return;
+  try {
+    const sponsors = await sb(`quest_sponsors?quest_id=eq.${questId}&order=place.asc&select=*`);
+    list.innerHTML = sponsors.length ? sponsors.map(s=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;margin-bottom:8px">
+        <div style="font-size:20px">${s.emoji||'🏆'}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${s.name}</div>
+          <div style="font-size:11px;color:var(--text3)">${s.prize_description||''}</div>
+        </div>
+        <button class="btn btn-red btn-sm" style="padding:6px 10px;font-size:12px" onclick="deleteSponsor('${s.id}','${questId}')">✕</button>
+      </div>`).join('') : '<div style="font-size:13px;color:var(--text3)">Спонсоров пока нет</div>';
+  } catch(e) {}
+}
+
+async function addSponsor() {
+  const questId = document.getElementById('spQuestId').value;
+  const place = parseInt(document.getElementById('spPlace').value);
+  const emoji = document.getElementById('spEmoji').value.trim();
+  const name = document.getElementById('spName').value.trim();
+  const prize = document.getElementById('spPrize').value.trim();
+  if (!questId || !name || !prize) return showToast('Заполните квест, название и приз');
+  try {
+    await sb('quest_sponsors', {method:'POST', body:{quest_id:questId, place, emoji:emoji||'🏆', name, prize_description:prize}, prefer:'return=minimal'});
+    showToast('✅ Спонсор добавлен!');
+    document.getElementById('spName').value='';
+    document.getElementById('spPrize').value='';
+    document.getElementById('spEmoji').value='';
+    loadSponsorAdmin(questId);
+  } catch(e) { showToast('Ошибка: '+JSON.stringify(e)); }
+}
+
+async function deleteSponsor(id, questId) {
+  try {
+    await sb(`quest_sponsors?id=eq.${id}`, {method:'DELETE', prefer:'return=minimal'});
+    loadSponsorAdmin(questId);
+  } catch(e) { showToast('Ошибка удаления'); }
+}
+
+// Синхронизировать селект спонсоров с квестами
+document.getElementById('spQuestId')?.addEventListener('change', function(){ loadSponsorAdmin(this.value); });
+
+// ══════════════════════════════════════
+// РУЧНОЕ НАЧИСЛЕНИЕ БАЛЛОВ
+// ══════════════════════════════════════
+async function giveManualPoints() {
+  const email = document.getElementById('bonusEmail').value.trim();
+  const pts = parseInt(document.getElementById('bonusPoints').value);
+  const reason = document.getElementById('bonusReason').value.trim() || 'Бонус от организатора';
+  if (!email || !pts || pts < 1) return showToast('Заполните email и баллы');
+  try {
+    // Найти пользователя по email
+    const users = await sb(`sledopyt_profiles?select=id,username,points&id=eq.(select id from auth.users where email='${email}')`);
+    // Альтернативный способ — через auth API недоступен, ищем через RPC или по username
+    // Используем прямой поиск если есть email в профиле — но у нас его нет
+    // Простое решение: показать список пользователей для выбора
+    showToast('Введи имя пользователя, не email — см. ниже');
+  } catch(e) {}
+}
+
+async function givePointsByUsername() {
+  const username = document.getElementById('bonusEmail').value.trim();
+  const pts = parseInt(document.getElementById('bonusPoints').value);
+  const reason = document.getElementById('bonusReason').value.trim() || 'Бонус от организатора';
+  if (!username || !pts || pts < 1) return showToast('Заполните имя и баллы');
+  try {
+    const users = await sb(`sledopyt_profiles?username=eq.${username}&select=id,username,points`);
+    if (!users.length) return showToast('Участник "' + username + '" не найден');
+    const user = users[0];
+    const newPts = (user.points||0) + pts;
+    await sb(`sledopyt_profiles?id=eq.${user.id}`, {method:'PATCH', body:{points:newPts}, prefer:'return=minimal'});
+    await sb('manual_points', {method:'POST', body:{user_id:user.id, points:pts, reason, given_by:currentUser.id}, prefer:'return=minimal'});
+    showToast(`✅ +${pts} баллов → ${user.username}`);
+    document.getElementById('bonusEmail').value='';
+    document.getElementById('bonusPoints').value='';
+    document.getElementById('bonusReason').value='';
+  } catch(e) { showToast('Ошибка: '+JSON.stringify(e)); }
+}
+
 function closeModal(id){document.getElementById(id).classList.remove('show');}
 </script>
 <script>

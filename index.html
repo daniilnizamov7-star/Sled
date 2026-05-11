@@ -400,6 +400,11 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <label class="form-label">Подсказка к заданию (необязательно)</label>
       <input class="form-input" id="cpTaskTip" placeholder="Табличка у главного входа">
     </div>
+    <div id="taskAnswerBlock" class="form-group" style="display:none">
+      <label class="form-label">Правильный ответ (только для загадок)</label>
+      <input class="form-input" id="cpTaskAnswer" placeholder="например: 2018">
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Проверка нечувствительна к регистру и пробелам</div>
+    </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Широта</label><input class="form-input" id="cpLat" placeholder="55.1540"></div>
       <div class="form-group"><label class="form-label">Долгота</label><input class="form-input" id="cpLng" placeholder="61.4290"></div>
@@ -946,6 +951,22 @@ async function submitCheckpoint(){
     let photoUrl=null;
     if(selfieBlob){const path=`selfies/${currentUser.id}/${currentCheckpointData.id}_${Date.now()}.jpg`;photoUrl=await uploadPhoto('checkpoint-photos',path,selfieBlob);}
     const caption=document.getElementById('captionInput').value.trim()||null;
+    // Проверка ответа на загадку
+    const correctAnswer=currentCheckpointData.task_answer;
+    const isRiddle=currentCheckpointData.task_type==='riddle'||currentCheckpointData.task_type==='sign';
+    if(isRiddle&&correctAnswer&&caption){
+      const userAns=caption.toLowerCase().replace(/\s+/g,'');
+      const rightAns=correctAnswer.toLowerCase().replace(/\s+/g,'');
+      if(userAns!==rightAns){
+        btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';
+        showToast('❌ Неверный ответ! Попробуй ещё раз.');
+        return;
+      }
+    } else if(isRiddle&&correctAnswer&&!caption){
+      btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';
+      showToast('Введи ответ на загадку');
+      return;
+    }
     await sb('checkpoint_hits',{method:'POST',body:{user_id:currentUser.id,checkpoint_id:currentCheckpointData.id,quest_id:currentCheckpointData.quest_id,photo_url:photoUrl,caption,lat:userGeo?.latitude||null,lng:userGeo?.longitude||null,hit_at:new Date().toISOString()},prefer:'return=minimal'});
     const newPts=(currentProfile?.points||0)+PTS.CP,newHits=(currentProfile?.checkpoints_hit||0)+1;
     await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{points:newPts,checkpoints_hit:newHits},prefer:'return=minimal'});
@@ -1020,7 +1041,15 @@ async function loadLeader(type,tabEl){
   }catch(e){list.innerHTML='<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>';}
 }
 
-function toggleTaskFields(){const type=document.getElementById('cpTaskType').value;const show=type!=='';document.getElementById('taskTextBlock').style.display=show?'block':'none';document.getElementById('taskTipBlock').style.display=show?'block':'none';}
+function toggleTaskFields(){
+  const type=document.getElementById('cpTaskType').value;
+  const show=type!=='';
+  document.getElementById('taskTextBlock').style.display=show?'block':'none';
+  document.getElementById('taskTipBlock').style.display=show?'block':'none';
+  // Поле ответа только для загадок
+  const isRiddle=type==='riddle'||type==='sign';
+  document.getElementById('taskAnswerBlock').style.display=isRiddle?'block':'none';
+}
 function initAdminScreen(){
   loadAdminQuests();
   loadAdminQuestList();
@@ -1080,16 +1109,16 @@ async function createQuest(){
 }
 async function createCheckpoint(){
   const questId=document.getElementById('cpQuestId').value,name=document.getElementById('cpName').value.trim(),hint=document.getElementById('cpHint').value.trim(),lat=parseFloat(document.getElementById('cpLat').value),lng=parseFloat(document.getElementById('cpLng').value),radius=parseInt(document.getElementById('cpRadius').value)||150;
-  const taskType=document.getElementById('cpTaskType').value,taskText=document.getElementById('cpTaskText').value.trim(),taskTip=document.getElementById('cpTaskTip').value.trim();
+  const taskType=document.getElementById('cpTaskType').value,taskText=document.getElementById('cpTaskText').value.trim(),taskTip=document.getElementById('cpTaskTip').value.trim(),taskAnswer=document.getElementById('cpTaskAnswer').value.trim();
   if(!questId||!name||isNaN(lat)||isNaN(lng))return showToast('Заполните все обязательные поля');
   if(taskType&&!taskText)return showToast('Введи текст задания');
   const token=generateToken();
   try{
     const existing=await sb(`checkpoints?quest_id=eq.${questId}&select=id`);const orderNum=existing.length+1;
-    await sb('checkpoints',{method:'POST',body:{quest_id:questId,name,hint,lat,lng,radius_meters:radius,token,order_num:orderNum,task_type:taskType||null,task_text:taskText||null,task_tip:taskTip||null},prefer:'return=minimal'});
+    await sb('checkpoints',{method:'POST',body:{quest_id:questId,name,hint,lat,lng,radius_meters:radius,token,order_num:orderNum,task_type:taskType||null,task_text:taskText||null,task_tip:taskTip||null,task_answer:taskAnswer||null},prefer:'return=minimal'});
     await sb(`quests?id=eq.${questId}`,{method:'PATCH',body:{checkpoint_count:orderNum},prefer:'return=minimal'});
     generateQR(`${APP_URL}?cp=${token}`,name);showToast('Точка добавлена!');
-    document.getElementById('cpName').value='';document.getElementById('cpHint').value='';document.getElementById('cpTaskType').value='';document.getElementById('cpTaskText').value='';document.getElementById('cpTaskTip').value='';toggleTaskFields();
+    document.getElementById('cpName').value='';document.getElementById('cpHint').value='';document.getElementById('cpTaskType').value='';document.getElementById('cpTaskText').value='';document.getElementById('cpTaskTip').value='';document.getElementById('cpTaskAnswer').value='';toggleTaskFields();
     loadCheckpointsList(questId);
   }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
 }
@@ -1333,7 +1362,7 @@ async function givePointsByUsername() {
 var _cpData={
   1:{name:'Природный парк — Старт',hint:'Деревянный стенд при главном входе со стороны ул. Аношкина',taskType:'selfie',taskText:'Сфотографируйся у входа в парк — это твой старт! Покажи что ты здесь.',taskTip:'Встань у деревянного стенда при входе',lat:'55.1944',lng:'61.2887',radius:'100'},
   2:{name:'Белки и тишина',hint:'На столбике у тренажёров в глубине парка',taskType:'find',taskText:'Найди белку в парке и сфотографируй её. Нет белки — сфотографируй дерево с дуплом.',taskTip:'Белки живут ближе к соснам, в центре парка',lat:'55.1938',lng:'61.2840',radius:'120'},
-  3:{name:'ТК Ёлки',hint:'У главного входа, справа от автоматических дверей',taskType:'riddle',taskText:'В каком году построен этот торговый центр? Найди табличку или информационный стенд.',taskTip:'Ищи табличку у входа или на стенде внутри. Год постройки — 4 цифры.',lat:'55.1919',lng:'61.2821',radius:'100'},
+  3:{name:'ТК Ёлки',hint:'У главного входа, справа от автоматических дверей',taskType:'riddle',taskText:'В каком году построен этот торговый центр? Найди табличку или информационный стенд.',taskTip:'Ищи табличку у входа или на стенде внутри. Год постройки — 4 цифры.',taskAnswer:'2018',lat:'55.1919',lng:'61.2821',radius:'100'},
   4:{name:'Финиш: Белый Рынок 🏁',hint:'Вход в фудкорт Белый Рынок внутри ТК Ёлки',taskType:'action',taskText:'Ты дошёл! Сфотографируй любое блюдо в фудкорте — что закажешь после прогулки? Заслужил!',taskTip:'Белый Рынок на 2 этаже ТК Ёлки',lat:'55.1919',lng:'61.2822',radius:'100'}
 };
 function fillCP(n){
@@ -1343,6 +1372,7 @@ function fillCP(n){
   document.getElementById('cpTaskType').value=d.taskType;
   document.getElementById('cpTaskText').value=d.taskText;
   document.getElementById('cpTaskTip').value=d.taskTip;
+  document.getElementById('cpTaskAnswer').value=d.taskAnswer||'';
   document.getElementById('cpLat').value=d.lat;
   document.getElementById('cpLng').value=d.lng;
   document.getElementById('cpRadius').value=d.radius;

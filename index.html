@@ -627,6 +627,7 @@ async function openQuest(quest){
     <div class="quest-detail-title">${quest.title}</div>
     <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px">${quest.description||''}</div>
     <div class="quest-meta"><div class="quest-meta-item">🏆 ${quest.prize_description||'Приз'}</div><div class="quest-meta-item">📅 До ${formatDate(quest.end_date)}</div></div>
+    <div id="questTimer" style="font-size:13px;margin-top:8px;font-weight:600;transition:color .5s"></div>
     <div class="score-legend" style="margin-top:16px">
       <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:600;letter-spacing:.5px">СИСТЕМА ОЧКОВ</div>
       <div class="score-row"><span>За каждую точку</span><span class="score-pts">+${PTS.CP}</span></div>

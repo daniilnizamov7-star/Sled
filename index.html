@@ -605,10 +605,11 @@ canvas { display:none; }
       <div class="form-group"><label class="form-label">Радиус проверки (метры)</label><input class="form-input" id="cpRadius" type="number" value="100"></div>
       <button class="btn btn-amber" onclick="createCheckpoint()">Добавить точку + QR</button>
       <div id="qrResult" style="margin-top:16px;text-align:center;display:none">
-        <div class="qr-box"><canvas id="qrCanvas" width="200" height="200"></canvas></div>
+        <div class="qr-box"></div>
         <div class="qr-caption" id="qrCaption">QR-код для печати</div>
         <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:auto;padding:8px 16px" onclick="downloadQR()">Скачать QR</button>
       </div>
+      <div id="cpListContainer"></div>
     </div>
     <div class="admin-section">
       <div class="admin-title">Управление квестами</div>
@@ -1316,17 +1317,27 @@ async function loadLeader(type, tabEl) {
 // ══════════════════════════════════════
 async function loadAdminQuests() {
   if (!currentProfile?.is_admin) return;
-  const list = document.getElementById('adminQuestList');
   const sel = document.getElementById('cpQuestId');
+  const savedVal = sel.value;
   try {
     const quests = await sb(`quests?select=*&order=created_at.desc`);
     sel.innerHTML = '<option value="">Выберите квест...</option>' + quests.map(q => `<option value="${q.id}">${q.title}</option>`).join('');
+    if (savedVal) sel.value = savedVal;
+  } catch(e) {}
+}
+
+async function loadAdminQuestList() {
+  if (!currentProfile?.is_admin) return;
+  const list = document.getElementById('adminQuestList');
+  try {
+    const quests = await sb(`quests?select=*&order=created_at.desc`);
     list.innerHTML = quests.length ? quests.map(q => `
       <div class="team-card" style="border-color:var(--border);margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;align-items:start">
           <div>
             <div style="font-weight:600;color:var(--text)">${q.title}</div>
             <div style="font-size:12px;color:var(--text3);margin-top:4px">${q.quest_type} · до ${formatDate(q.end_date)}</div>
+            <button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="loadCheckpointsList('${q.id}')">📋 Показать точки и QR</button>
           </div>
           <div style="display:flex;gap:6px">
             <button class="btn btn-sm ${q.status==='active'?'btn-red':'btn-primary'}" onclick="toggleQuestStatus('${q.id}','${q.status}')">
@@ -1381,7 +1392,31 @@ async function createCheckpoint() {
     showToast('✅ Точка добавлена!');
     document.getElementById('cpName').value = '';
     document.getElementById('cpHint').value = '';
+    // Показываем список точек для текущего квеста
+    loadCheckpointsList(questId);
   } catch(e) { showToast('❌ Ошибка: ' + JSON.stringify(e)); }
+}
+
+async function loadCheckpointsList(questId) {
+  const container = document.getElementById('cpListContainer');
+  if (!container || !questId) return;
+  try {
+    const cps = await sb(`checkpoints?quest_id=eq.${questId}&order=order_num.asc&select=*`);
+    if (!cps.length) { container.innerHTML = ''; return; }
+    container.innerHTML = '<div style="margin-top:16px"><div class="admin-title" style="margin-bottom:10px">Точки квеста — все QR</div>' +
+      cps.map((cp, i) => `
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px">
+          <div style="font-weight:600;color:var(--text);margin-bottom:4px">${i+1}. ${cp.name}</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:8px">${cp.hint || ''}</div>
+          <button class="btn btn-secondary btn-sm" onclick="showAndDownloadQR('${APP_URL}?cp=${cp.token}','${cp.name.replace(/'/g,"\'")}')">
+            📥 Скачать QR
+          </button>
+        </div>`).join('') + '</div>';
+  } catch(e) {}
+}
+
+async function showAndDownloadQR(url, name) {
+  generateQRAndDownload(url, name);
 }
 
 async function toggleQuestStatus(id, status) {
@@ -1410,21 +1445,63 @@ function doGenerateQR(text, name) {
   const result = document.getElementById('qrResult');
   const box = result.querySelector('.qr-box');
   box.innerHTML = '';
-  const canvas = document.createElement('canvas');
-  canvas.id = 'qrCanvasGen';
-  box.appendChild(canvas);
-  new QRCode(canvas, { text, width:200, height:200, colorDark:'#000', colorLight:'#fff', correctLevel:QRCode.CorrectLevel.H });
+  const div = document.createElement('div');
+  div.id = 'qrCanvasGen';
+  box.appendChild(div);
+  new QRCode(div, { text, width:200, height:200, colorDark:'#000000', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.H });
   document.getElementById('qrCaption').textContent = `📍 ${name} — распечатай и размести на точке`;
   result.style.display = 'block';
+  // Store URL for download
+  result.dataset.url = text;
+  result.dataset.name = name;
 }
 
 function downloadQR() {
-  const canvas = document.getElementById('qrCanvasGen') || document.querySelector('#qrResult canvas');
-  if (!canvas) return;
-  const a = document.createElement('a');
-  a.download = `sledopyt-qr-${Date.now()}.png`;
-  a.href = canvas.toDataURL('image/png');
-  a.click();
+  const result = document.getElementById('qrResult');
+  const img = result.querySelector('img');
+  const canvas = result.querySelector('canvas');
+  if (img) {
+    const a = document.createElement('a');
+    a.download = `sledopyt-qr-${Date.now()}.png`;
+    a.href = img.src;
+    a.click();
+  } else if (canvas) {
+    const a = document.createElement('a');
+    a.download = `sledopyt-qr-${Date.now()}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  }
+}
+
+function generateQRAndDownload(text, name) {
+  if (!window.QRCode) {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    s.onload = () => doQRDownload(text, name);
+    document.head.appendChild(s);
+  } else {
+    doQRDownload(text, name);
+  }
+}
+
+function doQRDownload(text, name) {
+  const tmp = document.createElement('div');
+  tmp.style.cssText = 'position:fixed;left:-9999px;top:-9999px;background:#fff;padding:10px';
+  document.body.appendChild(tmp);
+  const qr = new QRCode(tmp, { text, width:300, height:300, colorDark:'#000000', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.H });
+  setTimeout(() => {
+    const img = tmp.querySelector('img');
+    const canvas = tmp.querySelector('canvas');
+    const a = document.createElement('a');
+    a.download = `sledopyt-${name.replace(/[^а-яёa-z0-9]/gi,'-')}.png`;
+    if (img && img.src && img.src !== window.location.href) {
+      a.href = img.src;
+    } else if (canvas) {
+      a.href = canvas.toDataURL('image/png');
+    }
+    a.click();
+    document.body.removeChild(tmp);
+  }, 500);
 }
 
 // ══════════════════════════════════════
@@ -1483,10 +1560,10 @@ function closeModal(id) {
 }
 
 // Admin screen init
-document.getElementById('adminScreen').addEventListener('transitionend', loadAdminQuests);
+function initAdminScreen() { loadAdminQuests(); loadAdminQuestList(); }
 document.querySelectorAll('[onclick*="adminScreen"]').forEach(el => {
   const orig = el.onclick;
-  el.onclick = function(e) { orig?.call(this,e); setTimeout(loadAdminQuests, 100); };
+  el.onclick = function(e) { orig?.call(this,e); setTimeout(initAdminScreen, 100); };
 });
 
 // Check admin on profile screen open

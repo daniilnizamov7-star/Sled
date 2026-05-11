@@ -853,7 +853,7 @@ async function doRegister() {
     sessionStorage.setItem('sb_uid', data.user.id);
     currentUser = data.user;
     // Create profile
-    await sb('profiles', { method:'POST', body:{ id:data.user.id, username:name, city, points:0, quests_completed:0, checkpoints_hit:0, is_admin:false }, prefer:'return=minimal' });
+    await sb('sledopyt_profiles', { method:'POST', body:{ id:data.user.id, username:name, city, points:0, quests_completed:0, checkpoints_hit:0, is_admin:false }, prefer:'return=minimal' });
     await loadProfile();
     showMain();
   } catch(e) { showToast('❌ Ошибка регистрации'); }
@@ -870,7 +870,7 @@ async function doLogout() {
 // ══════════════════════════════════════
 async function loadProfile() {
   try {
-    const data = await sb(`profiles?id=eq.${currentUser.id}&select=*`);
+    const data = await sb(`sledopyt_profiles?id=eq.${currentUser.id}&select=*`);
     if (data.length) {
       currentProfile = data[0];
       updateProfileUI();
@@ -906,7 +906,7 @@ async function loadUserStats() {
   if (!currentProfile) return;
   // Get rank
   try {
-    const ranked = await sb(`profiles?select=id,points&order=points.desc`);
+    const ranked = await sb(`sledopyt_profiles?select=id,points&order=points.desc`);
     const idx = ranked.findIndex(r => r.id === currentUser.id);
     if (idx >= 0) document.getElementById('statRank').textContent = '#' + (idx + 1);
   } catch(e) {}
@@ -1010,11 +1010,11 @@ async function loadTeamSection(questId) {
     const membership = await sb(`team_members?user_id=eq.${currentUser.id}&select=team_id,teams(*)`);
     const myTeam = membership.find(m => m.teams?.quest_id === questId);
     if (myTeam) {
-      const members = await sb(`team_members?team_id=eq.${myTeam.team_id}&select=user_id,profiles(username)`);
+      const members = await sb(`team_members?team_id=eq.${myTeam.team_id}&select=user_id,sledopyt_profiles(username)`);
       content.innerHTML = `
         <div class="team-card">
           <div class="team-name">🤝 ${myTeam.teams.name}</div>
-          <div class="team-members">${members.map(m => `<div class="team-member">${getEmoji(m.profiles?.username)} ${m.profiles?.username || '—'}</div>`).join('')}</div>
+          <div class="team-members">${members.map(m => `<div class="team-member">${getEmoji(m.sledopyt_profiles?.username)} ${m.sledopyt_profiles?.username || '—'}</div>`).join('')}</div>
         </div>`;
     } else {
       content.innerHTML = `
@@ -1174,7 +1174,7 @@ async function submitCheckpoint() {
     });
 
     // Update points
-    await sb(`profiles?id=eq.${currentUser.id}`, {
+    await sb(`sledopyt_profiles?id=eq.${currentUser.id}`, {
       method: 'PATCH',
       body: { points: (currentProfile?.points || 0) + 10, checkpoints_hit: (currentProfile?.checkpoints_hit || 0) + 1 },
       prefer: 'return=minimal'
@@ -1199,7 +1199,7 @@ async function checkQuestCompletion(questId) {
     const hits = await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&select=id`);
     if (hits.length >= total.length) {
       // Bonus points
-      await sb(`profiles?id=eq.${currentUser.id}`, {
+      await sb(`sledopyt_profiles?id=eq.${currentUser.id}`, {
         method:'PATCH', body:{ quests_completed: (currentProfile?.quests_completed||0)+1, points:(currentProfile?.points||0)+50 }, prefer:'return=minimal'
       });
       document.getElementById('successSub').textContent = '🎉 Квест завершён! +50 бонусных баллов!';
@@ -1296,7 +1296,7 @@ async function loadLeader(type, tabEl) {
           <div class="leader-pts">${t.points||0}</div>
         </div>`).join('') : '<div class="empty"><div class="empty-icon">🤝</div><div class="empty-text">Нет команд</div></div>';
     } else {
-      data = await sb(`profiles?select=id,username,city,points,quests_completed&order=points.desc&limit=50`);
+      data = await sb(`sledopyt_profiles?select=id,username,city,points,quests_completed&order=points.desc&limit=50`);
       list.innerHTML = data.length ? data.map((p, i) => `
         <div class="leader-item" style="animation-delay:${i*.04}s">
           <div class="leader-rank ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div>

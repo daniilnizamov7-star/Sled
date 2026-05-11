@@ -217,13 +217,13 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     </div>
     <div id="registerForm" style="display:none">
       <div class="form-group"><label class="form-label">Имя в игре</label><input class="form-input" id="regName" type="text" placeholder="Следопыт42"></div>
-      <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="regEmail" type="email" placeholder="you@example.com"></div>
+      <div class="form-group"><label class="form-label">Номер телефона</label><input class="form-input" id="regPhone" type="tel" placeholder="+7 900 000-00-00"></div>
       <div class="form-group"><label class="form-label">Пароль</label><input class="form-input" id="regPass" type="password" placeholder="Минимум 6 символов"></div>
       <div class="form-group"><label class="form-label">Город</label><input class="form-input" id="regCity" type="text" placeholder="Челябинск"></div>
       <div class="form-group" style="display:flex;align-items:flex-start;gap:10px">
         <input type="checkbox" id="regConsent" style="margin-top:3px;width:18px;height:18px;flex-shrink:0;accent-color:var(--green)">
         <label for="regConsent" style="font-size:12px;color:var(--text3);line-height:1.5;cursor:pointer">
-          Я согласен на обработку персональных данных, включая геолокацию и фотографии, в соответствии с <span style="color:var(--green)">152-ФЗ</span>
+          Я соглашаюсь на хранение номера телефона и игрового имени для связи с победителями квеста. Номер не публикуется и не передаётся третьим лицам. Соответствует <span style="color:var(--green)">152-ФЗ</span>
         </label>
       </div>
       <button class="btn btn-primary" onclick="doRegister()">Создать аккаунт</button>
@@ -254,6 +254,12 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <div class="section-title">🏆 Призы квеста</div>
     </div>
     <div id="sponsorBanner"></div>
+  </div>
+  <div class="section" id="winnersSection" style="display:none;padding-bottom:0">
+    <div class="section-header" style="margin-bottom:10px">
+      <div class="section-title">🏆 Итоги квеста</div>
+    </div>
+    <div id="winnersBanner"></div>
   </div>
   <div class="section">
     <div class="section-header">
@@ -446,6 +452,12 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     <div id="sponsorAdminList"></div>
   </div>
   <div class="admin-section">
+    <div class="admin-title">📞 Участники и телефоны</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Только для связи с победителями — участникам не видны</div>
+    <button class="btn btn-secondary btn-sm" onclick="loadParticipantPhones()" style="margin-bottom:12px">Показать номера</button>
+    <div id="phonesAdminList"></div>
+  </div>
+  <div class="admin-section">
     <div class="admin-title">Начислить баллы вручную</div>
     <div style="font-size:12px;color:var(--text3);margin-bottom:14px">Для партнёров, победителей конкурсов, приветственных бонусов</div>
     <div class="form-group"><label class="form-label">Имя участника в игре</label>
@@ -542,7 +554,7 @@ function goTab(id,btn){
   goScreen(id);document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));btn?.classList.add('active');
   if(id==='leaderScreen')loadLeader('solo');if(id==='homeScreen'){loadQuests();loadUserStats();}
 }
-function showMain(){document.getElementById('bottomNav').style.display='flex';goScreen('homeScreen');loadQuests();loadUserStats();}
+function showMain(){document.getElementById('bottomNav').style.display='flex';goScreen('homeScreen');loadQuests();loadUserStats();loadWinners();}
 
 function switchAuthTab(tab){
   document.getElementById('loginForm').style.display=tab==='login'?'block':'none';
@@ -558,11 +570,21 @@ async function doLogin(){
   catch(e){showToast('Ошибка входа');}
 }
 async function doRegister(){
-  const name=document.getElementById('regName').value.trim(),email=document.getElementById('regEmail').value.trim(),pass=document.getElementById('regPass').value,city=document.getElementById('regCity').value.trim()||'Челябинск';
-  if(!name||!email||!pass)return showToast('Заполните все поля');if(pass.length<6)return showToast('Пароль минимум 6 символов');if(!document.getElementById('regConsent').checked)return showToast('⚠️ Необходимо согласие на обработку данных');
-  try{const data=await sbAuth('signup',email,pass,{username:name,city});if(data.error)return showToast('Ошибка: '+data.error_description);
-  sessionStorage.setItem('sb_token',data.access_token);sessionStorage.setItem('sb_uid',data.user.id);currentUser=data.user;
-  await sb('sledopyt_profiles',{method:'POST',body:{id:data.user.id,username:name,city,points:20,quests_completed:0,checkpoints_hit:0,is_admin:false},prefer:'return=minimal'});
+  const name=document.getElementById('regName').value.trim(),
+  phone=document.getElementById('regPhone').value.trim().replace(/\D/g,''),
+  pass=document.getElementById('regPass').value,
+  city=document.getElementById('regCity').value.trim()||'Челябинск';
+  if(!name||!phone||!pass)return showToast('Заполните все поля');
+  if(phone.length<10)return showToast('Введи полный номер телефона');
+  if(pass.length<6)return showToast('Пароль минимум 6 символов');
+  if(!document.getElementById('regConsent').checked)return showToast('⚠️ Необходимо согласие');
+  // Генерируем email из телефона (технический, пользователь его не видит)
+  const email=phone+'@sledopyt.app';
+  try{const data=await sbAuth('signup',email,pass,{username:name,city});
+  if(data.error)return showToast('Ошибка: '+(data.error_description||JSON.stringify(data.error)));
+  sessionStorage.setItem('sb_token',data.access_token);
+  sessionStorage.setItem('sb_uid',data.user.id);currentUser=data.user;
+  await sb('sledopyt_profiles',{method:'POST',body:{id:data.user.id,username:name,city,phone:phone,points:20,quests_completed:0,checkpoints_hit:0,is_admin:false},prefer:'return=minimal'});
   // Приветственные баллы в историю
   try{await sb('manual_points',{method:'POST',body:{user_id:data.user.id,points:20,reason:'🎉 Приветственный бонус за регистрацию',given_by:data.user.id},prefer:'return=minimal'});}catch(e2){}
   await loadProfile();
@@ -1291,6 +1313,54 @@ function fillDemoQuest(){
   document.getElementById('qPrize').value='🏆 Топ-3 — приз от организатора, финиш в Белом Рынке';
   showToast('✅ Квест заполнен — нажми «Создать квест»');
 }
+// Победители на главном экране
+async function loadWinners(){
+  try{
+    const ended=await sb("quests?status=eq.ended&order=created_at.desc&limit=3&select=*");
+    if(!ended.length){document.getElementById("winnersSection").style.display="none";return;}
+    const section=document.getElementById("winnersSection");
+    const banner=document.getElementById("winnersBanner");
+    let html="";
+    for(const q of ended){
+      const comps=await sb(`quest_completions?quest_id=eq.${q.id}&order=finished_at.asc&limit=3&select=user_id,bonus_points,finished_at`);
+      if(!comps.length)continue;
+      const ids=comps.map(function(c){return c.user_id;}).join(",");
+      const profiles=await sb(`sledopyt_profiles?id=in.(${ids})&select=id,username`);
+      const nm={}; profiles.forEach(function(p){nm[p.id]=p.username;});
+      const medals=["🥇","🥈","🥉"];
+      html+='<div class="quest-card" style="margin-bottom:12px">'
+        +'<div class="quest-title" style="font-size:13px;margin-bottom:10px">'+q.title+'</div>'
+        +comps.slice(0,3).map(function(c,i){
+          return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--border)">'
+            +'<span style="font-size:20px">'+medals[i]+'</span>'
+            +'<span style="font-size:14px;font-weight:600;color:var(--text);flex:1">'+( nm[c.user_id]||"—")+'</span>'
+            +'<span style="font-size:12px;color:var(--text3)">'+formatDate(c.finished_at)+'</span>'
+            +"</div>";
+        }).join("")
+        +"</div>";
+    }
+    if(html){section.style.display="block";banner.innerHTML=html;}
+    else{section.style.display="none";}
+  }catch(e){document.getElementById("winnersSection").style.display="none";}
+}
+
+// Админ: список участников с телефонами
+async function loadParticipantPhones(){
+  if(!currentProfile?.is_admin)return;
+  try{
+    const users=await sb("sledopyt_profiles?select=username,phone,points,city&order=points.desc");
+    const list=document.getElementById("phonesAdminList");
+    if(!list)return;
+    list.innerHTML=users.filter(function(u){return u.phone;}).map(function(u){
+      return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">'
+        +'<div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">'+u.username+'</div>'
+        +'<div style="font-size:11px;color:var(--text3)">'+u.city+" · "+u.points+" баллов"+"</div></div>"
+        +'<a href="tel:'+u.phone+'" style="font-size:13px;color:var(--green);text-decoration:none">'+u.phone.replace(/(\d)(\d{3})(\d{3})(\d{2})(\d{2})/,"$1 $2 $3-$4-$5")+"</a>"
+        +"</div>";
+    }).join("") || '<div style="font-size:13px;color:var(--text3)">Нет участников с телефоном</div>';
+  }catch(e){}
+}
+
 function closeModal(id){document.getElementById(id).classList.remove('show');}
 
 function launchConfetti(){

@@ -909,7 +909,10 @@ async function loadAdminQuestList(){
   const list=document.getElementById('adminQuestList');
   try{
     const quests=await sb(`quests?select=*&order=created_at.desc`);
-    list.innerHTML=quests.length?quests.map(q=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:start"><div><div style="font-weight:600;color:var(--text)">${q.title}</div><div style="font-size:12px;color:var(--text3);margin-top:4px">${q.quest_type} · до ${formatDate(q.end_date)}</div><button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="loadCheckpointsList('${q.id}')">📋 Точки и QR</button></div><button class="btn btn-sm ${q.status==='active'?'btn-red':'btn-primary'}" onclick="toggleQuestStatus('${q.id}','${q.status}')">${q.status==='active'?'Завершить':'Активировать'}</button></div></div>`).join(''):'<div class="empty"><div class="empty-text">Нет квестов</div></div>';
+    list.innerHTML=quests.length?quests.map(q=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:start"><div><div style="font-weight:600;color:var(--text)">${q.title}</div><div style="font-size:12px;color:var(--text3);margin-top:4px">${q.quest_type} · до ${formatDate(q.end_date)}</div><button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="loadCheckpointsList('${q.id}')">📋 Точки и QR</button></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+              <button class="btn btn-sm ${q.status==='active'?'btn-red':'btn-primary'}" onclick="toggleQuestStatus('${q.id}','${q.status}')">${q.status==='active'?'Завершить':'Активировать'}</button>
+              <button class="btn btn-sm btn-secondary" style="font-size:11px;padding:6px 10px" onclick="deleteQuest('${q.id}','${q.title}')">🗑️ Удалить</button>
+            </div></div></div>`).join(''):'<div class="empty"><div class="empty-text">Нет квестов</div></div>';
   }catch(e){}
 }
 async function createQuest(){

@@ -1024,7 +1024,14 @@ async function deleteQuest(id,title){
     await sb(`quests?id=eq.${id}`,{method:'PATCH',body:{status:'archived'},prefer:'return=minimal'});
     showToast('📦 Квест в архиве');
     loadAdminQuestList();loadAdminQuests();
-  }catch(e){showToast('❌ Ошибка: '+JSON.stringify(e));}
+  }catch(e){
+    if(JSON.stringify(e).includes('23514')||JSON.stringify(e).includes('status_check')){
+      const sql="ALTER TABLE quests DROP CONSTRAINT quests_status_check;\nALTER TABLE quests ADD CONSTRAINT quests_status_check CHECK (status IN ('active', 'ended', 'archived'));";
+      showToast('⚠️ Нужна миграция БД');
+      if(confirm('Нужно выполнить SQL в Supabase:\n\n'+sql+'\n\nСкопировать?'))
+        navigator.clipboard?.writeText(sql).then(()=>showToast('✅ SQL скопирован, вставь в Supabase SQL Editor'));
+    }else{showToast('❌ Ошибка: '+JSON.stringify(e));}
+  }
 }
 async function hardDeleteQuest(id,title){
   if(!confirm(`УДАЛИТЬ НАВСЕГДА "${title}"?\nВосстановить невозможно!`))return;

@@ -996,12 +996,22 @@ async function toggleQuestStatus(id,status){const s=status==='active'?'ended':'a
 async function deleteQuest(id,title){
   if(!confirm(`Удалить квест "${title}"?\nВсе точки, прохождения и данные участников будут удалены.`))return;
   try{
-    // Удаляем в правильном порядке (зависимости)
+    // Удаляем в правильном порядке — сначала всё что ссылается на checkpoints
+    // 1. Сначала hits (ссылаются на checkpoints И quests)
     await sb(`checkpoint_hits?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
+    // 2. Завершения квеста
     await sb(`quest_completions?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
-    await sb(`checkpoints?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
-    await sb(`quest_sponsors?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
+    // 3. Команды и участники команд
+    const teams=await sb(`teams?quest_id=eq.${id}&select=id`);
+    for(const t of teams){
+      await sb(`team_members?team_id=eq.${t.id}`,{method:'DELETE',prefer:'return=minimal'});
+    }
     await sb(`teams?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
+    // 4. Спонсоры
+    await sb(`quest_sponsors?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
+    // 5. Теперь можно удалить checkpoints
+    await sb(`checkpoints?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
+    // 6. Наконец сам квест
     await sb(`quests?id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
     showToast('✅ Квест удалён');
     loadAdminQuestList();

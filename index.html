@@ -434,7 +434,12 @@ select.form-input option{background:var(--bg2);color:var(--text)}
         <input type="checkbox" id="qLearning" style="width:18px;height:18px;accent-color:var(--green);flex-shrink:0">
         <label for="qLearning" style="font-size:13px;color:var(--text2);cursor:pointer">📚 Обучающий режим (показывать карточки знаний на точках)</label>
       </div>
-      <div class="form-group"><label class="form-label">Код доступа <span style="color:var(--text3);font-weight:400">(для корпоративных — необязательно)</span></label><input class="form-input" id="qAccessCode" placeholder="ARNEST2026" style="text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase()"></div>
+      <div class="form-group"><label class="form-label">Код доступа <span style="color:var(--text3);font-weight:400">(для корпоративных — необязательно)</span></label><input class="form-input" id="qAccessCode" placeholder="ARNEST2026" style="text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase();document.getElementById('qGroupsBlock').style.display=this.value.trim()?'block':'none'"></div>
+      <div class="form-group" id="qGroupsBlock" style="display:none">
+        <label class="form-label">Группы участников <span style="color:var(--text3);font-weight:400">(через запятую)</span></label>
+        <input class="form-input" id="qGroups" placeholder="Смена 1, Смена 2, Смена 3, Смена 4, Смена 5">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Участники выберут свою группу при входе по коду</div>
+      </div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-amber" onclick="createQuest()" style="flex:1">Создать квест</button>
         <button class="btn btn-secondary" onclick="hideCreateQuestForm()" style="flex:1">Отмена</button>
@@ -877,8 +882,19 @@ async function loadQuests(){
 
 async function openQuest(quest){currentQuestData=quest;
   currentQuestId=quest.id;
+  // Проверяем группу участника если корпоратив
+  let groupBadge='';
+  if(quest.access_code&&currentUser){
+    try{
+      const part=await sb(`quest_participants?quest_id=eq.${quest.id}&user_id=eq.${currentUser.id}&select=group_name`);
+      if(part.length&&part[0].group_name){
+        groupBadge=`<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,.15);border:1px solid var(--amber-dim);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--amber);margin-bottom:10px">👥 ${part[0].group_name}</div>`;
+      }
+    }catch(e){}
+  }
   document.getElementById('questDetailHero').innerHTML=`
     <div class="quest-detail-title">${quest.title}</div>
+    ${groupBadge}
     <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px">${quest.description||''}</div>
     <div class="quest-meta"><div class="quest-meta-item">🏆 ${quest.prize_description||'Приз'}</div><div class="quest-meta-item">📅 До ${formatDate(quest.end_date)}</div></div>
     <div id="questTimer" style="font-size:13px;margin-top:8px;font-weight:600;transition:color .5s"></div>
@@ -970,7 +986,7 @@ async function loadQuestRating(questId){
       sb(`checkpoint_hits?quest_id=eq.${questId}&select=user_id`),
       sb(`quest_completions?quest_id=eq.${questId}&select=user_id,bonus_points,is_first,finished_at`),
       sb(`checkpoints?quest_id=eq.${questId}&select=id`),
-      sb(`quests?id=eq.${questId}&select=title,status,prize_description,end_date`)
+      sb(`quests?id=eq.${questId}&select=*`)
     ]);
     const quest=questData[0]||{};
     const isEnded=quest.status==='ended'||new Date(quest.end_date)<new Date();
@@ -983,8 +999,30 @@ async function loadQuestRating(questId){
     const nameMap={};profiles.forEach(p=>nameMap[p.id]=p.username);
     const ranked=userIds.map(uid=>({uid,name:nameMap[uid]||'—',pts:(userHits[uid]||0)+(userBonus[uid]||0),cps:Math.round((userHits[uid]||0)/PTS.CP),finished:!!userBonus[uid],isFirst:completions.find(x=>x.user_id===uid)?.is_first||false})).sort((a,b)=>b.pts-a.pts);
 
+    // Корпоративный — сначала групповой рейтинг
+    const groups=(()=>{try{return quest.groups&&quest.groups!==''?JSON.parse(quest.groups):null;}catch(e){return null;}})();
+    if(groups&&groups.length){
+      const parts=await sb(`quest_participants?quest_id=eq.${questId}&select=user_id,group_name`).catch(()=>[]);
+      const groupMap={};parts.forEach(p=>groupMap[p.user_id]=p.group_name);
+      const groupPts={};
+      groups.forEach(g=>{groupPts[g]=0;});
+      ranked.forEach(r=>{
+        const g=groupMap[r.uid];
+        if(g&&groupPts[g]!==undefined)groupPts[g]+=r.pts;
+      });
+      const groupRanked=groups.map(g=>({name:g,pts:groupPts[g]||0})).sort((a,b)=>b.pts-a.pts);
+      el.innerHTML=`<div style="padding:12px 20px 0;font-size:11px;color:var(--amber);font-weight:700;letter-spacing:.5px">🏭 РЕЙТИНГ ГРУПП</div>`;
+      groupRanked.forEach((g,i)=>{
+        const medals=['🥇','🥈','🥉'];
+        el.innerHTML+=`<div class="leader-item"><div class="leader-rank ${i<3?'top'+(i+1):''}">${i<3?medals[i]:'#'+(i+1)}</div><div class="leader-avatar">👥</div><div class="leader-info"><div class="leader-name">${g.name}</div></div><div class="leader-pts">${g.pts}</div></div>`;
+      });
+      el.innerHTML+='<div style="padding:8px 20px;font-size:11px;color:var(--text3);font-weight:600;margin-top:8px">ЛИЧНЫЙ РЕЙТИНГ</div>';
+    } else {
+      el.innerHTML='<div style="padding:12px 20px;font-size:11px;color:var(--text3)">Живой рейтинг · Победитель определяется по окончании квеста</div>';
+    }
+
     // Шапка — итоги или живой рейтинг
-    if(isEnded){
+    if(isEnded&&!groups){
       el.innerHTML=`<div style="margin:16px 20px;background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--green-dim);border-radius:var(--radius);padding:20px">
         <div style="font-size:11px;color:var(--green);font-weight:700;letter-spacing:1px;margin-bottom:8px">КВЕСТ ЗАВЕРШЁН</div>
         <div style="font-family:'Arial Black',Arial,sans-serif;font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px">${quest.title||''}</div>
@@ -992,7 +1030,6 @@ async function loadQuestRating(questId){
         ${quest.prize_description?`<div style="background:rgba(251,191,36,.1);border:1px solid var(--amber-dim);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--amber)">🏆 ${quest.prize_description}</div>`:''}
       </div>
       <div style="padding:8px 20px;font-size:12px;color:var(--text3);font-weight:600">ИТОГОВЫЕ РЕЗУЛЬТАТЫ</div>`;
-      // Топ-3 крупно
       ranked.slice(0,3).forEach((r,i)=>{
         const medals=['🥇','🥈','🥉'];const colors=['var(--amber)','#c0c0c0','#cd7f32'];
         const isMe=r.uid===currentUser.id;
@@ -1005,7 +1042,6 @@ async function loadQuestRating(questId){
           <div style="font-family:'Arial Black',Arial,sans-serif;font-size:22px;font-weight:800;color:${colors[i]}">${r.pts}</div>
         </div>`;
       });
-      // Остальные
       if(ranked.length>3){
         el.innerHTML+='<div style="padding:8px 20px;font-size:12px;color:var(--text3)">ОСТАЛЬНЫЕ УЧАСТНИКИ</div>';
         ranked.slice(3).forEach((r,i)=>{
@@ -1014,8 +1050,6 @@ async function loadQuestRating(questId){
         });
       }
     } else {
-      // Живой рейтинг
-      el.innerHTML='<div style="padding:12px 20px;font-size:11px;color:var(--text3)">Живой рейтинг · Победитель определяется по окончании квеста</div>';
       ranked.forEach((r,i)=>{
         const isMe=r.uid===currentUser.id;
         el.innerHTML+=`<div class="leader-item" style="animation-delay:${i*.05}s"><div class="leader-rank ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div><div class="leader-avatar">${getEmoji(r.name)}</div><div class="leader-info"><div class="leader-name">${r.name} ${isMe?'<span class="me-badge">Я</span>':''} ${r.isFirst?'<span style="font-size:11px;color:var(--amber)">🏆первый</span>':''}</div><div class="leader-meta">${r.cps} из ${totalCps} точек ${r.finished?'· завершил':''}</div></div><div class="leader-pts">${r.pts}</div></div>`;
@@ -1023,7 +1057,7 @@ async function loadQuestRating(questId){
     }
   }catch(e){
     const msg=e?.message||e?.hint||e?.code||JSON.stringify(e)||'неизвестная ошибка';
-    el.innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text" style="font-size:12px;color:var(--red)">Ошибка: ${msg}</div><div style="font-size:11px;color:var(--text3);margin-top:8px">Проверь таблицу quest_completions в Supabase</div></div>`;
+    el.innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text" style="font-size:12px;color:var(--red)">Ошибка: ${msg}</div></div>`;
   }
 }
 
@@ -1165,7 +1199,14 @@ async function saveEditCheckpoint(){
 
 function showCorporateModal(){
   document.getElementById('corporateModal').classList.add('show');
-  document.getElementById('corpCodeInput').value='';
+  document.getElementById('corporateContent').innerHTML=`
+    <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">Введи код доступа от организатора чтобы попасть в корпоративный квест</div>
+    <div class="form-group">
+      <label class="form-label">Код доступа</label>
+      <input class="form-input" id="corpCodeInput" placeholder="ARNEST2026" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;text-align:center" oninput="this.value=this.value.toUpperCase()">
+    </div>
+    <button class="btn btn-amber" onclick="joinCorporateQuest()" style="margin-bottom:10px">Войти в корпоратив</button>
+  `;
 }
 async function joinCorporateQuest(){
   const code=document.getElementById('corpCodeInput').value.trim().toUpperCase();
@@ -1174,10 +1215,52 @@ async function joinCorporateQuest(){
     const quests=await sb(`quests?access_code=eq.${code}&status=eq.active`);
     if(!quests.length)return showToast('Квест не найден или завершён');
     const quest=quests[0];
-    closeModal('corporateModal');
-    showToast(`✅ Квест найден: ${quest.title}`);
-    openQuest(quest);
+    // Если есть группы — показываем выбор
+    const groups=(()=>{try{return quest.groups&&quest.groups!==''?JSON.parse(quest.groups):null;}catch(e){return null;}})();
+    if(groups&&groups.length){
+      showGroupSelect(quest, groups);
+    } else {
+      closeModal('corporateModal');
+      showToast(`✅ Квест найден: ${quest.title}`);
+      openQuest(quest);
+    }
   }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
+}
+
+function showGroupSelect(quest, groups){
+  const content=document.getElementById('corporateContent');
+  content.innerHTML=`
+    <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px">${quest.title}</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:16px">Выбери свою группу:</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      ${groups.map(g=>`
+        <button class="btn btn-secondary" style="text-align:left;font-size:15px;padding:14px 16px" onclick="selectGroupAndJoin('${quest.id}',\`${g}\`)">
+          👥 ${g}
+        </button>
+      `).join('')}
+    </div>
+    <button class="btn btn-secondary" style="font-size:12px" onclick="showCorporateModal()">← Назад</button>
+  `;
+}
+
+async function selectGroupAndJoin(questId, groupName){
+  // Блокируем все кнопки групп от двойного нажатия
+  document.querySelectorAll('#corporateContent .btn').forEach(b=>{b.disabled=true;b.style.opacity='.6';});
+  try{
+    const existing=await sb(`quest_participants?quest_id=eq.${questId}&user_id=eq.${currentUser.id}&select=id`);
+    if(existing.length){
+      await sb(`quest_participants?quest_id=eq.${questId}&user_id=eq.${currentUser.id}`,{method:'PATCH',body:{group_name:groupName},prefer:'return=minimal'});
+    } else {
+      await sb('quest_participants',{method:'POST',body:{quest_id:questId,user_id:currentUser.id,group_name:groupName},prefer:'return=minimal'});
+    }
+    const quests=await sb(`quests?id=eq.${questId}&select=*`);
+    closeModal('corporateModal');
+    showToast(`✅ Ты в группе "${groupName}"!`);
+    if(quests.length)openQuest(quests[0]);
+  }catch(e){
+    document.querySelectorAll('#corporateContent .btn').forEach(b=>{b.disabled=false;b.style.opacity='1';});
+    showToast('Ошибка: '+JSON.stringify(e));
+  }
 }
 async function showTeamModal(){
   const content=document.getElementById('teamModalContent');content.innerHTML='<div class="loader"><div class="spinner"></div></div>';document.getElementById('teamModal').classList.add('show');
@@ -1653,9 +1736,11 @@ async function loadAdminQuestList(){
 
 async function createQuest(){
   const title=document.getElementById('qTitle').value.trim(),desc=document.getElementById('qDesc').value.trim(),type=document.getElementById('qType').value,days=parseInt(document.getElementById('qDays').value)||7,prize=document.getElementById('qPrize').value.trim(),withLearning=document.getElementById('qLearning').checked,accessCode=document.getElementById('qAccessCode').value.trim()||null;
+  const groupsRaw=document.getElementById('qGroups').value.trim();
+  const groups=accessCode&&groupsRaw?groupsRaw.split(',').map(g=>g.trim()).filter(Boolean):null;
   if(!title)return showToast('Введи название');
   const end=new Date();end.setDate(end.getDate()+days);
-  try{await sb('quests',{method:'POST',body:{title,description:desc,quest_type:type,status:'active',end_date:end.toISOString(),prize_description:prize,with_learning:withLearning,access_code:accessCode,created_by:currentUser.id,checkpoint_count:0},prefer:'return=minimal'});showToast('Квест создан!');document.getElementById('qTitle').value='';document.getElementById('qDesc').value='';document.getElementById('qLearning').checked=false;document.getElementById('qAccessCode').value='';hideCreateQuestForm();initAdminScreen();}
+  try{await sb('quests',{method:'POST',body:{title,description:desc,quest_type:type,status:'active',end_date:end.toISOString(),prize_description:prize,with_learning:withLearning,access_code:accessCode,groups:groups?JSON.stringify(groups):null,created_by:currentUser.id,checkpoint_count:0},prefer:'return=minimal'});showToast('Квест создан!');document.getElementById('qTitle').value='';document.getElementById('qDesc').value='';document.getElementById('qLearning').checked=false;document.getElementById('qAccessCode').value='';document.getElementById('qGroups').value='';document.getElementById('qGroupsBlock').style.display='none';hideCreateQuestForm();initAdminScreen();}
   catch(e){showToast('Ошибка: '+JSON.stringify(e));}
 }
 async function createCheckpoint(){

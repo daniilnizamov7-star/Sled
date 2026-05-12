@@ -1032,14 +1032,17 @@ async function loadAdminQuestList(){
           <button class="btn btn-secondary btn-sm" onclick="toggleSection('sp-${q.id}');loadSponsorAdmin('${q.id}')">🏆 Спонсоры</button>
         </div>
         <div id="cp-${q.id}" style="display:none;margin-top:10px">
-          <div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap">
-            <button class="btn btn-secondary btn-sm" onclick="fillCP(1)">⚡ 1</button>
-            <button class="btn btn-secondary btn-sm" onclick="fillCP(2)">⚡ 2</button>
-            <button class="btn btn-secondary btn-sm" onclick="fillCP(3)">⚡ 3</button>
-            <button class="btn btn-secondary btn-sm" onclick="fillCP(4)">⚡ 4</button>
+          <div id="cpList-${q.id}" style="margin-bottom:8px"></div>
+          <button class="btn btn-secondary btn-sm" style="margin-bottom:8px;width:100%" onclick="toggleSection('cpForm-${q.id}')">➕ Добавить точку</button>
+          <div id="cpForm-${q.id}" style="display:none">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+              <button class="btn btn-secondary btn-sm" onclick="fillCPForQuest(1,'${q.id}')">⚡ 1</button>
+              <button class="btn btn-secondary btn-sm" onclick="fillCPForQuest(2,'${q.id}')">⚡ 2</button>
+              <button class="btn btn-secondary btn-sm" onclick="fillCPForQuest(3,'${q.id}')">⚡ 3</button>
+              <button class="btn btn-secondary btn-sm" onclick="fillCPForQuest(4,'${q.id}')">⚡ 4</button>
+            </div>
+            ${buildAddCpForm(q.id)}
           </div>
-          ${buildAddCpForm(q.id)}
-          <div id="cpList-${q.id}"></div>
         </div>
         <div id="sp-${q.id}" style="display:none;margin-top:10px">
           ${buildAddSpForm(q.id)}
@@ -1113,17 +1116,28 @@ async function hardDeleteQuest(id,title){
   if(!confirm(`УДАЛИТЬ НАВСЕГДА "${title}"?\nВосстановить невозможно!`))return;
   if(!confirm(`Ещё раз: удалить все данные квеста "${title}"?`))return;
   try{
+    // 1. Удаляем hits по quest_id
     await sb(`checkpoint_hits?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
+    // 2. Дополнительно удаляем hits по checkpoint_id (страховка от FK)
+    const cps=await sb(`checkpoints?quest_id=eq.${id}&select=id`);
+    for(const cp of cps){
+      await sb(`checkpoint_hits?checkpoint_id=eq.${cp.id}`,{method:'DELETE',prefer:'return=minimal'});
+    }
+    // 3. Завершения квеста
     await sb(`quest_completions?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
+    // 4. Команды
     const teams=await sb(`teams?quest_id=eq.${id}&select=id`);
     for(const t of teams){await sb(`team_members?team_id=eq.${t.id}`,{method:'DELETE',prefer:'return=minimal'});}
     await sb(`teams?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
+    // 5. Спонсоры
     await sb(`quest_sponsors?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
+    // 6. Точки
     await sb(`checkpoints?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
+    // 7. Квест
     await sb(`quests?id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
     showToast('✅ Квест удалён навсегда');
     loadAdminQuestList();loadAdminQuests();
-  }catch(e){showToast('❌ Ошибка удаления: '+JSON.stringify(e));}
+  }catch(e){showToast('❌ Ошибка: '+JSON.stringify(e));}
 }
 
 function openEditQuest(id,title,desc,prize,endDate){
@@ -1362,6 +1376,17 @@ function buildAddCpForm(questId){
       <button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="downloadCpQR('${questId}')">📥 Скачать QR</button>
     </div>
   </div>`;
+}
+function fillCPForQuest(n, questId){
+  var d=_cpData[n];if(!d)return;
+  var set=function(suffix,val){var el=document.getElementById(suffix+'-'+questId);if(el)el.value=val;};
+  set('cpName',d.name);set('cpHint',d.hint);set('cpTaskTip',d.taskTip);
+  set('cpLat',d.lat);set('cpLng',d.lng);set('cpRadius',d.radius);
+  set('cpTaskAnswer',d.taskAnswer||'');
+  var ttype=document.getElementById('cpTaskType-'+questId);
+  if(ttype){ttype.value=d.taskType;toggleCpTask(questId);}
+  set('cpTaskText',d.taskText);
+  showToast('✅ Точка '+n+' заполнена');
 }
 function toggleCpTask(questId){
   var type=document.getElementById('cpTaskType-'+questId)?.value;

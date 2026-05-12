@@ -226,11 +226,17 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <div class="form-group"><label class="form-label">Пароль</label><input class="form-input" id="loginPass" type="password" placeholder="••••••••"></div>
       <button class="btn btn-primary" onclick="doLogin()">Войти</button>
     <button class="btn btn-secondary" style="margin-top:8px;font-size:13px" onclick="doResetPassword()">Забыл пароль?</button>
+    <div id="resetHint" style="display:none;margin-top:10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:13px;color:var(--text2);line-height:1.6">
+      Напиши организатору — он сбросит пароль:<br>
+      <a href="https://t.me/Aslyamov74" target="_blank" style="color:var(--green);font-weight:600;text-decoration:none"> ✉️ Написать в Telegram</a><br>
+      <a href="tel:+79514489666" style="color:var(--green);font-weight:600;text-decoration:none"> ☎️ +7 951 448-96-66</a>
+    </div>
     </div>
     <div id="registerForm" style="display:none">
       <div class="form-group"><label class="form-label">Имя в игре</label><input class="form-input" id="regName" type="text" placeholder="Следопыт42"></div>
       <div class="form-group"><label class="form-label">Номер телефона</label><input class="form-input" id="regPhone" type="tel" placeholder="+7 900 000-00-00"></div>
       <div class="form-group"><label class="form-label">Пароль</label><input class="form-input" id="regPass" type="password" placeholder="Минимум 6 символов"></div>
+      <div class="form-group"><label class="form-label">Повтори пароль</label><input class="form-input" id="regPass2" type="password" placeholder="Ещё раз"></div>
       <div class="form-group"><label class="form-label">Город</label><input class="form-input" id="regCity" type="text" placeholder="Челябинск"></div>
       <div class="form-group" style="display:flex;align-items:flex-start;gap:10px">
         <input type="checkbox" id="regConsent" style="margin-top:3px;width:18px;height:18px;flex-shrink:0;accent-color:var(--green)">
@@ -324,6 +330,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     <div id="captionBlock" style="width:100%;display:none">
       <div class="form-label">Твой ответ</div>
       <textarea class="caption-area" id="captionInput" placeholder="Напиши ответ..."></textarea>
+    <div id="answerHint" style="display:none;font-size:11px;color:var(--text3);margin-top:4px">Вводи только цифры/слова, без пробелов и дополнений</div>
     </div>
     <button class="btn btn-primary" id="submitBtn" onclick="submitCheckpoint()" disabled style="opacity:.5;width:100%">Подтвердить точку</button>
     <div style="font-size:11px;color:var(--text3);text-align:center">Геолокация и время фиксируются автоматически</div>
@@ -586,13 +593,8 @@ function switchAuthTab(tab){
   document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0)===(tab==='login')));
 }
 async function doResetPassword(){
-  var phone=document.getElementById('loginEmail').value.trim().replace(/\D/g,'');
-  if(!phone||phone.length<10)return showToast('Введи номер телефона в поле входа');
-  var email=phone+'@sledopyt.app';
-  try{
-    var res=await fetch(SUPABASE_URL+'/auth/v1/recover',{method:'POST',headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({email})});
-    showToast('Ссылка для сброса отправлена на почту (+номер@sledopyt.app). Свяжись с админом.');
-  }catch(e){showToast('Ошибка. Напиши админу: +7 951 448-96-66');}
+  // Сброс невозможен без реальной почты — просим связаться с организатором
+  document.getElementById('resetHint').style.display='block';
 }
 async function doLogin(){
   var raw=document.getElementById('loginEmail').value.trim();
@@ -613,8 +615,12 @@ async function doRegister(){
   pass=document.getElementById('regPass').value,
   city=document.getElementById('regCity').value.trim()||'Челябинск';
   if(!name||!phone||!pass)return showToast('Заполните все поля');
+  if(name.trim().length<2)return showToast('Имя должно быть минимум 2 символа');
+  if(!/[a-zA-ZЀ-ӿ0-9]/.test(name))return showToast('Имя должно содержать буквы или цифры');
   if(phone.length<10)return showToast('Введи полный номер телефона');
   if(pass.length<6)return showToast('Пароль минимум 6 символов');
+  var pass2=document.getElementById('regPass2')?.value;
+  if(pass2!==undefined&&pass2!==pass)return showToast('Пароли не совпадают');
   if(!document.getElementById('regConsent').checked)return showToast('⚠️ Необходимо согласие');
   // Генерируем email из телефона (технический, пользователь его не видит)
   const email=phone+'@sledopyt.app';
@@ -928,6 +934,8 @@ async function openCheckpointByToken(token){
     document.getElementById('selfieArea').innerHTML=`<div class="selfie-placeholder"><div style="font-size:48px">📸</div><div id="selfiePrompt">${cp.task_type&&cp.task_type!==''?'Сфотографируй доказательство':'Сделай селфи на точке'}</div><div style="font-size:11px;color:var(--text3)">Нажми чтобы открыть камеру</div></div>`;
     selfieBlob=null;const btn=document.getElementById('submitBtn');btn.disabled=true;btn.style.opacity='.5';btn.textContent='Подтвердить точку';
     document.getElementById('captionInput').value='';
+  var ah=document.getElementById('answerHint');
+  if(ah)ah.style.display=(cp.task_type==='riddle'||cp.task_type==='sign')?'block':'none';
     startGeoCheck(cp);goScreen('verifyScreen');window.history.replaceState({},'','/');
   }catch(e){showToast('Ошибка загрузки точки');showMain();}
 }
@@ -1046,7 +1054,16 @@ async function checkQuestCompletion(questId){
     }
   }catch(e){return '🎉 Квест завершён!';}
 }
-function afterSuccess(){document.getElementById('successOverlay').classList.remove('show');loadProfile();showMain();}
+function afterSuccess(){
+  document.getElementById('successOverlay').classList.remove('show');
+  loadProfile();
+  // Если есть активный квест — открыть его экран
+  if(currentQuestData){
+    openQuest(currentQuestData);
+  } else {
+    showMain();
+  }
+}
 
 async function showScan(){
   goScreen('scanScreen');

@@ -324,6 +324,14 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     <div class="verify-icon" id="verifyIcon">🏁</div>
     <div class="verify-title" id="verifyTitle">Точка найдена!</div>
     <div style="font-size:13px;color:var(--text2);text-align:center" id="verifyQuestName"></div>
+    <!-- Обучалка — показывается если есть learning_text и включено обучение -->
+    <div id="learningCard" style="display:none;width:100%;background:var(--bg3);border:1px solid var(--green-dim);border-radius:var(--radius);padding:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:.5px;margin-bottom:8px">📚 ЗНАЙ СВОЁ МЕСТО</div>
+      <div id="learningText" style="font-size:14px;color:var(--text);line-height:1.6"></div>
+      <button class="btn btn-secondary" style="margin-top:12px;font-size:13px" onclick="hideLearning()">Понятно, к заданию →</button>
+    </div>
+    <!-- Задание — скрыто пока показывается обучалка -->
+    <div id="taskBlock" style="width:100%;display:block">
     <div class="task-card" id="taskCard" style="display:none">
       <div class="task-label">📋 Задание</div>
       <div class="task-text" id="taskText"></div>
@@ -333,17 +341,18 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <div class="selfie-placeholder">
         <div style="font-size:48px">📸</div>
         <div id="selfiePrompt">Сделай фото</div>
-        <div style="font-size:11px;color:var(--text3)">Нажми чтобы открыть камеру</div>
+        <div style="font-size:11px;color:var(--text3)">Необязательно · +5 баллов за фото</div>
       </div>
     </div>
     <input type="file" id="selfieInput" accept="image/*" capture="environment" style="display:none" onchange="handleSelfie(event)">
     <div id="captionBlock" style="width:100%;display:none">
       <div class="form-label">Твой ответ</div>
       <textarea class="caption-area" id="captionInput" placeholder="Напиши ответ..."></textarea>
-    <div id="answerHint" style="display:none;font-size:11px;color:var(--text3);margin-top:4px">Вводи только цифры/слова, без пробелов и дополнений</div>
+      <div id="answerHint" style="display:none;font-size:11px;color:var(--text3);margin-top:4px">Вводи только цифры/слова, без пробелов и дополнений</div>
     </div>
     <button class="btn btn-primary" id="submitBtn" onclick="submitCheckpoint()" disabled style="opacity:.5;width:100%">Подтвердить точку</button>
     <div style="font-size:11px;color:var(--text3);text-align:center">Геолокация и время фиксируются автоматически</div>
+    </div>
   </div>
 </div>
 
@@ -383,6 +392,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
   </div>
   <div class="menu-list">
     <div class="menu-item" onclick="showTeamModal()"><div class="menu-icon">🤝</div><div class="menu-text">Моя команда</div><div>›</div></div>
+    <div class="menu-item" onclick="showCorporateModal()"><div class="menu-icon">🏭</div><div class="menu-text">Корпоратив</div><div style="font-size:11px;color:var(--text3)">Войти по коду</div><div>›</div></div>
     <div class="menu-item" onclick="showHistoryModal()"><div class="menu-icon">📋</div><div class="menu-text">История</div><div>›</div></div>
     <div class="menu-item" id="adminMenuItem" style="display:none" onclick="goScreen('adminScreen');setTimeout(initAdminScreen,100)"><div class="menu-icon">⚙️</div><div class="menu-text">Панель организатора</div><div>›</div></div>
     <div class="menu-item" onclick="doLogout()"><div class="menu-icon">🚪</div><div class="menu-text" style="color:var(--red)">Выйти</div></div>
@@ -415,6 +425,11 @@ select.form-input option{background:var(--bg2);color:var(--text)}
         <div class="form-group"><label class="form-label">Дней</label><input class="form-input" id="qDays" type="number" value="14" min="1"></div>
       </div>
       <div class="form-group"><label class="form-label">Призовой фонд</label><input class="form-input" id="qPrize" placeholder="☕ Топ-3 — кофе в Friendly, остальным скидка 10%"></div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px">
+        <input type="checkbox" id="qLearning" style="width:18px;height:18px;accent-color:var(--green);flex-shrink:0">
+        <label for="qLearning" style="font-size:13px;color:var(--text2);cursor:pointer">📚 Обучающий режим (показывать карточки знаний на точках)</label>
+      </div>
+      <div class="form-group"><label class="form-label">Код доступа <span style="color:var(--text3);font-weight:400">(для корпоративных — необязательно)</span></label><input class="form-input" id="qAccessCode" placeholder="ARNEST2026" style="text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase()"></div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-amber" onclick="createQuest()" style="flex:1">Создать квест</button>
         <button class="btn btn-secondary" onclick="hideCreateQuestForm()" style="flex:1">Отмена</button>
@@ -526,7 +541,21 @@ select.form-input option{background:var(--bg2);color:var(--text)}
   </div>
 </div>
 <div class="modal-overlay" id="teamModal">
-  <div class="modal"><div class="modal-title">🤝 Команда</div><div id="teamModalContent"></div><button class="btn btn-secondary" style="margin-top:12px" onclick="closeModal('teamModal')">Закрыть</button></div>
+  <div class="modal"><div class="modal-title">🤝 Моя команда</div><div id="teamModalContent"></div><button class="btn btn-secondary" style="margin-top:12px" onclick="closeModal('teamModal')">Закрыть</button></div>
+</div>
+<div class="modal-overlay" id="corporateModal">
+  <div class="modal">
+    <div class="modal-title">🏭 Корпоратив</div>
+    <div id="corporateContent">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">Введи код доступа от организатора чтобы попасть в корпоративный квест</div>
+      <div class="form-group">
+        <label class="form-label">Код доступа</label>
+        <input class="form-input" id="corpCodeInput" placeholder="ARNEST2026" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;text-align:center" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <button class="btn btn-amber" onclick="joinCorporateQuest()" style="margin-bottom:10px">Войти в корпоратив</button>
+    </div>
+    <button class="btn btn-secondary" onclick="closeModal('corporateModal')">Закрыть</button>
+  </div>
 </div>
 <div class="modal-overlay" id="historyModal">
   <div class="modal"><div class="modal-title">📋 История</div><div id="historyModalContent"></div><button class="btn btn-secondary" style="margin-top:12px" onclick="closeModal('historyModal')">Закрыть</button></div>
@@ -550,7 +579,7 @@ const SUPABASE_URL='https://yiqipulgofoschkccaxr.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpcWlwdWxnb2Zvc2Noa2NjYXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMjExMjksImV4cCI6MjA4OTg5NzEyOX0.Op4iBjGSOBcKh4pkVSd75_l8Fle3Cz15nBh9KF21YhI';
 const APP_URL='https://sledopyt.vercel.app';
 // ОЧКИ: +10 точка | +50 квест завершён | +25 бонус первому
-const PTS={CP:10,COMPLETE:50,FIRST:20};
+const PTS={CP:10,COMPLETE:50,FIRST:20,ANSWER:15,PHOTO_BONUS:5};
 let currentUser=null,currentProfile=null,screenHistory=[],currentQuestId=null;
 let currentCheckpointToken=null,currentCheckpointData=null,selfieBlob=null,userGeo=null;
 let scanStream=null,scanInterval=null;
@@ -803,6 +832,8 @@ async function openQuest(quest){currentQuestData=quest;
     <div class="score-legend" style="margin-top:16px">
       <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:600;letter-spacing:.5px">СИСТЕМА ОЧКОВ</div>
       <div class="score-row"><span>За каждую точку</span><span class="score-pts">+${PTS.CP}</span></div>
+      <div class="score-row"><span>Правильный ответ</span><span class="score-pts">+${PTS.ANSWER}</span></div>
+      <div class="score-row"><span>Фото на точке</span><span class="score-pts">+${PTS.PHOTO_BONUS} бонус</span></div>
       <div class="score-row"><span>Прошёл все точки</span><span class="score-pts">+${PTS.COMPLETE}</span></div>
       <div class="score-row"><span>🥇 Первый кто завершил</span><span class="score-pts amber">+${PTS.COMPLETE+PTS.FIRST}</span></div>
     </div>`;
@@ -956,8 +987,43 @@ async function loadTeamSection(questId){
     }
   }catch(e){}
 }
-async function createTeam(questId){const name=prompt('Название команды:');if(!name)return;try{const t=await sb('teams',{method:'POST',body:{name,quest_id:questId,created_by:currentUser.id}});await sb('team_members',{method:'POST',body:{team_id:t[0].id,user_id:currentUser.id},prefer:'return=minimal'});showToast('Команда создана! Код: '+t[0].invite_code);loadTeamSection(questId);}catch(e){showToast('Ошибка');}}
-async function joinTeamPrompt(questId){const code=prompt('Код команды:');if(!code)return;try{const t=await sb(`teams?invite_code=eq.${code.toUpperCase()}&quest_id=eq.${questId}`);if(!t.length)return showToast('Команда не найдена');await sb('team_members',{method:'POST',body:{team_id:t[0].id,user_id:currentUser.id},prefer:'return=minimal'});showToast('Вступил в '+t[0].name+'!');loadTeamSection(questId);}catch(e){showToast('Ошибка');}}
+async function createTeam(questId){
+  const name=prompt('Название команды:');if(!name?.trim())return;
+  try{
+    const t=await sb('teams',{method:'POST',body:{name:name.trim(),quest_id:questId,created_by:currentUser.id}});
+    const team=t[0];
+    await sb('team_members',{method:'POST',body:{team_id:team.id,user_id:currentUser.id},prefer:'return=minimal'});
+    showToast(`✅ Команда "${team.name}" создана! Код: ${team.invite_code}`);
+    loadTeamSection(questId);
+  }catch(e){showToast('Ошибка создания команды');}
+}
+async function joinTeamPrompt(questId){
+  const code=prompt('Код команды (4 символа):');if(!code?.trim())return;
+  try{
+    const t=await sb(`teams?invite_code=eq.${code.trim().toUpperCase()}&quest_id=eq.${questId}`);
+    if(!t.length)return showToast('Команда не найдена — проверь код');
+    const already=await sb(`team_members?user_id=eq.${currentUser.id}&team_id=eq.${t[0].id}`);
+    if(already.length)return showToast('Ты уже в этой команде');
+    await sb('team_members',{method:'POST',body:{team_id:t[0].id,user_id:currentUser.id},prefer:'return=minimal'});
+    showToast('✅ Вступил в '+t[0].name+'!');loadTeamSection(questId);
+  }catch(e){showToast('Ошибка');}
+}
+function showCorporateModal(){
+  document.getElementById('corporateModal').classList.add('show');
+  document.getElementById('corpCodeInput').value='';
+}
+async function joinCorporateQuest(){
+  const code=document.getElementById('corpCodeInput').value.trim().toUpperCase();
+  if(!code)return showToast('Введи код доступа');
+  try{
+    const quests=await sb(`quests?access_code=eq.${code}&status=eq.active`);
+    if(!quests.length)return showToast('Квест не найден или завершён');
+    const quest=quests[0];
+    closeModal('corporateModal');
+    showToast(`✅ Квест найден: ${quest.title}`);
+    openQuest(quest);
+  }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
+}
 async function showTeamModal(){
   const content=document.getElementById('teamModalContent');content.innerHTML='<div class="loader"><div class="spinner"></div></div>';document.getElementById('teamModal').classList.add('show');
   try{const m=await sb(`team_members?user_id=eq.${currentUser.id}&select=team_id,teams(*)`);content.innerHTML=m.length?m.map(x=>`<div class="team-card"><div class="team-name">${x.teams?.name}</div><div class="team-code">${x.teams?.invite_code||'—'}</div></div>`).join(''):'<div class="empty"><div class="empty-icon">🤝</div><div class="empty-text">Ты пока не в команде</div></div>';}catch(e){content.innerHTML='<div class="empty"><div class="empty-text">Ошибка</div></div>';}
@@ -1007,19 +1073,37 @@ async function openCheckpointByToken(token){
       document.getElementById('taskTip').textContent=cp.task_tip||'';
       taskCard.style.display='block';
       captionBlock.style.display=(cp.task_type==='riddle'||cp.task_type==='sign')?'block':'none';
-      document.getElementById('selfiePrompt').textContent='Сфотографируй доказательство';
     }else{
       taskCard.style.display='none';captionBlock.style.display='none';
-      document.getElementById('selfiePrompt').textContent='Сделай селфи на точке';
     }
-    document.getElementById('selfieArea').innerHTML=`<div class="selfie-placeholder"><div style="font-size:48px">📸</div><div id="selfiePrompt">${cp.task_type&&cp.task_type!==''?'Сфотографируй доказательство':'Сделай селфи на точке'}</div><div style="font-size:11px;color:var(--text3)">Нажми чтобы открыть камеру</div></div>`;
+    document.getElementById('selfieArea').innerHTML=`<div class="selfie-placeholder"><div style="font-size:48px">📸</div><div id="selfiePrompt">Фото (+${PTS.PHOTO_BONUS} бонус)</div><div style="font-size:11px;color:var(--text3)">Необязательно · нажми чтобы открыть камеру</div></div>`;
     selfieBlob=null;const btn=document.getElementById('submitBtn');btn.disabled=true;btn.style.opacity='.5';btn.textContent='Подтвердить точку';
     document.getElementById('captionInput').value='';
-  var ah=document.getElementById('answerHint');
-  if(ah)ah.style.display=(cp.task_type==='riddle'||cp.task_type==='sign')?'block':'none';
+    var ah=document.getElementById('answerHint');
+    if(ah)ah.style.display=(cp.task_type==='riddle'||cp.task_type==='sign')?'block':'none';
+    // Обучалка: показываем если есть learning_text и квест с обучением
+    const hasLearning=cp.learning_text&&cp.quests?.with_learning!==false;
+    const lc=document.getElementById('learningCard');
+    const tb=document.getElementById('taskBlock');
+    if(hasLearning&&lc){
+      document.getElementById('learningText').textContent=cp.learning_text;
+      lc.style.display='block';
+      if(tb)tb.style.visibility='hidden';
+    }else{
+      if(lc)lc.style.display='none';
+      if(tb)tb.style.visibility='visible';
+    }
     startGeoCheck(cp);goScreen('verifyScreen');window.history.replaceState({},'','/');
     checkSubmitReady();
   }catch(e){showToast('Ошибка загрузки точки');if(currentQuestData)openQuest(currentQuestData);else showMain();}
+}
+
+function hideLearning(){
+  const lc=document.getElementById('learningCard');
+  const tb=document.getElementById('taskBlock');
+  if(lc)lc.style.display='none';
+  if(tb)tb.style.visibility='visible';
+  checkSubmitReady();
 }
 
 function startGeoCheck(cp){
@@ -1048,9 +1132,9 @@ async function handleSelfie(e){
 }
 function checkSubmitReady(){
   const cp=currentCheckpointData;if(!cp)return;
-  const needsPhoto=cp.task_type&&cp.task_type!=='';
+  // Фото теперь необязательное везде — кнопка всегда активна после загрузки точки
   const btn=document.getElementById('submitBtn');
-  if(!needsPhoto){btn.disabled=false;btn.style.opacity='1';}
+  btn.disabled=false;btn.style.opacity='1';
 }
 async function compressImage(file,maxSize,quality){
   return new Promise(resolve=>{
@@ -1092,11 +1176,17 @@ async function submitCheckpoint(){
   }
   try{
     let photoUrl=null;
-    if(selfieBlob){const path=`selfies/${currentUser.id}/${currentCheckpointData.id}_${Date.now()}.jpg`;photoUrl=await uploadPhoto('checkpoint-photos',path,selfieBlob);}
+    let photoBonusPts=0;
+    if(selfieBlob){
+      const path=`selfies/${currentUser.id}/${currentCheckpointData.id}_${Date.now()}.jpg`;
+      photoUrl=await uploadPhoto('checkpoint-photos',path,selfieBlob);
+      photoBonusPts=PTS.PHOTO_BONUS;
+    }
     const caption=document.getElementById('captionInput').value.trim()||null;
-    // Проверка ответа на загадку
+    // Проверка ответа — начисляем доп. баллы за правильный
     const correctAnswer=currentCheckpointData.task_answer;
     const isRiddle=currentCheckpointData.task_type==='riddle'||currentCheckpointData.task_type==='sign';
+    let answerCorrect=false;
     if(isRiddle&&correctAnswer&&caption){
       const userAns=caption.toLowerCase().replace(/\s+/g,'');
       const rightAns=correctAnswer.toLowerCase().replace(/\s+/g,'');
@@ -1106,18 +1196,24 @@ async function submitCheckpoint(){
         showToast('❌ Неверный ответ! Попробуй ещё раз.');
         return;
       }
+      answerCorrect=true;
     } else if(isRiddle&&correctAnswer&&!caption){
       _submitting=false;
       btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';
       showToast('Введи ответ на загадку');
       return;
     }
+    const answerPts=answerCorrect?PTS.ANSWER:0;
+    const totalCpPts=PTS.CP+answerPts+photoBonusPts;
     await sb('checkpoint_hits',{method:'POST',body:{user_id:currentUser.id,checkpoint_id:currentCheckpointData.id,quest_id:currentCheckpointData.quest_id,photo_url:photoUrl,caption,lat:userGeo?.latitude||null,lng:userGeo?.longitude||null,hit_at:new Date().toISOString()},prefer:'return=minimal'});
-    const newPts=(currentProfile?.points||0)+PTS.CP,newHits=(currentProfile?.checkpoints_hit||0)+1;
+    const newPts=(currentProfile?.points||0)+totalCpPts,newHits=(currentProfile?.checkpoints_hit||0)+1;
     await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{points:newPts,checkpoints_hit:newHits},prefer:'return=minimal'});
     currentProfile.points=newPts;currentProfile.checkpoints_hit=newHits;
     const msg=await checkQuestCompletion(currentCheckpointData.quest_id);
-    document.getElementById('successSub').textContent=msg||`+${PTS.CP} баллов за точку!`;
+    let ptsMsg=`+${PTS.CP}`;
+    if(answerPts)ptsMsg+=` +${answerPts} за ответ`;
+    if(photoBonusPts)ptsMsg+=` +${photoBonusPts} за фото`;
+    document.getElementById('successSub').textContent=msg||(ptsMsg+' баллов!');
     var _fin=msg&&(msg.indexOf('\u0444\u0438\u043d\u0438\u0448')>=0||msg.indexOf('\u0437\u0430\u0432')>=0);if(_fin){launchConfetti();playHitSound('complete');var _ph=document.getElementById('successPrizeHint');var _pt=document.getElementById('successPrizeText');if(_ph){_ph.style.display='block';if(_pt&&currentQuestData&&currentQuestData.prize_description)_pt.textContent=currentQuestData.prize_description;}}else{playHitSound('hit');var _ph2=document.getElementById('successPrizeHint');if(_ph2)_ph2.style.display='none';}document.getElementById('successOverlay').classList.add('show');
     currentCheckpointData=null;selfieBlob=null;document.getElementById('captionInput').value='';
     sessionStorage.removeItem('sb_pending_cp');currentCheckpointToken=null;
@@ -1376,10 +1472,10 @@ async function loadAdminQuestList(){
 }
 
 async function createQuest(){
-  const title=document.getElementById('qTitle').value.trim(),desc=document.getElementById('qDesc').value.trim(),type=document.getElementById('qType').value,days=parseInt(document.getElementById('qDays').value)||7,prize=document.getElementById('qPrize').value.trim();
+  const title=document.getElementById('qTitle').value.trim(),desc=document.getElementById('qDesc').value.trim(),type=document.getElementById('qType').value,days=parseInt(document.getElementById('qDays').value)||7,prize=document.getElementById('qPrize').value.trim(),withLearning=document.getElementById('qLearning').checked,accessCode=document.getElementById('qAccessCode').value.trim()||null;
   if(!title)return showToast('Введи название');
   const end=new Date();end.setDate(end.getDate()+days);
-  try{await sb('quests',{method:'POST',body:{title,description:desc,quest_type:type,status:'active',end_date:end.toISOString(),prize_description:prize,created_by:currentUser.id,checkpoint_count:0},prefer:'return=minimal'});showToast('Квест создан!');document.getElementById('qTitle').value='';document.getElementById('qDesc').value='';hideCreateQuestForm();initAdminScreen();}
+  try{await sb('quests',{method:'POST',body:{title,description:desc,quest_type:type,status:'active',end_date:end.toISOString(),prize_description:prize,with_learning:withLearning,access_code:accessCode,created_by:currentUser.id,checkpoint_count:0},prefer:'return=minimal'});showToast('Квест создан!');document.getElementById('qTitle').value='';document.getElementById('qDesc').value='';document.getElementById('qLearning').checked=false;document.getElementById('qAccessCode').value='';hideCreateQuestForm();initAdminScreen();}
   catch(e){showToast('Ошибка: '+JSON.stringify(e));}
 }
 async function createCheckpoint(){
@@ -1648,13 +1744,14 @@ function buildAddCpForm(questId){
     <div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:10px">Добавить точку</div>
     <input class="form-input" id="cpName-${questId}" placeholder="Название" style="margin-bottom:8px">
     <input class="form-input" id="cpHint-${questId}" placeholder="Подсказка где QR" style="margin-bottom:8px">
+    <textarea class="form-input" id="cpLearning-${questId}" placeholder="📚 Текст обучения (необязательно) — появится перед заданием" style="margin-bottom:8px;min-height:70px;resize:vertical"></textarea>
     <select class="form-input" id="cpTaskType-${questId}" onchange="toggleCpTask('${questId}')" style="margin-bottom:8px">
       <option value="">Без задания — просто фото</option>
       <option value="selfie">📸 Селфи</option>
-      <option value="riddle">🧩 Загадка</option>
+      <option value="riddle">🧩 Загадка (баллы за правильный ответ)</option>
       <option value="find">🔍 Найти объект</option>
       <option value="action">🤻 Действие</option>
-      <option value="sign">🩺 Табличка</option>
+      <option value="sign">🩺 Табличка (баллы за правильный ответ)</option>
     </select>
     <div id="cpTaskFields-${questId}" style="display:none">
       <input class="form-input" id="cpTaskText-${questId}" placeholder="Текст задания" style="margin-bottom:8px">
@@ -1697,6 +1794,7 @@ function toggleCpTask(questId){
 async function createCpForQuest(questId){
   var name=document.getElementById('cpName-'+questId)?.value.trim();
   var hint=document.getElementById('cpHint-'+questId)?.value.trim();
+  var learningText=document.getElementById('cpLearning-'+questId)?.value.trim()||null;
   var lat=parseFloat(document.getElementById('cpLat-'+questId)?.value);
   var lng=parseFloat(document.getElementById('cpLng-'+questId)?.value);
   var radius=parseInt(document.getElementById('cpRadius-'+questId)?.value)||100;
@@ -1710,17 +1808,15 @@ async function createCpForQuest(questId){
   try{
     var existing=await sb(`checkpoints?quest_id=eq.${questId}&select=id`);
     var orderNum=existing.length+1;
-    await sb('checkpoints',{method:'POST',body:{quest_id:questId,name,hint,lat,lng,radius_meters:radius,token,order_num:orderNum,task_type:taskType||null,task_text:taskText||null,task_tip:taskTip||null,task_answer:taskAnswer||null},prefer:'return=minimal'});
+    await sb('checkpoints',{method:'POST',body:{quest_id:questId,name,hint,learning_text:learningText,lat,lng,radius_meters:radius,token,order_num:orderNum,task_type:taskType||null,task_text:taskText||null,task_tip:taskTip||null,task_answer:taskAnswer||null},prefer:'return=minimal'});
     await sb(`quests?id=eq.${questId}`,{method:'PATCH',body:{checkpoint_count:orderNum},prefer:'return=minimal'});
-    // Generate QR in quest card
     var url=APP_URL+'?cp='+token;
     var box=document.getElementById('cpQRBox-'+questId);
     var res=document.getElementById('cpQRResult-'+questId);
     var cap=document.getElementById('cpQRCaption-'+questId);
     if(box&&res){box.innerHTML='';if(!window.QRCode){var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';s.onload=function(){new QRCode(box,{text:url,width:160,height:160,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.H});};document.head.appendChild(s);}else{new QRCode(box,{text:url,width:160,height:160,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.H});} res.style.display='block';if(cap)cap.textContent='📍 '+name;}
     showToast('Точка добавлена!');
-    // Clear fields
-    ['cpName','cpHint','cpTaskText','cpTaskTip','cpTaskAnswer'].forEach(function(id){var el=document.getElementById(id+'-'+questId);if(el)el.value='';});
+    ['cpName','cpHint','cpLearning','cpTaskText','cpTaskTip','cpTaskAnswer'].forEach(function(id){var el=document.getElementById(id+'-'+questId);if(el)el.value='';});
     loadCheckpointsList2(questId);
   }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
 }

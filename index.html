@@ -766,7 +766,7 @@ async function loadQuests(){
   try{
     // Грузим и активные и завершённые
     const allQuests=await sb(`quests?select=*&order=created_at.desc&limit=20`);
-    const quests=allQuests.filter(q=>q.status!=='archived'&&(q.status==='active'||new Date(q.end_date)>new Date(Date.now()-7*24*60*60*1000)));
+    const quests=allQuests.filter(q=>q.status!=='archived'&&!q.access_code&&(q.status==='active'||new Date(q.end_date)>new Date(Date.now()-7*24*60*60*1000)));
     if(!quests.length){list.innerHTML='<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">Квесты скоро появятся</div></div>';return;}
     const active=quests.filter(q=>q.status==='active');
     const ended=quests.filter(q=>q.status==='ended');

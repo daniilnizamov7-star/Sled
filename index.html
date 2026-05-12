@@ -226,7 +226,12 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 
 <div id="authScreen" class="screen">
   <div class="auth-logo">СЛЕДОПЫТ</div>
-  <div class="auth-tagline">Городские квесты · Реальные призы</div>
+  <div class="auth-tagline" id="authTagline">Городские квесты · Реальные призы</div>
+  <div id="endedQuestNotice" style="display:none;width:100%;max-width:360px;background:rgba(251,191,36,.1);border:1px solid var(--amber-dim);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:16px;text-align:center">
+    <div style="font-size:20px;margin-bottom:4px">⏰</div>
+    <div id="endedQuestNoticeText" style="font-size:13px;color:var(--amber);font-weight:600;margin-bottom:4px"></div>
+    <div style="font-size:12px;color:var(--text3)">Зарегистрируйся и следи за новыми квестами!</div>
+  </div>
   <div class="auth-card">
     <div class="auth-tabs">
       <button class="auth-tab active" onclick="switchAuthTab('login')">Войти</button>
@@ -659,6 +664,18 @@ function showScreenDirect(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id)?.classList.add('active');
   document.getElementById('bottomNav').style.display=['authScreen','scanScreen','splash'].includes(id)?'none':'flex';
+  // Показываем баннер завершённого квеста если пришли с QR
+  if(id==='authScreen'){
+    const endedTitle=sessionStorage.getItem('sb_ended_quest_title');
+    const notice=document.getElementById('endedQuestNotice');
+    if(endedTitle&&notice){
+      document.getElementById('endedQuestNoticeText').textContent='Квест "'+endedTitle+'" уже завершён';
+      notice.style.display='block';
+      sessionStorage.removeItem('sb_ended_quest_title');
+    } else if(notice){
+      notice.style.display='none';
+    }
+  }
 }
 function goBack(){if(screenHistory.length>1){screenHistory.pop();showScreenDirect(screenHistory[screenHistory.length-1]);}}
 function goTab(id,btn){
@@ -1032,10 +1049,25 @@ async function showTeamModal(){
 async function openCheckpointByToken(token){
   try{
     const cps=await sb(`checkpoints?token=eq.${token}&select=*,quests(*)`);
-    if(!cps.length)return showToast('Точка не найдена');
+    if(!cps.length){showToast('Точка не найдена');if(currentUser)showMain();else goScreen('authScreen');return;}
     const cp=cps[0];
     const quest=cp.quests;
-    if(quest?.status!=='active')return showToast('Квест завершён');
+    // Квест завершён или в архиве
+    if(quest?.status!=='active'){
+      if(!currentUser){
+        // Не залогинен — показываем экран авторизации с уведомлением
+        sessionStorage.setItem('sb_ended_quest_title',quest?.title||'Квест');
+        goScreen('authScreen');
+        setTimeout(()=>{
+          showToast('⏰ Квест "'+( quest?.title||'Квест')+'" завершён. Регистрируйся — следи за новыми!');
+        },500);
+      } else {
+        // Залогинен — показываем информационный тост и главную
+        showToast('⏰ Квест "'+( quest?.title||'Квест')+'" уже завершён. Следи за новыми квестами!');
+        showMain();
+      }
+      return;
+    }
     // Если квест найден — сохраняем его чтобы потом открыть карточку
     if(quest)currentQuestData=quest;
     const hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=eq.${cp.id}`);

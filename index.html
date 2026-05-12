@@ -1864,18 +1864,27 @@ async function toggleQuestStatus(id,status){
 }
 
 async function deleteQuest(id,title){
-  if(!confirm(`Архивировать квест "${title}"?\nДанные сохранятся, квест скроется из списка.`))return;
+  if(!confirm(`Удалить квест "${title}" насовсем?\nВсе точки, результаты и фото будут удалены.`))return;
   try{
-    await sb(`quests?id=eq.${id}`,{method:'PATCH',body:{status:'archived'},prefer:'return=minimal'});
-    showToast('📦 Квест в архиве');
+    // Удаляем связанные данные вручную (на случай если CASCADE не настроен в БД)
+    await sb(`checkpoint_hits?quest_id=eq.${id}`,{method:'DELETE'}).catch(()=>{});
+    await sb(`quest_completions?quest_id=eq.${id}`,{method:'DELETE'}).catch(()=>{});
+    await sb(`quest_sponsors?quest_id=eq.${id}`,{method:'DELETE'}).catch(()=>{});
+    await sb(`quest_participants?quest_id=eq.${id}`,{method:'DELETE'}).catch(()=>{});
+    // Удаляем команды и их участников
+    const teams=await sb(`teams?quest_id=eq.${id}&select=id`).catch(()=>[]);
+    for(const t of teams){
+      await sb(`team_members?team_id=eq.${t.id}`,{method:'DELETE'}).catch(()=>{});
+    }
+    await sb(`teams?quest_id=eq.${id}`,{method:'DELETE'}).catch(()=>{});
+    // Удаляем точки
+    await sb(`checkpoints?quest_id=eq.${id}`,{method:'DELETE'}).catch(()=>{});
+    // Теперь удаляем сам квест
+    await sb(`quests?id=eq.${id}`,{method:'DELETE'});
+    showToast('🗑️ Квест удалён');
     loadAdminQuestList();loadAdminQuests();
   }catch(e){
-    if(JSON.stringify(e).includes('23514')||JSON.stringify(e).includes('status_check')){
-      const sql="ALTER TABLE quests DROP CONSTRAINT quests_status_check;\nALTER TABLE quests ADD CONSTRAINT quests_status_check CHECK (status IN ('active', 'ended', 'archived'));";
-      showToast('⚠️ Нужна миграция БД');
-      if(confirm('Нужно выполнить SQL в Supabase:\n\n'+sql+'\n\nСкопировать?'))
-        navigator.clipboard?.writeText(sql).then(()=>showToast('✅ SQL скопирован, вставь в Supabase SQL Editor'));
-    }else{showToast('❌ Ошибка: '+JSON.stringify(e));}
+    showToast('❌ Ошибка: '+JSON.stringify(e));
   }
 }
 async function hardDeleteQuest(id,title){

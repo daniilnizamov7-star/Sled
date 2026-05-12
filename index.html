@@ -434,6 +434,10 @@ select.form-input option{background:var(--bg2);color:var(--text)}
         <input type="checkbox" id="qLearning" style="width:18px;height:18px;accent-color:var(--green);flex-shrink:0">
         <label for="qLearning" style="font-size:13px;color:var(--text2);cursor:pointer">📚 Обучающий режим (показывать карточки знаний на точках)</label>
       </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px">
+        <input type="checkbox" id="qSpeedBonus" checked style="width:18px;height:18px;accent-color:var(--amber);flex-shrink:0">
+        <label for="qSpeedBonus" style="font-size:13px;color:var(--text2);cursor:pointer">⚡ Бонус за скорость (+${PTS.FIRST} тому кто первым завершит)</label>
+      </div>
       <div class="form-group"><label class="form-label">Код доступа <span style="color:var(--text3);font-weight:400">(для корпоративных — необязательно)</span></label><input class="form-input" id="qAccessCode" placeholder="ARNEST2026" style="text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase();document.getElementById('qGroupsBlock').style.display=this.value.trim()?'block':'none'"></div>
       <div class="form-group" id="qGroupsBlock" style="display:none">
         <label class="form-label">Группы участников <span style="color:var(--text3);font-weight:400">(через запятую)</span></label>
@@ -904,7 +908,7 @@ async function openQuest(quest){currentQuestData=quest;
       <div class="score-row"><span>Правильный ответ</span><span class="score-pts">+${PTS.ANSWER}</span></div>
       <div class="score-row"><span>Фото на точке</span><span class="score-pts">+${PTS.PHOTO_BONUS} бонус</span></div>
       <div class="score-row"><span>Прошёл все точки</span><span class="score-pts">+${PTS.COMPLETE}</span></div>
-      <div class="score-row"><span>🥇 Первый кто завершил</span><span class="score-pts amber">+${PTS.COMPLETE+PTS.FIRST}</span></div>
+      ${quest.with_speed_bonus!==false?`<div class="score-row"><span>🥇 Первый кто завершил</span><span class="score-pts amber">+${PTS.COMPLETE+PTS.FIRST+30} бонус</span></div>`:''}
     </div>`;
   goScreen('questScreen');
   const firstTab=document.querySelector('#questScreen .detail-tab');switchDetailTab('route',firstTab);
@@ -1487,14 +1491,19 @@ async function checkQuestCompletion(questId){
   try{
     const[total,hits]=await Promise.all([sb(`checkpoints?quest_id=eq.${questId}&select=id`),sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&select=id`)]);
     if(hits.length<total.length)return null;
-    let place=1,speedBonus=10;
+    // Проверяем включён ли бонус за скорость
+    const questInfo=currentQuestData?.id===questId?currentQuestData:null;
+    const speedEnabled=questInfo?.with_speed_bonus!==false; // по умолчанию включён
+    let place=1,speedBonus=0;
     try{
       const completions=await sb(`quest_completions?quest_id=eq.${questId}&select=id&order=finished_at.asc`);
       place=completions.length+1;
-      if(place===1)speedBonus=50;
-      else if(place===2)speedBonus=30;
-      else if(place===3)speedBonus=20;
-      else speedBonus=10;
+      if(speedEnabled){
+        if(place===1)speedBonus=PTS.FIRST+30;
+        else if(place===2)speedBonus=PTS.FIRST+10;
+        else if(place===3)speedBonus=PTS.FIRST;
+        else speedBonus=0;
+      }
       const bonus=PTS.COMPLETE+speedBonus;
       const isFirst=place===1;
       await sb('quest_completions',{method:'POST',body:{user_id:currentUser.id,quest_id:questId,finished_at:new Date().toISOString(),is_first:isFirst,bonus_points:bonus,place},prefer:'return=minimal'});
@@ -1503,10 +1512,10 @@ async function checkQuestCompletion(questId){
       currentProfile.points=newPts;currentProfile.quests_completed=newQ;
       const medals=['🥇','🥈','🥉'];
       const medal=place<=3?medals[place-1]:'🎯';
-      return `${medal} ${place<=3?place+'-е место! ':''}Финиш! +${bonus} баллов (${speedBonus} бонус скорости)`;
-    }catch(e2){
-      return '🎉 Квест завершён!';
-    }
+      let msg=`${medal} Финиш! +${PTS.COMPLETE} за квест`;
+      if(speedBonus>0)msg+=` +${speedBonus} бонус скорости`;
+      return msg;
+    }catch(e2){return '🎉 Квест завершён!';}
   }catch(e){return '🎉 Квест завершён!';}
 }
 function afterSuccess(){
@@ -1735,12 +1744,12 @@ async function loadAdminQuestList(){
 }
 
 async function createQuest(){
-  const title=document.getElementById('qTitle').value.trim(),desc=document.getElementById('qDesc').value.trim(),type=document.getElementById('qType').value,days=parseInt(document.getElementById('qDays').value)||7,prize=document.getElementById('qPrize').value.trim(),withLearning=document.getElementById('qLearning').checked,accessCode=document.getElementById('qAccessCode').value.trim()||null;
+  const title=document.getElementById('qTitle').value.trim(),desc=document.getElementById('qDesc').value.trim(),type=document.getElementById('qType').value,days=parseInt(document.getElementById('qDays').value)||7,prize=document.getElementById('qPrize').value.trim(),withLearning=document.getElementById('qLearning').checked,withSpeedBonus=document.getElementById('qSpeedBonus').checked,accessCode=document.getElementById('qAccessCode').value.trim()||null;
   const groupsRaw=document.getElementById('qGroups').value.trim();
   const groups=accessCode&&groupsRaw?groupsRaw.split(',').map(g=>g.trim()).filter(Boolean):null;
   if(!title)return showToast('Введи название');
   const end=new Date();end.setDate(end.getDate()+days);
-  try{await sb('quests',{method:'POST',body:{title,description:desc,quest_type:type,status:'active',end_date:end.toISOString(),prize_description:prize,with_learning:withLearning,access_code:accessCode,groups:groups?JSON.stringify(groups):null,created_by:currentUser.id,checkpoint_count:0},prefer:'return=minimal'});showToast('Квест создан!');document.getElementById('qTitle').value='';document.getElementById('qDesc').value='';document.getElementById('qLearning').checked=false;document.getElementById('qAccessCode').value='';document.getElementById('qGroups').value='';document.getElementById('qGroupsBlock').style.display='none';hideCreateQuestForm();initAdminScreen();}
+  try{await sb('quests',{method:'POST',body:{title,description:desc,quest_type:type,status:'active',end_date:end.toISOString(),prize_description:prize,with_learning:withLearning,with_speed_bonus:withSpeedBonus,access_code:accessCode,groups:groups?JSON.stringify(groups):null,created_by:currentUser.id,checkpoint_count:0},prefer:'return=minimal'});showToast('Квест создан!');document.getElementById('qTitle').value='';document.getElementById('qDesc').value='';document.getElementById('qLearning').checked=false;document.getElementById('qSpeedBonus').checked=true;document.getElementById('qAccessCode').value='';document.getElementById('qGroups').value='';document.getElementById('qGroupsBlock').style.display='none';hideCreateQuestForm();initAdminScreen();}
   catch(e){showToast('Ошибка: '+JSON.stringify(e));}
 }
 async function createCheckpoint(){

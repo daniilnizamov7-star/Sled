@@ -572,6 +572,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     <div class="form-group"><label class="form-label">Название</label><input class="form-input" id="editCpName" placeholder="Название точки"></div>
     <div class="form-group"><label class="form-label">Подсказка где QR</label><input class="form-input" id="editCpHint" placeholder="Деревянный стенд при входе..."></div>
     <div class="form-group"><label class="form-label">📚 Текст обучения</label><textarea class="form-input" id="editCpLearning" placeholder="Появится перед заданием..." style="min-height:80px;resize:vertical"></textarea></div>
+    <div class="form-group"><label class="form-label">💡 Интересный факт</label><textarea class="form-input" id="editCpPostFact" placeholder="Появится после засчитывания точки..." style="min-height:80px;resize:vertical"></textarea></div>
     <div class="form-group"><label class="form-label">Тип задания</label>
       <select class="form-input" id="editCpTaskType" onchange="toggleEditCpTask()">
         <option value="">Без задания</option>
@@ -614,6 +615,10 @@ select.form-input option{background:var(--bg2);color:var(--text)}
   <div class="success-icon">🎯</div>
   <div class="success-title" id="successTitle">Точка засчитана!</div>
   <div class="success-sub" id="successSub">+10 баллов</div>
+  <div id="successPostFact" style="display:none;margin-top:16px;background:rgba(74,222,128,.06);border:1px solid var(--green-dim);border-radius:12px;padding:16px;max-width:300px;text-align:left">
+    <div style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:.5px;margin-bottom:8px">💡 ИНТЕРЕСНЫЙ ФАКТ</div>
+    <div id="successPostFactText" style="font-size:14px;color:var(--text);line-height:1.6"></div>
+  </div>
   <div id="successPrizeHint" style="display:none;margin-top:16px;background:rgba(74,222,128,.08);border:1px solid var(--green-dim);border-radius:12px;padding:14px;max-width:280px;text-align:center">
     <div style="font-size:24px;margin-bottom:6px">🎯</div>
     <div style="font-size:14px;font-weight:600;color:var(--green);margin-bottom:6px">Ты в таблице лидеров!</div>
@@ -621,7 +626,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     <div style="font-size:12px;color:var(--text2)" id="successPrizeText"></div>
     <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5">Организатор свяжется с победителями по завершении. Пока играй дальше — набирай больше баллов!</div>
   </div>
-  <button class="btn btn-primary btn-sm" style="margin-top:24px;width:auto;padding:12px 32px" onclick="afterSuccess()">Продолжить</button>
+  <button class="btn btn-primary btn-sm" style="margin-top:24px;width:auto;padding:12px 32px" onclick="afterSuccess()">Продолжить →</button>
 </div>
 
 <script>
@@ -1159,12 +1164,13 @@ async function deleteHitPhoto(hitId, photoUrl){
   }catch(e){showToast('Ошибка удаления');}
 }
 
-function openEditCheckpoint(id,name,hint,learning,taskType,taskText,taskTip,taskAnswer,questId){
+function openEditCheckpoint(id,name,hint,learning,postFact,taskType,taskText,taskTip,taskAnswer,questId){
   document.getElementById('editCpId').value=id;
   document.getElementById('editCpQuestId').value=questId;
   document.getElementById('editCpName').value=name||'';
   document.getElementById('editCpHint').value=hint||'';
   document.getElementById('editCpLearning').value=learning||'';
+  document.getElementById('editCpPostFact').value=postFact||'';
   document.getElementById('editCpTaskType').value=taskType||'';
   document.getElementById('editCpTaskText').value=taskText||'';
   document.getElementById('editCpTaskTip').value=taskTip||'';
@@ -1185,6 +1191,7 @@ async function saveEditCheckpoint(){
   var name=document.getElementById('editCpName').value.trim();
   var hint=document.getElementById('editCpHint').value.trim();
   var learning=document.getElementById('editCpLearning').value.trim()||null;
+  var postFact=document.getElementById('editCpPostFact').value.trim()||null;
   var taskType=document.getElementById('editCpTaskType').value||null;
   var taskText=document.getElementById('editCpTaskText').value.trim()||null;
   var taskTip=document.getElementById('editCpTaskTip').value.trim()||null;
@@ -1192,7 +1199,7 @@ async function saveEditCheckpoint(){
   if(!name)return showToast('Введи название точки');
   try{
     await sb(`checkpoints?id=eq.${id}`,{method:'PATCH',body:{
-      name,hint:hint||null,learning_text:learning,
+      name,hint:hint||null,learning_text:learning,post_fact:postFact,
       task_type:taskType,task_text:taskText,task_tip:taskTip,task_answer:taskAnswer
     },prefer:'return=minimal'});
     showToast('✅ Точка обновлена!');
@@ -1480,7 +1487,19 @@ async function submitCheckpoint(){
     if(answerPts)ptsMsg+=` +${answerPts} за ответ`;
     if(photoBonusPts)ptsMsg+=` +${photoBonusPts} за фото`;
     document.getElementById('successSub').textContent=msg||(ptsMsg+' баллов!');
-    var _fin=msg&&(msg.indexOf('\u0444\u0438\u043d\u0438\u0448')>=0||msg.indexOf('\u0437\u0430\u0432')>=0);if(_fin){launchConfetti();playHitSound('complete');var _ph=document.getElementById('successPrizeHint');var _pt=document.getElementById('successPrizeText');if(_ph){_ph.style.display='block';if(_pt&&currentQuestData&&currentQuestData.prize_description)_pt.textContent=currentQuestData.prize_description;}}else{playHitSound('hit');var _ph2=document.getElementById('successPrizeHint');if(_ph2)_ph2.style.display='none';}document.getElementById('successOverlay').classList.add('show');
+    var _fin=msg&&(msg.indexOf('\u0444\u0438\u043d\u0438\u0448')>=0||msg.indexOf('\u0437\u0430\u0432')>=0);
+    if(_fin){launchConfetti();playHitSound('complete');var _ph=document.getElementById('successPrizeHint');var _pt=document.getElementById('successPrizeText');if(_ph){_ph.style.display='block';if(_pt&&currentQuestData&&currentQuestData.prize_description)_pt.textContent=currentQuestData.prize_description;}}
+    else{playHitSound('hit');var _ph2=document.getElementById('successPrizeHint');if(_ph2)_ph2.style.display='none';}
+    // Показываем интересный факт если есть
+    const pfEl=document.getElementById('successPostFact');
+    const pfText=document.getElementById('successPostFactText');
+    if(pfEl&&pfText&&currentCheckpointData?.post_fact){
+      pfText.textContent=currentCheckpointData.post_fact;
+      pfEl.style.display='block';
+    } else if(pfEl){
+      pfEl.style.display='none';
+    }
+    document.getElementById('successOverlay').classList.add('show');
     currentCheckpointData=null;selfieBlob=null;document.getElementById('captionInput').value='';
     sessionStorage.removeItem('sb_pending_cp');currentCheckpointToken=null;
     _submitting=false;
@@ -2019,6 +2038,7 @@ function buildAddCpForm(questId){
     <input class="form-input" id="cpName-${questId}" placeholder="Название" style="margin-bottom:8px">
     <input class="form-input" id="cpHint-${questId}" placeholder="Подсказка где QR" style="margin-bottom:8px">
     <textarea class="form-input" id="cpLearning-${questId}" placeholder="📚 Текст обучения (необязательно) — появится перед заданием" style="margin-bottom:8px;min-height:70px;resize:vertical"></textarea>
+    <textarea class="form-input" id="cpPostFact-${questId}" placeholder="💡 Интересный факт (необязательно) — появится после засчитывания точки" style="margin-bottom:8px;min-height:70px;resize:vertical"></textarea>
     <select class="form-input" id="cpTaskType-${questId}" onchange="toggleCpTask('${questId}')" style="margin-bottom:8px">
       <option value="">Без задания — просто фото</option>
       <option value="selfie">📸 Селфи</option>
@@ -2069,6 +2089,7 @@ async function createCpForQuest(questId){
   var name=document.getElementById('cpName-'+questId)?.value.trim();
   var hint=document.getElementById('cpHint-'+questId)?.value.trim();
   var learningText=document.getElementById('cpLearning-'+questId)?.value.trim()||null;
+  var postFact=document.getElementById('cpPostFact-'+questId)?.value.trim()||null;
   var lat=parseFloat(document.getElementById('cpLat-'+questId)?.value);
   var lng=parseFloat(document.getElementById('cpLng-'+questId)?.value);
   var radius=parseInt(document.getElementById('cpRadius-'+questId)?.value)||100;
@@ -2082,7 +2103,7 @@ async function createCpForQuest(questId){
   try{
     var existing=await sb(`checkpoints?quest_id=eq.${questId}&select=id`);
     var orderNum=existing.length+1;
-    await sb('checkpoints',{method:'POST',body:{quest_id:questId,name,hint,learning_text:learningText,lat,lng,radius_meters:radius,token,order_num:orderNum,task_type:taskType||null,task_text:taskText||null,task_tip:taskTip||null,task_answer:taskAnswer||null},prefer:'return=minimal'});
+    await sb('checkpoints',{method:'POST',body:{quest_id:questId,name,hint,learning_text:learningText,post_fact:postFact,lat,lng,radius_meters:radius,token,order_num:orderNum,task_type:taskType||null,task_text:taskText||null,task_tip:taskTip||null,task_answer:taskAnswer||null},prefer:'return=minimal'});
     await sb(`quests?id=eq.${questId}`,{method:'PATCH',body:{checkpoint_count:orderNum},prefer:'return=minimal'});
     var url=APP_URL+'?cp='+token;
     var box=document.getElementById('cpQRBox-'+questId);
@@ -2090,7 +2111,7 @@ async function createCpForQuest(questId){
     var cap=document.getElementById('cpQRCaption-'+questId);
     if(box&&res){box.innerHTML='';if(!window.QRCode){var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';s.onload=function(){new QRCode(box,{text:url,width:160,height:160,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.H});};document.head.appendChild(s);}else{new QRCode(box,{text:url,width:160,height:160,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.H});} res.style.display='block';if(cap)cap.textContent='📍 '+name;}
     showToast('Точка добавлена!');
-    ['cpName','cpHint','cpLearning','cpTaskText','cpTaskTip','cpTaskAnswer'].forEach(function(id){var el=document.getElementById(id+'-'+questId);if(el)el.value='';});
+    ['cpName','cpHint','cpLearning','cpPostFact','cpTaskText','cpTaskTip','cpTaskAnswer'].forEach(function(id){var el=document.getElementById(id+'-'+questId);if(el)el.value='';});
     loadCheckpointsList2(questId);
   }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
 }
@@ -2115,11 +2136,12 @@ async function loadCheckpointsList2(questId){
         +'<div style="font-size:13px;font-weight:600;color:var(--text)">'+(i+1)+'. '+cp.name+'</div>'
         +(cp.hint?'<div style="font-size:11px;color:var(--text3);margin-top:2px">📍 '+cp.hint+'</div>':'')
         +(cp.learning_text?'<div style="font-size:11px;color:var(--green);margin-top:2px">📚 Обучение добавлено</div>':'')
+        +(cp.post_fact?'<div style="font-size:11px;color:var(--amber);margin-top:2px">💡 Факт добавлен</div>':'')
         +(cp.task_type?'<div style="font-size:11px;color:var(--blue);margin-top:2px">📋 '+( cp.task_type)+': '+(cp.task_text||'')+( cp.task_answer?' → '+cp.task_answer:'')+'</div>':'')
         +'</div></div>'
         +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
         +'<button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="generateQRAndDownload(\''+APP_URL+'?cp='+cp.token+'\',\''+esc(cp.name)+'\')">📥 QR</button>'
-        +'<button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="openEditCheckpoint(\''+cp.id+'\',\''+esc(cp.name)+'\',\''+esc(cp.hint)+'\',\''+esc(cp.learning_text)+'\',\''+esc(cp.task_type)+'\',\''+esc(cp.task_text)+'\',\''+esc(cp.task_tip)+'\',\''+esc(cp.task_answer)+'\',\''+questId+'\')">✏️ Изменить</button>'
+        +'<button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="openEditCheckpoint(\''+cp.id+'\',\''+esc(cp.name)+'\',\''+esc(cp.hint)+'\',\''+esc(cp.learning_text)+'\',\''+esc(cp.post_fact)+'\',\''+esc(cp.task_type)+'\',\''+esc(cp.task_text)+'\',\''+esc(cp.task_tip)+'\',\''+esc(cp.task_answer)+'\',\''+questId+'\')">✏️ Изменить</button>'
         +'<button class="btn btn-red btn-sm" style="font-size:11px;padding:4px 8px" onclick="deleteCheckpoint(\''+cp.id+'\',\''+esc(cp.name)+'\',\''+questId+'\')">✕</button>'
         +'</div>'
         +'</div>';

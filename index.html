@@ -542,7 +542,32 @@ let currentUser=null,currentProfile=null,screenHistory=[],currentQuestId=null;
 let currentCheckpointToken=null,currentCheckpointData=null,selfieBlob=null,userGeo=null;
 let scanStream=null,scanInterval=null;
 
+async function refreshTokenIfNeeded(){
+  const exp=parseInt(sessionStorage.getItem('sb_token_exp')||'0');
+  if(Date.now()<exp)return; // токен ещё свежий
+  const refresh=sessionStorage.getItem('sb_refresh');
+  if(!refresh)return; // нет refresh токена — ничего не делаем
+  try{
+    const res=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{
+      method:'POST',
+      headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({refresh_token:refresh})
+    });
+    const data=await res.json();
+    if(data.access_token){
+      sessionStorage.setItem('sb_token',data.access_token);
+      if(data.refresh_token)sessionStorage.setItem('sb_refresh',data.refresh_token);
+      sessionStorage.setItem('sb_token_exp',Date.now()+((data.expires_in||3600)-120)*1000);
+    } else {
+      // токен протух — разлогиниваем
+      sessionStorage.clear();currentUser=null;currentProfile=null;goScreen('authScreen');
+      showToast('Сессия истекла, войди снова');
+    }
+  }catch(e){}
+}
+
 async function sb(path,opts={}){
+  await refreshTokenIfNeeded();
   const url=`${SUPABASE_URL}/rest/v1/${path}`;
   const headers={'apikey':SUPABASE_KEY,'Authorization':`Bearer ${sessionStorage.getItem('sb_token')||SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':opts.prefer||'return=representation',...opts.headers};
   const res=await fetch(url,{method:opts.method||'GET',headers,body:opts.body?JSON.stringify(opts.body):undefined});
@@ -560,8 +585,8 @@ async function uploadPhoto(bucket,path,blob){
 }
 
 window.addEventListener('load',async()=>{
-  const cpToken=new URLSearchParams(window.location.search).get('cp');
-  if(cpToken)currentCheckpointToken=cpToken;
+  const cpToken=new URLSearchParams(window.location.search).get('cp')||sessionStorage.getItem('sb_pending_cp');
+  if(cpToken){currentCheckpointToken=cpToken;sessionStorage.setItem('sb_pending_cp',cpToken);}
   const token=sessionStorage.getItem('sb_token'),uid=sessionStorage.getItem('sb_uid');
   setTimeout(async()=>{
     document.getElementById('splash').style.display='none';
@@ -582,7 +607,12 @@ function goTab(id,btn){
   goScreen(id);document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));btn?.classList.add('active');
   if(id==='leaderScreen')loadLeader('solo');if(id==='homeScreen'){loadQuests();loadUserStats();}
 }
-function showMain(){document.getElementById('bottomNav').style.display='flex';goScreen('homeScreen');loadQuests();loadUserStats();loadWinners();loadCurrentSeason();}
+function showMain(){
+  document.getElementById('bottomNav').style.display='flex';
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const homeTab=document.getElementById('tabHome');if(homeTab)homeTab.classList.add('active');
+  goScreen('homeScreen');loadQuests();loadUserStats();loadWinners();loadCurrentSeason();
+}
 
 function switchAuthTab(tab){
   document.getElementById('loginForm').style.display=tab==='login'?'block':'none';
@@ -597,14 +627,19 @@ async function doLogin(){
   var raw=document.getElementById('loginEmail').value.trim();
   var pass=document.getElementById('loginPass').value;
   if(!raw||!pass)return showToast('Заполни все поля');
-  // Автопреобразование: если цифры — телефон, иначе email
+  const loginBtn=document.querySelector('#loginForm .btn-primary');
+  if(loginBtn){loginBtn.disabled=true;loginBtn.textContent='Входим...';}
   var digits=raw.replace(/\D/g,'');
   var email=digits.length>=10?digits+'@sledopyt.app':raw;
   const data=await sbAuth('token?grant_type=password',email,pass);
-  try{if(data.error)return showToast('Ошибка: '+data.error_description);
-  sessionStorage.setItem('sb_token',data.access_token);sessionStorage.setItem('sb_uid',data.user.id);currentUser=data.user;
+  try{if(data.error){if(loginBtn){loginBtn.disabled=false;loginBtn.textContent='Войти';}return showToast('Ошибка: '+data.error_description);}
+  sessionStorage.setItem('sb_token',data.access_token);
+  sessionStorage.setItem('sb_uid',data.user.id);
+  if(data.refresh_token)sessionStorage.setItem('sb_refresh',data.refresh_token);
+  sessionStorage.setItem('sb_token_exp',Date.now()+(( data.expires_in||3600)-120)*1000);
+  currentUser=data.user;
   await loadProfile();subscribeRealtime();if(currentCheckpointToken)await openCheckpointByToken(currentCheckpointToken);else showMain();}
-  catch(e){showToast('Ошибка входа');}
+  catch(e){if(loginBtn){loginBtn.disabled=false;loginBtn.textContent='Войти';}showToast('Ошибка входа');}
 }
 async function doRegister(){
   const name=document.getElementById('regName').value.trim(),
@@ -624,7 +659,10 @@ async function doRegister(){
   try{const data=await sbAuth('signup',email,pass,{username:name,city});
   if(data.error)return showToast('Ошибка: '+(data.error_description||JSON.stringify(data.error)));
   sessionStorage.setItem('sb_token',data.access_token);
-  sessionStorage.setItem('sb_uid',data.user.id);currentUser=data.user;
+  sessionStorage.setItem('sb_uid',data.user.id);
+  if(data.refresh_token)sessionStorage.setItem('sb_refresh',data.refresh_token);
+  sessionStorage.setItem('sb_token_exp',Date.now()+((data.expires_in||3600)-120)*1000);
+  currentUser=data.user;
   await sb('sledopyt_profiles',{method:'POST',body:{id:data.user.id,username:name,city,phone:phone,points:20,quests_completed:0,checkpoints_hit:0,is_admin:false},prefer:'return=minimal'});
   // Приветственные баллы в историю
   try{await sb('manual_points',{method:'POST',body:{user_id:data.user.id,points:20,reason:'🎉 Приветственный бонус за регистрацию',given_by:data.user.id},prefer:'return=minimal'});}catch(e2){}
@@ -657,7 +695,12 @@ function updateProfileUI(){
 }
 function getEmoji(name){const e=['🐺','🦊','🐻','🦁','🐯','🦅','🐍','🦋','🐬','🦄'];let h=0;for(let c of(name||''))h=(h*31+c.charCodeAt(0))&0xffff;return e[h%e.length];}
 async function loadUserStats(){
-  try{const r=await sb(`sledopyt_profiles?select=id,points&order=points.desc`);const i=r.findIndex(x=>x.id===currentUser.id);if(i>=0)document.getElementById('statRank').textContent='#'+(i+1);}catch(e){}
+  try{
+    // Считаем ранк через count профилей с баллами больше своих
+    const myPts=currentProfile?.points||0;
+    const above=await sb(`sledopyt_profiles?select=id&points=gt.${myPts}`);
+    document.getElementById('statRank').textContent='#'+(above.length+1);
+  }catch(e){}
 }
 
 async function loadQuests(){
@@ -959,9 +1002,11 @@ function takeSelfie(){
 }
 async function handleSelfie(e){
   const file=e.target.files[0];if(!file)return;
+  if(!file.type.startsWith('image/')){showToast('Выбери фото, не видео или документ');e.target.value='';return;}
   selfieBlob=await compressImage(file,900,.82);
   document.getElementById('selfieArea').innerHTML=`<img src="${URL.createObjectURL(selfieBlob)}">`;
   const btn=document.getElementById('submitBtn');btn.disabled=false;btn.style.opacity='1';
+  e.target.value=''; // сброс чтобы onchange сработал повторно при том же файле
 }
 function checkSubmitReady(){
   const cp=currentCheckpointData;if(!cp)return;
@@ -1037,6 +1082,7 @@ async function submitCheckpoint(){
     document.getElementById('successSub').textContent=msg||`+${PTS.CP} баллов за точку!`;
     var _fin=msg&&(msg.indexOf('\u0444\u0438\u043d\u0438\u0448')>=0||msg.indexOf('\u0437\u0430\u0432')>=0);if(_fin){launchConfetti();playHitSound('complete');var _ph=document.getElementById('successPrizeHint');var _pt=document.getElementById('successPrizeText');if(_ph){_ph.style.display='block';if(_pt&&currentQuestData&&currentQuestData.prize_description)_pt.textContent=currentQuestData.prize_description;}}else{playHitSound('hit');var _ph2=document.getElementById('successPrizeHint');if(_ph2)_ph2.style.display='none';}document.getElementById('successOverlay').classList.add('show');
     currentCheckpointData=null;selfieBlob=null;document.getElementById('captionInput').value='';
+    sessionStorage.removeItem('sb_pending_cp');currentCheckpointToken=null;
     _submitting=false;
   }catch(e){_submitting=false;btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';showToast('Ошибка: '+(e.message||'попробуй ещё раз'));}
 }
@@ -1086,41 +1132,56 @@ async function showScan(){
 function startQRScan(video){if(window.jsQR){doScan(video);return;}const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.js';s.onload=()=>doScan(video);document.head.appendChild(s);}
 function doScan(video){
   const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
-  let lastScan=0;
-  scanInterval=setInterval(()=>{
-    if(video.readyState!==video.HAVE_ENOUGH_DATA)return;
-    const now=Date.now();if(now-lastScan<80)return;lastScan=now;
+  let active=true;
+  scanInterval={stop:()=>{active=false;}};
+  function frame(){
+    if(!active)return;
+    if(video.readyState!==video.HAVE_ENOUGH_DATA){requestAnimationFrame(frame);return;}
     const vw=video.videoWidth,vh=video.videoHeight;
-    if(!vw||!vh)return;
+    if(!vw||!vh){requestAnimationFrame(frame);return;}
     canvas.width=vw;canvas.height=vh;
-    // Увеличиваем контраст и яркость для лучшего распознавания
     ctx.filter='contrast(1.4) brightness(1.1)';
     ctx.drawImage(video,0,0);
     ctx.filter='none';
-    // Пробуем полный кадр
     let img=ctx.getImageData(0,0,vw,vh);
     let code=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
-    // Если не нашли — пробуем инвертированный (тёмный QR на светлом фоне)
     if(!code)code=jsQR(img.data,img.width,img.height,{inversionAttempts:'onlyInvert'});
-    // Если не нашли — пробуем центральный квадрат (zoom)
     if(!code){
       const s=Math.min(vw,vh)*0.7;const ox=(vw-s)/2;const oy=(vh-s)/2;
       const crop=ctx.getImageData(ox,oy,s,s);
       code=jsQR(crop.data,crop.width,crop.height,{inversionAttempts:'attemptBoth'});
     }
-    if(code?.data){clearInterval(scanInterval);stopScan();handleQRResult(code.data);}
-  },80);
+    if(code?.data){active=false;stopScan();handleQRResult(code.data);return;}
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 }
-function stopScan(){if(scanInterval){clearInterval(scanInterval);scanInterval=null;}if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;}goBack();}
+function stopScan(){if(scanInterval){if(typeof scanInterval.stop==='function')scanInterval.stop();else clearInterval(scanInterval);scanInterval=null;}if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;}goBack();}
 function handleQRResult(url){try{const token=new URL(url).searchParams.get('cp');if(token){playHitSound('hit');currentCheckpointToken=token;openCheckpointByToken(token);}else showToast('Неверный QR-код');}catch(e){showToast('Неверный формат QR');}}
 
-async function loadLeader(type,tabEl){
+let _leaderOffset=0;
+async function loadLeader(type,tabEl,append=false){
   if(tabEl){document.querySelectorAll('.leader-tab').forEach(t=>t.classList.remove('active'));tabEl.classList.add('active');}
-  const list=document.getElementById('leaderList');list.innerHTML='<div class="loader"><div class="spinner"></div></div>';
+  if(!append)_leaderOffset=0;
+  const list=document.getElementById('leaderList');
+  if(!append)list.innerHTML='<div class="loader"><div class="spinner"></div></div>';
+  else{const btn=list.querySelector('.load-more-btn');if(btn)btn.remove();}
+  const PAGE=20;
   try{
-    if(type==='team'){const data=await sb(`teams?select=name,points&order=points.desc&limit=50`);list.innerHTML=data.length?data.map((t,i)=>`<div class="leader-item"><div class="leader-rank ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div><div class="leader-avatar">🤝</div><div class="leader-info"><div class="leader-name">${t.name}</div></div><div class="leader-pts">${t.points||0}</div></div>`).join(''):'<div class="empty"><div class="empty-icon">🤝</div><div class="empty-text">Нет команд</div></div>';}
-    else{const data=await sb(`sledopyt_profiles?select=id,username,city,points,quests_completed,created_at&order=points.desc,quests_completed.desc,created_at.asc&limit=50`);list.innerHTML=data.length?data.map((p,i)=>`<div class="leader-item" style="animation-delay:${i*.04}s"><div class="leader-rank ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div><div class="leader-avatar">${getEmoji(p.username)}</div><div class="leader-info"><div class="leader-name">${p.username} ${p.id===currentUser?.id?'<span class="me-badge">Я</span>':''}</div><div class="leader-meta">📍 ${p.city||'—'} · ${p.quests_completed||0} квестов</div></div><div class="leader-pts">${p.points||0}</div></div>`).join(''):'<div class="empty"><div class="empty-icon">🏆</div><div class="empty-text">Нет участников</div></div>';}
-  }catch(e){list.innerHTML='<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>';}
+    if(type==='team'){
+      const data=await sb(`teams?select=name,points&order=points.desc&limit=${PAGE}&offset=${_leaderOffset}`);
+      const items=data.map((t,i)=>`<div class="leader-item"><div class="leader-rank ${_leaderOffset+i===0?'top1':_leaderOffset+i===1?'top2':_leaderOffset+i===2?'top3':''}">${_leaderOffset+i===0?'🥇':_leaderOffset+i===1?'🥈':_leaderOffset+i===2?'🥉':'#'+(_leaderOffset+i+1)}</div><div class="leader-avatar">🤝</div><div class="leader-info"><div class="leader-name">${t.name}</div></div><div class="leader-pts">${t.points||0}</div></div>`).join('');
+      if(!append)list.innerHTML=items||'<div class="empty"><div class="empty-icon">🤝</div><div class="empty-text">Нет команд</div></div>';
+      else list.insertAdjacentHTML('beforeend',items);
+      if(data.length===PAGE){_leaderOffset+=PAGE;list.insertAdjacentHTML('beforeend',`<div class="load-more-btn" style="text-align:center;padding:12px"><button class="btn btn-secondary" onclick="loadLeader('team',null,true)" style="font-size:13px">Загрузить ещё</button></div>`);}
+    } else {
+      const data=await sb(`sledopyt_profiles?select=id,username,city,points,quests_completed,created_at&order=points.desc,quests_completed.desc,created_at.asc&limit=${PAGE}&offset=${_leaderOffset}`);
+      const items=data.map((p,i)=>`<div class="leader-item" style="animation-delay:${i*.04}s"><div class="leader-rank ${_leaderOffset+i===0?'top1':_leaderOffset+i===1?'top2':_leaderOffset+i===2?'top3':''}">${_leaderOffset+i===0?'🥇':_leaderOffset+i===1?'🥈':_leaderOffset+i===2?'🥉':'#'+(_leaderOffset+i+1)}</div><div class="leader-avatar">${getEmoji(p.username)}</div><div class="leader-info"><div class="leader-name">${p.username} ${p.id===currentUser?.id?'<span class="me-badge">Я</span>':''}</div><div class="leader-meta">📍 ${p.city||'—'} · ${p.quests_completed||0} квестов</div></div><div class="leader-pts">${p.points||0}</div></div>`).join('');
+      if(!append)list.innerHTML=items||'<div class="empty"><div class="empty-icon">🏆</div><div class="empty-text">Нет участников</div></div>';
+      else list.insertAdjacentHTML('beforeend',items);
+      if(data.length===PAGE){_leaderOffset+=PAGE;list.insertAdjacentHTML('beforeend',`<div class="load-more-btn" style="text-align:center;padding:12px"><button class="btn btn-secondary" onclick="loadLeader('solo',null,true)" style="font-size:13px">Загрузить ещё</button></div>`);}
+    }
+  }catch(e){if(!append)list.innerHTML='<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>';}
 }
 
 function toggleTaskFields(){
@@ -1228,7 +1289,7 @@ async function createCheckpoint(){
     await sb(`quests?id=eq.${questId}`,{method:'PATCH',body:{checkpoint_count:orderNum},prefer:'return=minimal'});
     generateQR(`${APP_URL}?cp=${token}`,name);showToast('Точка добавлена!');
     document.getElementById('cpName').value='';document.getElementById('cpHint').value='';document.getElementById('cpTaskType').value='';document.getElementById('cpTaskText').value='';document.getElementById('cpTaskTip').value='';document.getElementById('cpTaskAnswer').value='';toggleTaskFields();
-    loadCheckpointsList(questId);
+    loadAdminQuestList(); // обновляем весь список квестов вместо устаревшей loadCheckpointsList
   }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
 }
 async function loadCheckpointsList(questId){
@@ -1446,23 +1507,11 @@ document.getElementById('spQuestId')?.addEventListener('change', function(){ loa
 // РУЧНОЕ НАЧИСЛЕНИЕ БАЛЛОВ
 // ══════════════════════════════════════
 async function giveManualPoints() {
-  const email = document.getElementById('bonusEmail').value.trim();
-  const pts = parseInt(document.getElementById('bonusPoints').value);
-  const reason = document.getElementById('bonusReason').value.trim() || 'Бонус от организатора';
-  if (!email || !pts || pts < 1) return showToast('Заполните email и баллы');
-  try {
-    // Найти пользователя по email
-    const users = await sb(`sledopyt_profiles?select=id,username,points&id=eq.(select id from auth.users where email='${email}')`);
-    // Альтернативный способ — через auth API недоступен, ищем через RPC или по username
-    // Используем прямой поиск если есть email в профиле — но у нас его нет
-    // Простое решение: показать список пользователей для выбора
-    showToast('Введи имя пользователя, не email — см. ниже');
-  } catch(e) {}
+  return givePointsByUsername();
 }
 
 async function givePointsByUsername() {
-  const username = document.getElementById('bonusEmail').value.trim();
-  const pts = parseInt(document.getElementById('bonusPoints').value);
+  const username = document.getElementById('bonusEmail').value.trim();  const pts = parseInt(document.getElementById('bonusPoints').value);
   const reason = document.getElementById('bonusReason').value.trim() || 'Бонус от организатора';
   if (!username || !pts || pts < 1) return showToast('Заполните имя и баллы');
   try {
@@ -1775,38 +1824,6 @@ async function getMySeasonPoints(sid){
       +c2.reduce(function(s,x){return s+(x.bonus_points||0);},0);
   }catch(e){return 0;}
 }
-async function loadSeasonLeader(tabEl){
-  if(tabEl){document.querySelectorAll(".leader-tab").forEach(function(t){t.classList.remove("active");});tabEl.classList.add("active");}
-  var list=document.getElementById("leaderList");
-  list.innerHTML='<div class="loader"><div class="spinner"></div></div>';
-  if(!currentSeason){list.innerHTML='<div class="empty"><div class="empty-icon">🗓️</div><div class="empty-text">Сезон ещё не стартовал</div></div>';return;}
-  try{
-    var qs=await sb("quests?season_id=eq."+currentSeason.id+"&select=id");
-    if(!qs.length){list.innerHTML='<div class="empty"><div class="empty-text">Квестов пока нет</div></div>';return;}
-    var ids=qs.map(function(q){return q.id;}).join(",");
-    var hits=await sb("checkpoint_hits?quest_id=in.("+ids+")&select=user_id,points");
-    var comps=await sb("quest_completions?quest_id=in.("+ids+")&select=user_id,bonus_points");
-    var pts={};
-    hits.forEach(function(x){pts[x.user_id]=(pts[x.user_id]||0)+(x.points||10);});
-    comps.forEach(function(x){pts[x.user_id]=(pts[x.user_id]||0)+(x.bonus_points||0);});
-    var sorted=Object.entries(pts).sort(function(a,b){return b[1]-a[1];}).slice(0,50);
-    if(!sorted.length){list.innerHTML='<div class="empty"><div class="empty-text">Пока никто</div></div>';return;}
-    var uids=sorted.map(function(e){return e[0];}).join(",");
-    var profs=await sb("sledopyt_profiles?id=in.("+uids+")&select=id,username");
-    var nm={}; profs.forEach(function(p){nm[p.id]=p.username;});
-    var med=["🥇","🥈","🥉"];
-    list.innerHTML=sorted.map(function(e,i){
-      var uid=e[0],sc=e[1],name=nm[uid]||"Участник";
-      return '<div class="leader-item"><div class="leader-rank '+(i<3?"top"+(i+1):"")+'">'
-        +(i<3?med[i]:"#"+(i+1))+"</div>"
-        +'<div class="leader-avatar">'+getEmoji(name)+"</div>"
-        +'<div class="leader-info"><div class="leader-name">'+name
-        +(uid===currentUser?.id?'<span class="me-badge">Я</span>':"")+"</div>"
-        +'<div class="leader-meta">🗓️ '+currentSeason.title+"</div></div>"
-        +'<div class="leader-pts">'+sc+"</div></div>";
-    }).join("");
-  }catch(e){list.innerHTML='<div class="empty"><div class="empty-text">Ошибка</div></div>';}
-}
 async function createSeason(){
   var title=document.getElementById("seasonTitle_in").value.trim();
   var starts=document.getElementById("seasonStarts").value;
@@ -1895,7 +1912,7 @@ async function loadSeasonLeader(tabEl){
     var hits=await sb('checkpoint_hits?quest_id=in.('+qIds+')&select=user_id,points');
     var comps=await sb('quest_completions?quest_id=in.('+qIds+')&select=user_id,bonus_points');
     var totals={};
-    hits.forEach(function(h){totals[h.user_id]=(totals[h.user_id]||0)+(h.points||10);});
+    hits.forEach(function(h){totals[h.user_id]=(totals[h.user_id]||0)+PTS.CP;});
     comps.forEach(function(c){totals[c.user_id]=(totals[c.user_id]||0)+(c.bonus_points||0);});
     if(!Object.keys(totals).length){list.innerHTML='<div class="empty"><div class="empty-text">Ещё нет участников</div></div>';return;}
     var sorted=Object.keys(totals).sort(function(a,b){return totals[b]-totals[a];});

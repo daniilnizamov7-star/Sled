@@ -7,16 +7,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Следопыт</title>
 <link rel="manifest" href="manifest.json">
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0a150b;--bg2:#111f12;--bg3:#192b1a;--green:#4ade80;--green2:#22c55e;--green-dim:#16a34a;--amber:#fbbf24;--amber-dim:#d97706;--red:#f87171;--blue:#60a5fa;--text:#e8f5e9;--text2:#9ab89b;--text3:#5a7a5b;--border:#1e3a1f;--card:#111f12;--radius:16px;--radius-sm:10px}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Golos Text','Segoe UI',system-ui,sans-serif}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
 #app{height:100%;display:flex;flex-direction:column}
 .screen{display:none;flex:1;overflow-y:auto;overflow-x:hidden;flex-direction:column}
 .screen.active{display:flex}
 .topbar{padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:10}
-.topbar-title{font-family:'Unbounded','Arial Black',sans-serif;font-size:18px;font-weight:800;color:var(--green);letter-spacing:-.5px}
+.topbar-title{font-family:'Arial Black',Arial,sans-serif;font-size:18px;font-weight:800;color:var(--green);letter-spacing:-.5px}
 .topbar-sub{font-size:12px;color:var(--text3);margin-top:1px}
 .topbar-right{display:flex;gap:8px;align-items:center}
 .avatar{width:36px;height:36px;border-radius:50%;background:var(--bg3);border:2px solid var(--green-dim);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer}
@@ -25,10 +24,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .nav-btn svg{width:22px;height:22px}
 .nav-btn.active{color:var(--green)}
 #splash{background:var(--bg);align-items:center;justify-content:center;position:fixed;inset:0;z-index:100;animation:fadeOut .4s ease 2.2s forwards}
-.splash-logo{font-family:'Unbounded','Arial Black',sans-serif;font-size:42px;font-weight:800;color:var(--green);letter-spacing:-2px;animation:logoIn .6s cubic-bezier(.34,1.56,.64,1) .2s both}
+.splash-logo{font-family:'Arial Black',Arial,sans-serif;font-size:42px;font-weight:800;color:var(--green);letter-spacing:-2px;animation:logoIn .6s cubic-bezier(.34,1.56,.64,1) .2s both}
 .splash-tagline{font-size:13px;color:var(--text3);margin-top:8px;animation:logoIn .6s cubic-bezier(.34,1.56,.64,1) .4s both}
 #authScreen{align-items:center;justify-content:center;padding:32px 24px;background:radial-gradient(ellipse 80% 60% at 50% 100%,#0d2e0e,var(--bg))}
-.auth-logo{font-family:'Unbounded','Arial Black',sans-serif;font-size:36px;font-weight:800;color:var(--green);letter-spacing:-1px;margin-bottom:6px}
+.auth-logo{font-family:'Arial Black',Arial,sans-serif;font-size:36px;font-weight:800;color:var(--green);letter-spacing:-1px;margin-bottom:6px}
 .auth-tagline{font-size:14px;color:var(--text3);margin-bottom:48px;text-align:center}
 .auth-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;width:100%;max-width:360px}
 .auth-tabs{display:flex;background:var(--bg3);border-radius:var(--radius-sm);padding:4px;margin-bottom:24px;gap:4px}
@@ -40,7 +39,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .form-input:focus{border-color:var(--green-dim);box-shadow:0 0 0 3px rgba(74,222,128,.1)}
 .form-input::placeholder{color:var(--text3)}
 select.form-input option{background:var(--bg2);color:var(--text)}
-.btn{width:100%;padding:14px;border-radius:var(--radius-sm);border:none;font-size:15px;font-weight:600;font-family:'Unbounded','Arial Black',sans-serif;cursor:pointer;transition:.2s;letter-spacing:-.3px}
+.btn{width:100%;padding:14px;border-radius:var(--radius-sm);border:none;font-size:15px;font-weight:600;font-family:'Arial Black',Arial,sans-serif;cursor:pointer;transition:.2s;letter-spacing:-.3px}
 .btn-primary{background:var(--green);color:#0a150b}
 .btn-primary:active{transform:scale(.98)}
 .btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
@@ -52,14 +51,14 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 .hero-dots{position:absolute;right:-20px;top:-20px;width:140px;height:140px;border-radius:50%;border:1px solid var(--border);opacity:.4}
 .hero-dots::after{content:'';position:absolute;inset:20px;border-radius:50%;border:1px solid var(--border)}
 .hero-greeting{font-size:13px;color:var(--text3);margin-bottom:4px}
-.hero-name{font-family:'Unbounded','Arial Black',sans-serif;font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.5px}
+.hero-name{font-family:'Arial Black',Arial,sans-serif;font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.5px}
 .stat-row{display:flex;gap:10px;margin-top:20px}
 .stat-card{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px}
-.stat-val{font-family:'Unbounded','Arial Black',sans-serif;font-size:22px;font-weight:800;color:var(--green)}
+.stat-val{font-family:'Arial Black',Arial,sans-serif;font-size:22px;font-weight:800;color:var(--green)}
 .stat-label{font-size:11px;color:var(--text3);margin-top:2px}
 .section{padding:20px}
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.section-title{font-family:'Unbounded','Arial Black',sans-serif;font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+.section-title{font-family:'Arial Black',Arial,sans-serif;font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.3px}
 .see-all{font-size:12px;color:var(--green);cursor:pointer}
 .quest-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;cursor:pointer;transition:.2s;animation:fadeIn .4s ease both;position:relative;overflow:hidden}
 .quest-card:active{transform:scale(.98)}
@@ -69,7 +68,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 .badge-solo{background:rgba(74,222,128,.15);color:var(--green)}
 .badge-team{background:rgba(251,191,36,.15);color:var(--amber)}
 .badge-active{background:rgba(74,222,128,.1);color:var(--green2)}
-.quest-title{font-family:'Unbounded','Arial Black',sans-serif;font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.3px;margin-bottom:6px}
+.quest-title{font-family:'Arial Black',Arial,sans-serif;font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.3px;margin-bottom:6px}
 .quest-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:12px}
 .quest-meta{display:flex;gap:12px;flex-wrap:wrap}
 .quest-meta-item{font-size:12px;color:var(--text3)}
@@ -77,7 +76,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 .progress-fill{height:100%;background:var(--green);border-radius:2px;transition:width .5s}
 .progress-label{font-size:11px;color:var(--text3);margin-top:4px}
 .quest-detail-hero{padding:24px 20px 20px;background:linear-gradient(160deg,#0d2a0e,var(--bg));border-bottom:1px solid var(--border)}
-.quest-detail-title{font-family:'Unbounded','Arial Black',sans-serif;font-size:20px;font-weight:800;color:var(--text);margin-bottom:8px;letter-spacing:-.5px}
+.quest-detail-title{font-family:'Arial Black',Arial,sans-serif;font-size:20px;font-weight:800;color:var(--text);margin-bottom:8px;letter-spacing:-.5px}
 .back-btn{display:flex;align-items:center;gap:6px;color:var(--green);font-size:13px;cursor:pointer;margin-bottom:16px;background:none;border:none;font-family:'Golos Text','Segoe UI',system-ui,sans-serif}
 .detail-tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border)}
 .detail-tab{flex:1;padding:12px;text-align:center;font-size:13px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:.2s}
@@ -85,7 +84,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 .checkpoint-item{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:.2s;animation:slideUp .3s ease both}
 .checkpoint-item:active{transform:scale(.98)}
 .checkpoint-item.done{border-color:var(--green-dim);background:rgba(74,222,128,.05)}.checkpoint-item.locked{opacity:.45;pointer-events:none}.checkpoint-item.locked{opacity:.45;pointer-events:none}
-.cp-num{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Unbounded','Arial Black',sans-serif;font-size:13px;font-weight:700;color:var(--text3);flex-shrink:0}
+.cp-num{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Arial Black',Arial,sans-serif;font-size:13px;font-weight:700;color:var(--text3);flex-shrink:0}
 .checkpoint-item.done .cp-num{border-color:var(--green);color:var(--green);background:rgba(74,222,128,.1)}
 .cp-info{flex:1}
 .cp-name{font-size:14px;font-weight:600;color:var(--text)}
@@ -94,7 +93,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 #verifyScreen{background:var(--bg);align-items:center}
 .verify-container{padding:24px 24px 32px;display:flex;flex-direction:column;align-items:center;gap:20px;width:100%;max-width:400px;margin:auto}
 .verify-icon{width:72px;height:72px;border-radius:50%;background:rgba(74,222,128,.1);border:2px solid var(--green-dim);display:flex;align-items:center;justify-content:center;font-size:32px;animation:pulse 2s ease infinite}
-.verify-title{font-family:'Unbounded','Arial Black',sans-serif;font-size:18px;font-weight:800;text-align:center;color:var(--text);letter-spacing:-.5px}
+.verify-title{font-family:'Arial Black',Arial,sans-serif;font-size:18px;font-weight:800;text-align:center;color:var(--text);letter-spacing:-.5px}
 .task-card{background:var(--bg3);border:1px solid var(--amber-dim);border-radius:var(--radius);padding:16px;width:100%;border-left:4px solid var(--amber)}
 .task-label{font-size:11px;color:var(--amber);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
 .task-text{font-size:15px;color:var(--text);line-height:1.5;font-weight:500}
@@ -124,22 +123,22 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 .leader-tab{flex:1;padding:14px;text-align:center;font-size:13px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:.2s}
 .leader-tab.active{color:var(--green);border-bottom-color:var(--green)}
 .leader-item{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border);animation:fadeIn .3s ease both}
-.leader-rank{width:28px;font-family:'Unbounded','Arial Black',sans-serif;font-size:14px;font-weight:800;color:var(--text3);text-align:center}
+.leader-rank{width:28px;font-family:'Arial Black',Arial,sans-serif;font-size:14px;font-weight:800;color:var(--text3);text-align:center}
 .leader-rank.top1{color:var(--amber)}.leader-rank.top2{color:#c0c0c0}.leader-rank.top3{color:#cd7f32}
 .leader-avatar{width:40px;height:40px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid var(--border);flex-shrink:0}
 .leader-info{flex:1}
 .leader-name{font-size:14px;font-weight:600;color:var(--text)}
 .leader-meta{font-size:12px;color:var(--text3);margin-top:2px}
-.leader-pts{font-family:'Unbounded','Arial Black',sans-serif;font-size:16px;font-weight:800;color:var(--green)}
+.leader-pts{font-family:'Arial Black',Arial,sans-serif;font-size:16px;font-weight:800;color:var(--green)}
 .me-badge{background:rgba(74,222,128,.15);color:var(--green);font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600}
 .profile-hero{padding:32px 20px 24px;text-align:center;border-bottom:1px solid var(--border);background:linear-gradient(160deg,var(--bg3),var(--bg))}
 .profile-avatar{width:72px;height:72px;border-radius:50%;background:var(--bg3);border:3px solid var(--green-dim);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px}
-.profile-name{font-family:'Unbounded','Arial Black',sans-serif;font-size:20px;font-weight:800;color:var(--text)}
+.profile-name{font-family:'Arial Black',Arial,sans-serif;font-size:20px;font-weight:800;color:var(--text)}
 .profile-city{font-size:13px;color:var(--text3);margin-top:4px}
 .profile-stats{display:flex;margin-top:24px;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden}
 .profile-stat{flex:1;padding:14px 8px;text-align:center;border-right:1px solid var(--border)}
 .profile-stat:last-child{border-right:none}
-.profile-stat-val{font-family:'Unbounded','Arial Black',sans-serif;font-size:20px;font-weight:800;color:var(--green)}
+.profile-stat-val{font-family:'Arial Black',Arial,sans-serif;font-size:20px;font-weight:800;color:var(--green)}
 .profile-stat-label{font-size:10px;color:var(--text3);margin-top:2px}
 .menu-list{padding:16px 20px;display:flex;flex-direction:column;gap:8px}
 .menu-item{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:.2s}
@@ -147,7 +146,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 .menu-icon{width:36px;height:36px;border-radius:10px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
 .menu-text{flex:1;font-size:14px;font-weight:500;color:var(--text)}
 .admin-section{padding:20px;border-bottom:1px solid var(--border)}
-.admin-title{font-family:'Unbounded','Arial Black',sans-serif;font-size:14px;font-weight:700;color:var(--amber);margin-bottom:14px}
+.admin-title{font-family:'Arial Black',Arial,sans-serif;font-size:14px;font-weight:700;color:var(--amber);margin-bottom:14px}
 .form-row{display:flex;gap:10px}
 .form-row .form-group{flex:1}
 .qr-box{background:white;padding:16px;border-radius:var(--radius);display:inline-flex;align-items:center;justify-content:center;margin:0 auto}
@@ -161,24 +160,24 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:50;display:none;align-items:flex-end;justify-content:center}
 .modal-overlay.show{display:flex;animation:fadeIn .2s ease}
 .modal{background:var(--bg2);border-radius:var(--radius) var(--radius) 0 0;padding:24px;width:100%;max-width:480px;border-top:1px solid var(--border);animation:slideUp .3s ease;max-height:80vh;overflow-y:auto}
-.modal-title{font-family:'Unbounded','Arial Black',sans-serif;font-size:16px;font-weight:700;margin-bottom:16px}
+.modal-title{font-family:'Arial Black',Arial,sans-serif;font-size:16px;font-weight:700;margin-bottom:16px}
 .team-card{background:var(--card);border:1px solid var(--amber-dim);border-radius:var(--radius);padding:16px;margin-bottom:12px}
-.team-name{font-family:'Unbounded','Arial Black',sans-serif;font-size:16px;font-weight:700;color:var(--amber);margin-bottom:10px}
-.team-code{font-family:'Unbounded','Arial Black',sans-serif;font-size:24px;font-weight:800;color:var(--amber);letter-spacing:4px;text-align:center;padding:16px;background:rgba(251,191,36,.05);border-radius:var(--radius-sm);border:1px dashed var(--amber-dim)}
+.team-name{font-family:'Arial Black',Arial,sans-serif;font-size:16px;font-weight:700;color:var(--amber);margin-bottom:10px}
+.team-code{font-family:'Arial Black',Arial,sans-serif;font-size:24px;font-weight:800;color:var(--amber);letter-spacing:4px;text-align:center;padding:16px;background:rgba(251,191,36,.05);border-radius:var(--radius-sm);border:1px dashed var(--amber-dim)}
 .success-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:50}
 .success-overlay.show{display:flex;animation:fadeIn .3s ease}
 .success-icon{font-size:72px;animation:logoIn .5s cubic-bezier(.34,1.56,.64,1)}
-.success-title{font-family:'Unbounded','Arial Black',sans-serif;font-size:24px;font-weight:800;color:var(--green);animation:fadeIn .5s ease .2s both}
+.success-title{font-family:'Arial Black',Arial,sans-serif;font-size:24px;font-weight:800;color:var(--green);animation:fadeIn .5s ease .2s both}
 .success-sub{font-size:14px;color:var(--text2);text-align:center;padding:0 32px;animation:fadeIn .5s ease .3s both}
 .score-legend{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:16px}
 .score-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;color:var(--text2)}
-.score-pts{font-family:'Unbounded','Arial Black',sans-serif;font-weight:700;color:var(--green);font-size:13px}
+.score-pts{font-family:'Arial Black',Arial,sans-serif;font-weight:700;color:var(--green);font-size:13px}
 .score-pts.amber{color:var(--amber)}
 .sponsor-banner{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;animation:fadeIn .4s ease}
 .sponsor-header{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
 .sponsor-list{display:flex;flex-direction:column;gap:8px}
 .sponsor-item{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg3);border-radius:var(--radius-sm);border:1px solid var(--border)}
-.sponsor-place{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:800;width:28px;text-align:center;flex-shrink:0}
+.sponsor-place{font-family:'Arial Black',Arial,sans-serif;font-size:16px;font-weight:800;width:28px;text-align:center;flex-shrink:0}
 .sponsor-place.p1{color:var(--amber)}.sponsor-place.p2{color:#c0c0c0}.sponsor-place.p3{color:#cd7f32}
 .sponsor-info{flex:1}
 .sponsor-name{font-size:13px;font-weight:600;color:var(--text)}
@@ -273,9 +272,6 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     <div class="section-header" style="margin-bottom:10px">
       <div class="section-title">🗓️ <span id="seasonTitle">Сезон</span></div>
     </div>
-    <div id="seasonBanner"></div>
-  </div>
-  <div class="section" id="seasonSection" style="display:none;padding-bottom:0">
     <div id="seasonBanner"></div>
   </div>
   <div class="section" id="winnersSection" style="display:none;padding-bottom:0">
@@ -478,7 +474,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:20px">
       <div style="display:flex;gap:12px;align-items:flex-start">
         <div style="font-size:24px;flex-shrink:0">1️⃣</div>
-        <div><div style="font-size:13px;font-weight:600;color:var(--text);найди QR-код">Найди QR-код</div><div style="font-size:12px;color:var(--text3)">Первая точка указана в описании квеста. Ищи наклейку.</div></div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Найди QR-код</div><div style="font-size:12px;color:var(--text3)">Первая точка указана в описании квеста. Ищи наклейку.</div></div>
       </div>
       <div style="display:flex;gap:12px;align-items:flex-start">
         <div style="font-size:24px;flex-shrink:0">2️⃣</div>
@@ -605,7 +601,7 @@ async function doLogin(){
   var digits=raw.replace(/\D/g,'');
   var email=digits.length>=10?digits+'@sledopyt.app':raw;
   const data=await sbAuth('token?grant_type=password',email,pass);
-  try{if(data.error)return showToast('Ошибка: '+data.error_description);if(data.error)return showToast('Ошибка: '+data.error_description);
+  try{if(data.error)return showToast('Ошибка: '+data.error_description);
   sessionStorage.setItem('sb_token',data.access_token);sessionStorage.setItem('sb_uid',data.user.id);currentUser=data.user;
   await loadProfile();subscribeRealtime();if(currentCheckpointToken)await openCheckpointByToken(currentCheckpointToken);else showMain();}
   catch(e){showToast('Ошибка входа');}
@@ -835,7 +831,7 @@ async function loadQuestRating(questId){
     if(isEnded){
       el.innerHTML=`<div style="margin:16px 20px;background:linear-gradient(135deg,#0d2a0e,var(--bg2));border:1px solid var(--green-dim);border-radius:var(--radius);padding:20px">
         <div style="font-size:11px;color:var(--green);font-weight:700;letter-spacing:1px;margin-bottom:8px">КВЕСТ ЗАВЕРШЁН</div>
-        <div style="font-family:'Unbounded',sans-serif;font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px">${quest.title||''}</div>
+        <div style="font-family:'Arial Black',Arial,sans-serif;font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px">${quest.title||''}</div>
         <div style="font-size:13px;color:var(--text3);margin-bottom:16px">👥 ${userIds.length} участников · 📍 ${totalCps} точек</div>
         ${quest.prize_description?`<div style="background:rgba(251,191,36,.1);border:1px solid var(--amber-dim);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--amber)">🏆 ${quest.prize_description}</div>`:''}
       </div>
@@ -850,7 +846,7 @@ async function loadQuestRating(questId){
             <div style="font-size:15px;font-weight:600;color:var(--text)">${r.name} ${isMe?'<span class="me-badge">Я</span>':''}</div>
             <div style="font-size:12px;color:var(--text3);margin-top:2px">${r.cps} из ${totalCps} точек ${r.finished?'· финишировал':''}</div>
           </div>
-          <div style="font-family:'Unbounded',sans-serif;font-size:22px;font-weight:800;color:${colors[i]}">${r.pts}</div>
+          <div style="font-family:'Arial Black',Arial,sans-serif;font-size:22px;font-weight:800;color:${colors[i]}">${r.pts}</div>
         </div>`;
       });
       // Остальные
@@ -917,7 +913,10 @@ async function openCheckpointByToken(token){
       }
     }
     currentCheckpointData=cp;
-    document.getElementById('verifyIcon').textContent=cp.order_num===1?'🚀':'🏁';
+    const allCpsForIcon=await sb(`checkpoints?quest_id=eq.${cp.quest_id}&select=id&order=order_num.asc`);
+    const totalCpsCount=allCpsForIcon.length;
+    const iconEmoji=cp.order_num===1?'🚀':cp.order_num===totalCpsCount?'🏁':'📍';
+    document.getElementById('verifyIcon').textContent=iconEmoji;
     document.getElementById('verifyTitle').textContent=cp.name;
     document.getElementById('verifyQuestName').textContent='Квест: '+(cp.quests?.title||'');
     const taskCard=document.getElementById('taskCard');
@@ -938,6 +937,7 @@ async function openCheckpointByToken(token){
   var ah=document.getElementById('answerHint');
   if(ah)ah.style.display=(cp.task_type==='riddle'||cp.task_type==='sign')?'block':'none';
     startGeoCheck(cp);goScreen('verifyScreen');window.history.replaceState({},'','/');
+    checkSubmitReady();
   }catch(e){showToast('Ошибка загрузки точки');showMain();}
 }
 
@@ -963,6 +963,12 @@ async function handleSelfie(e){
   document.getElementById('selfieArea').innerHTML=`<img src="${URL.createObjectURL(selfieBlob)}">`;
   const btn=document.getElementById('submitBtn');btn.disabled=false;btn.style.opacity='1';
 }
+function checkSubmitReady(){
+  const cp=currentCheckpointData;if(!cp)return;
+  const needsPhoto=cp.task_type&&cp.task_type!=='';
+  const btn=document.getElementById('submitBtn');
+  if(!needsPhoto){btn.disabled=false;btn.style.opacity='1';}
+}
 async function compressImage(file,maxSize,quality){
   return new Promise(resolve=>{
     const img=new Image();img.onload=()=>{
@@ -974,8 +980,10 @@ async function compressImage(file,maxSize,quality){
   });
 }
 
+let _submitting=false;
 async function submitCheckpoint(){
-  if(!currentCheckpointData)return;
+  if(!currentCheckpointData||_submitting)return;
+  _submitting=true;
   const btn=document.getElementById('submitBtn');btn.disabled=true;btn.textContent='Сохраняем...';
   var geoOk=await new Promise(function(resolve){
     if(!navigator.geolocation){resolve(true);return;}
@@ -994,6 +1002,7 @@ async function submitCheckpoint(){
     },function(){resolve(true);},{timeout:6000,enableHighAccuracy:true,maximumAge:10000});
   });
   if(!geoOk){
+    _submitting=false;
     btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';
     showToast('Ты далеко от точки! Подойди ближе.');
     return;
@@ -1009,11 +1018,13 @@ async function submitCheckpoint(){
       const userAns=caption.toLowerCase().replace(/\s+/g,'');
       const rightAns=correctAnswer.toLowerCase().replace(/\s+/g,'');
       if(userAns!==rightAns){
+        _submitting=false;
         btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';
         showToast('❌ Неверный ответ! Попробуй ещё раз.');
         return;
       }
     } else if(isRiddle&&correctAnswer&&!caption){
+      _submitting=false;
       btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';
       showToast('Введи ответ на загадку');
       return;
@@ -1026,7 +1037,8 @@ async function submitCheckpoint(){
     document.getElementById('successSub').textContent=msg||`+${PTS.CP} баллов за точку!`;
     var _fin=msg&&(msg.indexOf('\u0444\u0438\u043d\u0438\u0448')>=0||msg.indexOf('\u0437\u0430\u0432')>=0);if(_fin){launchConfetti();playHitSound('complete');var _ph=document.getElementById('successPrizeHint');var _pt=document.getElementById('successPrizeText');if(_ph){_ph.style.display='block';if(_pt&&currentQuestData&&currentQuestData.prize_description)_pt.textContent=currentQuestData.prize_description;}}else{playHitSound('hit');var _ph2=document.getElementById('successPrizeHint');if(_ph2)_ph2.style.display='none';}document.getElementById('successOverlay').classList.add('show');
     currentCheckpointData=null;selfieBlob=null;document.getElementById('captionInput').value='';
-  }catch(e){btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';showToast('Ошибка: '+(e.message||'попробуй ещё раз'));}
+    _submitting=false;
+  }catch(e){_submitting=false;btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';showToast('Ошибка: '+(e.message||'попробуй ещё раз'));}
 }
 
 async function checkQuestCompletion(questId){
@@ -1302,8 +1314,8 @@ async function saveEditQuest(){
 }
 async function unarchiveQuest(id){
   try{
-    await sb(`quests?id=eq.${id}`,{method:'PATCH',body:{status:'ended'},prefer:'return=minimal'});
-    showToast('✅ Квест возвращён из архива');
+    await sb(`quests?id=eq.${id}`,{method:'PATCH',body:{status:'active'},prefer:'return=minimal'});
+    showToast('✅ Квест возвращён и активирован');
     loadAdminQuestList();loadAdminQuests();
   }catch(e){showToast('Ошибка');}
 }
@@ -1350,7 +1362,7 @@ function doQRDownload(text,name){
 
 async function showHistoryModal(){
   const content=document.getElementById('historyModalContent');content.innerHTML='<div class="loader"><div class="spinner"></div></div>';document.getElementById('historyModal').classList.add('show');
-  try{const hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&select=*,checkpoints(name),quests(title)&order=hit_at.desc&limit=30`);content.innerHTML=hits.length?hits.map(h=>`<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center"><div style="font-size:24px">📍</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${h.checkpoints?.name||'—'}</div><div style="font-size:11px;color:var(--text3)">${h.quests?.title||''} · ${formatDate(h.hit_at)}</div></div><div style="color:var(--green);font-family:'Unbounded','Arial Black',sans-serif;font-size:13px">+10</div></div>`).join(''):'<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">Ещё нет пройденных точек</div></div>';}catch(e){content.innerHTML='<div class="empty"><div class="empty-text">Ошибка</div></div>';}
+  try{const hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&select=*,checkpoints(name),quests(title)&order=hit_at.desc&limit=30`);content.innerHTML=hits.length?hits.map(h=>`<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center"><div style="font-size:24px">📍</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${h.checkpoints?.name||'—'}</div><div style="font-size:11px;color:var(--text3)">${h.quests?.title||''} · ${formatDate(h.hit_at)}</div></div><div style="color:var(--green);font-family:'Arial Black',Arial,sans-serif;font-size:13px">+10</div></div>`).join(''):'<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">Ещё нет пройденных точек</div></div>';}catch(e){content.innerHTML='<div class="empty"><div class="empty-text">Ошибка</div></div>';}
 }
 
 function getDistance(lat1,lon1,lat2,lon2){const R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}

@@ -548,6 +548,35 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 <div class="modal-overlay" id="teamModal">
   <div class="modal"><div class="modal-title">🤝 Моя команда</div><div id="teamModalContent"></div><button class="btn btn-secondary" style="margin-top:12px" onclick="closeModal('teamModal')">Закрыть</button></div>
 </div>
+<div class="modal-overlay" id="editCheckpointModal">
+  <div class="modal" style="max-height:85vh;overflow-y:auto">
+    <div class="modal-title">✏️ Редактировать точку</div>
+    <input type="hidden" id="editCpId">
+    <input type="hidden" id="editCpQuestId">
+    <div class="form-group"><label class="form-label">Название</label><input class="form-input" id="editCpName" placeholder="Название точки"></div>
+    <div class="form-group"><label class="form-label">Подсказка где QR</label><input class="form-input" id="editCpHint" placeholder="Деревянный стенд при входе..."></div>
+    <div class="form-group"><label class="form-label">📚 Текст обучения</label><textarea class="form-input" id="editCpLearning" placeholder="Появится перед заданием..." style="min-height:80px;resize:vertical"></textarea></div>
+    <div class="form-group"><label class="form-label">Тип задания</label>
+      <select class="form-input" id="editCpTaskType" onchange="toggleEditCpTask()">
+        <option value="">Без задания</option>
+        <option value="selfie">📸 Селфи</option>
+        <option value="riddle">🧩 Загадка</option>
+        <option value="find">🔍 Найти объект</option>
+        <option value="action">🤻 Действие</option>
+        <option value="sign">🩺 Табличка</option>
+      </select>
+    </div>
+    <div id="editCpTaskFields">
+      <div class="form-group"><label class="form-label">Текст задания</label><input class="form-input" id="editCpTaskText" placeholder="Текст задания"></div>
+      <div class="form-group"><label class="form-label">Подсказка к заданию</label><input class="form-input" id="editCpTaskTip" placeholder="Необязательно"></div>
+      <div class="form-group" id="editCpAnswerGroup"><label class="form-label">Правильный ответ</label><input class="form-input" id="editCpTaskAnswer" placeholder="Правильный ответ"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-primary" onclick="saveEditCheckpoint()">💾 Сохранить</button>
+      <button class="btn btn-secondary" onclick="closeModal('editCheckpointModal')">Отмена</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="corporateModal">
   <div class="modal">
     <div class="modal-title">🏭 Корпоратив</div>
@@ -1025,6 +1054,48 @@ async function joinTeamPrompt(questId){
     showToast('✅ Вступил в '+t[0].name+'!');loadTeamSection(questId);
   }catch(e){showToast('Ошибка');}
 }
+function openEditCheckpoint(id,name,hint,learning,taskType,taskText,taskTip,taskAnswer,questId){
+  document.getElementById('editCpId').value=id;
+  document.getElementById('editCpQuestId').value=questId;
+  document.getElementById('editCpName').value=name||'';
+  document.getElementById('editCpHint').value=hint||'';
+  document.getElementById('editCpLearning').value=learning||'';
+  document.getElementById('editCpTaskType').value=taskType||'';
+  document.getElementById('editCpTaskText').value=taskText||'';
+  document.getElementById('editCpTaskTip').value=taskTip||'';
+  document.getElementById('editCpTaskAnswer').value=taskAnswer||'';
+  toggleEditCpTask();
+  document.getElementById('editCheckpointModal').classList.add('show');
+}
+function toggleEditCpTask(){
+  var type=document.getElementById('editCpTaskType').value;
+  var fields=document.getElementById('editCpTaskFields');
+  var answerGroup=document.getElementById('editCpAnswerGroup');
+  fields.style.display=type?'block':'none';
+  answerGroup.style.display=(type==='riddle'||type==='sign')?'block':'none';
+}
+async function saveEditCheckpoint(){
+  var id=document.getElementById('editCpId').value;
+  var questId=document.getElementById('editCpQuestId').value;
+  var name=document.getElementById('editCpName').value.trim();
+  var hint=document.getElementById('editCpHint').value.trim();
+  var learning=document.getElementById('editCpLearning').value.trim()||null;
+  var taskType=document.getElementById('editCpTaskType').value||null;
+  var taskText=document.getElementById('editCpTaskText').value.trim()||null;
+  var taskTip=document.getElementById('editCpTaskTip').value.trim()||null;
+  var taskAnswer=document.getElementById('editCpTaskAnswer').value.trim()||null;
+  if(!name)return showToast('Введи название точки');
+  try{
+    await sb(`checkpoints?id=eq.${id}`,{method:'PATCH',body:{
+      name,hint:hint||null,learning_text:learning,
+      task_type:taskType,task_text:taskText,task_tip:taskTip,task_answer:taskAnswer
+    },prefer:'return=minimal'});
+    showToast('✅ Точка обновлена!');
+    closeModal('editCheckpointModal');
+    loadCheckpointsList2(questId);
+  }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
+}
+
 function showCorporateModal(){
   document.getElementById('corporateModal').classList.add('show');
   document.getElementById('corpCodeInput').value='';
@@ -1864,19 +1935,25 @@ async function loadCheckpointsList2(questId){
   if(!container)return;
   try{
     var cps=await sb(`checkpoints?quest_id=eq.${questId}&order=order_num.asc&select=*`);
-    if(!cps.length){container.innerHTML='';return;}
+    if(!cps.length){container.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px">Точек пока нет</div>';return;}
     container.innerHTML=cps.map(function(cp,i){
+      var esc=function(s){return (s||'').replace(/'/g,"\\'").replace(/\n/g,' ');};
       return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
-        +'<div style="font-size:13px;font-weight:600;color:var(--text)">'+( i+1)+'. '+cp.name+'</div>'
-        +'<div style="display:flex;gap:6px">'
-        +'<button class="btn btn-secondary btn-sm" style="padding:4px 8px;font-size:11px" onclick="generateQRAndDownload(\'' +APP_URL+'?cp='+cp.token+'\',\''+cp.name.replace(/'/g,"\\'")+'\')">📥 QR</button>'
-        +'<button class="btn btn-red btn-sm" style="padding:4px 8px;font-size:11px" onclick="deleteCheckpoint(\''+cp.id+'\',\''+cp.name.replace(/'/g,"\\'")+'\',' +'\'' +questId+ '\')">✕</button>'
+        +'<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">'
+        +'<div>'
+        +'<div style="font-size:13px;font-weight:600;color:var(--text)">'+(i+1)+'. '+cp.name+'</div>'
+        +(cp.hint?'<div style="font-size:11px;color:var(--text3);margin-top:2px">📍 '+cp.hint+'</div>':'')
+        +(cp.learning_text?'<div style="font-size:11px;color:var(--green);margin-top:2px">📚 Обучение добавлено</div>':'')
+        +(cp.task_type?'<div style="font-size:11px;color:var(--blue);margin-top:2px">📋 '+( cp.task_type)+': '+(cp.task_text||'')+( cp.task_answer?' → '+cp.task_answer:'')+'</div>':'')
         +'</div></div>'
-        +(cp.hint?'<div style="font-size:11px;color:var(--text3);">'+cp.hint+'</div>':'')
+        +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+        +'<button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="generateQRAndDownload(\''+APP_URL+'?cp='+cp.token+'\',\''+esc(cp.name)+'\')">📥 QR</button>'
+        +'<button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="openEditCheckpoint(\''+cp.id+'\',\''+esc(cp.name)+'\',\''+esc(cp.hint)+'\',\''+esc(cp.learning_text)+'\',\''+esc(cp.task_type)+'\',\''+esc(cp.task_text)+'\',\''+esc(cp.task_tip)+'\',\''+esc(cp.task_answer)+'\',\''+questId+'\')">✏️ Изменить</button>'
+        +'<button class="btn btn-red btn-sm" style="font-size:11px;padding:4px 8px" onclick="deleteCheckpoint(\''+cp.id+'\',\''+esc(cp.name)+'\',\''+questId+'\')">✕</button>'
+        +'</div>'
         +'</div>';
     }).join('');
-  }catch(e){}
+  }catch(e){container.innerHTML='<div style="font-size:12px;color:var(--red)">Ошибка загрузки</div>';}
 }
 function buildAddSpForm(questId){
   return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px">

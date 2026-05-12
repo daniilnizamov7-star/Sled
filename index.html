@@ -1152,33 +1152,52 @@ async function showScan(){
   catch(e){showToast('Нет доступа к камере');stopScan();}
 }
 function startQRScan(video){if(window.jsQR){doScan(video);return;}const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.js';s.onload=()=>doScan(video);document.head.appendChild(s);}
+
+// Усиливаем контраст пикселей напрямую (не через ctx.filter)
+function boostContrast(data,factor){
+  for(let i=0;i<data.length;i+=4){
+    data[i]=Math.min(255,Math.max(0,(data[i]-128)*factor+128));
+    data[i+1]=Math.min(255,Math.max(0,(data[i+1]-128)*factor+128));
+    data[i+2]=Math.min(255,Math.max(0,(data[i+2]-128)*factor+128));
+  }
+}
+
 function doScan(video){
   const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
-  let active=true;
-  let lastScanTime=0;
-  const SCAN_INTERVAL=150; // мс между попытками — баланс скорость/CPU
+  let active=true,lastScanTime=0;
   scanInterval={stop:()=>{active=false;}};
   function frame(ts){
     if(!active)return;
     if(video.readyState!==video.HAVE_ENOUGH_DATA){requestAnimationFrame(frame);return;}
     const vw=video.videoWidth,vh=video.videoHeight;
     if(!vw||!vh){requestAnimationFrame(frame);return;}
-    // throttle — не каждый кадр, а каждые 150мс
-    if(ts-lastScanTime<SCAN_INTERVAL){requestAnimationFrame(frame);return;}
+    if(ts-lastScanTime<120){requestAnimationFrame(frame);return;}
     lastScanTime=ts;
     canvas.width=vw;canvas.height=vh;
     ctx.drawImage(video,0,0);
-    // Пробуем полный кадр без filter (filter мешает некоторым QR)
+
+    // Попытка 1: оригинал, весь кадр
     let img=ctx.getImageData(0,0,vw,vh);
-    let code=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
-    if(!code)code=jsQR(img.data,img.width,img.height,{inversionAttempts:'onlyInvert'});
-    // Центральный квадрат (zoom) — для мелких QR
-    if(!code){
-      const s=Math.min(vw,vh)*0.65;const ox=(vw-s)/2;const oy=(vh-s)/2;
-      const crop=ctx.getImageData(ox,oy,s,s);
-      code=jsQR(crop.data,crop.width,crop.height,{inversionAttempts:'attemptBoth'});
-    }
+    let code=jsQR(img.data,img.width,img.height,{inversionAttempts:'attemptBoth'});
     if(code?.data){active=false;stopScan();handleQRResult(code.data);return;}
+
+    // Попытка 2: весь кадр с усиленным контрастом (для QR с экрана/плохое освещение)
+    const boosted=ctx.getImageData(0,0,vw,vh);
+    boostContrast(boosted.data,2.0);
+    code=jsQR(boosted.data,boosted.width,boosted.height,{inversionAttempts:'attemptBoth'});
+    if(code?.data){active=false;stopScan();handleQRResult(code.data);return;}
+
+    // Попытка 3: центр 80% кадра (когда QR крупный и занимает экран)
+    const s80=Math.min(vw,vh)*0.8;const ox80=(vw-s80)/2;const oy80=(vh-s80)/2;
+    const crop80=ctx.getImageData(ox80,oy80,s80,s80);
+    code=jsQR(crop80.data,crop80.width,crop80.height,{inversionAttempts:'attemptBoth'});
+    if(code?.data){active=false;stopScan();handleQRResult(code.data);return;}
+
+    // Попытка 4: центр 80% с контрастом
+    boostContrast(crop80.data,2.0);
+    code=jsQR(crop80.data,crop80.width,crop80.height,{inversionAttempts:'attemptBoth'});
+    if(code?.data){active=false;stopScan();handleQRResult(code.data);return;}
+
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);

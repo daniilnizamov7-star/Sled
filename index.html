@@ -9,6 +9,7 @@
 <link rel="manifest" href="manifest.json">
 <style>
 :root{--bg:#0a150b;--bg2:#111f12;--bg3:#192b1a;--green:#4ade80;--green2:#22c55e;--green-dim:#16a34a;--amber:#fbbf24;--amber-dim:#d97706;--red:#f87171;--blue:#60a5fa;--text:#e8f5e9;--text2:#9ab89b;--text3:#5a7a5b;--border:#1e3a1f;--card:#111f12;--radius:16px;--radius-sm:10px}
+body.light-theme{--bg:#f0f7f0;--bg2:#ffffff;--bg3:#e4f0e4;--green:#16a34a;--green2:#15803d;--green-dim:#14532d;--amber:#d97706;--amber-dim:#b45309;--red:#dc2626;--blue:#2563eb;--text:#0a150b;--text2:#2d5a2d;--text3:#5a7a5b;--border:#bbdebb;--card:#ffffff}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
 #app{height:100%;display:flex;flex-direction:column}
@@ -253,6 +254,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
   <div class="topbar">
     <div><div class="topbar-title">СЛЕДОПЫТ</div><div class="topbar-sub" id="homeCity">Загрузка...</div></div><button onclick="showHowToPlay()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text3);font-size:12px;cursor:pointer">? Как играть</button>
     <div class="topbar-right">
+      <button id="themeToggleBtn" onclick="toggleTheme()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text3);font-size:16px;cursor:pointer;line-height:1">🌙</button>
       <button class="btn btn-sm btn-outline" onclick="showScan()" style="padding:8px 12px;font-size:12px">📷 Скан</button>
       <div class="avatar" onclick="goScreen('profileScreen')" id="homeAvatar">👤</div>
     </div>
@@ -541,6 +543,22 @@ const PTS={CP:10,COMPLETE:50,FIRST:20};
 let currentUser=null,currentProfile=null,screenHistory=[],currentQuestId=null;
 let currentCheckpointToken=null,currentCheckpointData=null,selfieBlob=null,userGeo=null;
 let scanStream=null,scanInterval=null;
+
+function toggleTheme(){
+  const isLight=document.body.classList.toggle('light-theme');
+  localStorage.setItem('sledopyt_theme',isLight?'light':'dark');
+  document.getElementById('themeToggleBtn').textContent=isLight?'☀️':'🌙';
+}
+// Восстанавливаем тему при загрузке
+(function(){
+  if(localStorage.getItem('sledopyt_theme')==='light'){
+    document.body.classList.add('light-theme');
+    document.addEventListener('DOMContentLoaded',()=>{
+      const btn=document.getElementById('themeToggleBtn');
+      if(btn)btn.textContent='☀️';
+    });
+  }
+})();
 
 async function refreshTokenIfNeeded(){
   const exp=parseInt(sessionStorage.getItem('sb_token_exp')||'0');
@@ -936,11 +954,19 @@ async function showTeamModal(){
 
 async function openCheckpointByToken(token){
   try{
-    const cps=await sb(`checkpoints?token=eq.${token}&select=*,quests(title,status)`);
+    const cps=await sb(`checkpoints?token=eq.${token}&select=*,quests(*)`);
     if(!cps.length)return showToast('Точка не найдена');
-    const cp=cps[0];if(cp.quests?.status!=='active')return showToast('Квест завершён');
+    const cp=cps[0];
+    const quest=cp.quests;
+    if(quest?.status!=='active')return showToast('Квест завершён');
+    // Если квест найден — сохраняем его чтобы потом открыть карточку
+    if(quest)currentQuestData=quest;
     const hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=eq.${cp.id}`);
-    if(hits.length){showToast('Эта точка уже засчитана');showMain();return;}
+    if(hits.length){
+      showToast('Эта точка уже засчитана ✅');
+      if(quest)openQuest(quest);else showMain();
+      return;
+    }
     // Проверка порядка — нельзя пропустить предыдущие точки
     if(cp.order_num>1){
       const allCps=await sb(`checkpoints?quest_id=eq.${cp.quest_id}&order=order_num.asc&select=id,order_num`);
@@ -949,9 +975,10 @@ async function openCheckpointByToken(token){
         const prevIds=prevCps.map(function(c){return c.id;}).join(',');
         const prevHits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=in.(${prevIds})&select=checkpoint_id`);
         if(prevHits.length<prevCps.length){
-          const missing=prevCps.length-prevHits.length;
-          showToast('Сначала нужно пройти точку '+cp.order_num+' — не хватает '+missing+' предыдущих');
-          showMain();return;
+          const need=cp.order_num-prevHits.length;
+          showToast('Сначала пройди точку №'+need+' этого квеста');
+          if(quest)openQuest(quest);else showMain();
+          return;
         }
       }
     }
@@ -981,7 +1008,7 @@ async function openCheckpointByToken(token){
   if(ah)ah.style.display=(cp.task_type==='riddle'||cp.task_type==='sign')?'block':'none';
     startGeoCheck(cp);goScreen('verifyScreen');window.history.replaceState({},'','/');
     checkSubmitReady();
-  }catch(e){showToast('Ошибка загрузки точки');showMain();}
+  }catch(e){showToast('Ошибка загрузки точки');if(currentQuestData)openQuest(currentQuestData);else showMain();}
 }
 
 function startGeoCheck(cp){

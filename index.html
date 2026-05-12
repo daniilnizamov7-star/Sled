@@ -1067,20 +1067,30 @@ async function showQuestPhotos(questId, questTitle){
   content.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px"><div class="spinner"></div></div>';
   document.getElementById('photosModal').classList.add('show');
   try{
-    // Грузим все хиты с фото по квесту
-    const hits=await sb(`checkpoint_hits?quest_id=eq.${questId}&photo_url=not.is.null&order=hit_at.desc&select=*,sledopyt_profiles(username),checkpoints(name)`);
+    // Грузим хиты с фото без join — отдельными запросами
+    const hits=await sb(`checkpoint_hits?quest_id=eq.${questId}&photo_url=not.is.null&order=hit_at.desc&select=id,user_id,checkpoint_id,photo_url,hit_at`);
     if(!hits.length){
       content.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--text3)">Фото пока нет</div>';
       return;
     }
+    // Грузим имена пользователей и точек отдельно
+    const userIds=[...new Set(hits.map(h=>h.user_id))].join(',');
+    const cpIds=[...new Set(hits.map(h=>h.checkpoint_id))].join(',');
+    const [profiles,checkpoints]=await Promise.all([
+      sb(`sledopyt_profiles?id=in.(${userIds})&select=id,username`).catch(()=>[]),
+      sb(`checkpoints?id=in.(${cpIds})&select=id,name`).catch(()=>[])
+    ]);
+    const profileMap={};profiles.forEach(p=>profileMap[p.id]=p.username);
+    const cpMap={};checkpoints.forEach(c=>cpMap[c.id]=c.name);
     content.innerHTML=hits.map(h=>{
       const time=new Date(h.hit_at).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-      const username=h.sledopyt_profiles?.username||'Участник';
-      const cpName=h.checkpoints?.name||'Точка';
+      const username=profileMap[h.user_id]||'Участник';
+      const cpName=cpMap[h.checkpoint_id]||'Точка';
+      const safeUrl=h.photo_url.replace(/'/g,'%27');
       return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden" id="photo-card-${h.id}">
         <div style="position:relative">
-          <img src="${h.photo_url}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:pointer" loading="lazy" onclick="window.open('${h.photo_url}','_blank')" onerror="this.parentElement.parentElement.style.display='none'">
-          <button onclick="deleteHitPhoto('${h.id}','${h.photo_url}')" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:#fff;font-size:14px;width:26px;height:26px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+          <img src="${h.photo_url}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:pointer" loading="lazy" onclick="window.open('${safeUrl}','_blank')" onerror="this.parentElement.parentElement.style.display='none'">
+          <button onclick="deleteHitPhoto('${h.id}','${safeUrl}')" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:#fff;font-size:14px;width:26px;height:26px;border-radius:50%;cursor:pointer;line-height:1">✕</button>
         </div>
         <div style="padding:6px 8px">
           <div style="font-size:12px;font-weight:600;color:var(--text)">${username}</div>
@@ -1090,7 +1100,7 @@ async function showQuestPhotos(questId, questTitle){
       </div>`;
     }).join('');
   }catch(e){
-    content.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--red)">Ошибка загрузки</div>';
+    content.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--red)">Ошибка: '+( e.message||JSON.stringify(e))+'</div>';
   }
 }
 

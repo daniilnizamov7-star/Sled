@@ -223,11 +223,11 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     </div>
     <div id="loginForm">
       <div class="form-group"><label class="form-label">Номер телефона</label><input class="form-input" id="loginEmail" type="tel" placeholder="+7 900 000-00-00"></div>
-      <div class="form-group"><label class="form-label">Пароль</label><input class="form-input" id="loginPass" type="password" placeholder="••••••••"></div>
+      <div class="form-group"><label class="form-label">PIN-код</label><input class="form-input" id="loginPass" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="current-password"></div>
       <button class="btn btn-primary" onclick="doLogin()">Войти</button>
     <button class="btn btn-secondary" style="margin-top:8px;font-size:13px" onclick="doResetPassword()">Забыл пароль?</button>
     <div id="resetHint" style="display:none;margin-top:10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:13px;color:var(--text2);line-height:1.6">
-      Напиши организатору — он сбросит пароль:<br>
+      Забыл PIN? Напиши организатору — он задаст новый:<br>
       <a href="https://t.me/Aslyamov74" target="_blank" style="color:var(--green);font-weight:600;text-decoration:none"> ✉️ Написать в Telegram</a><br>
       <a href="tel:+79514489666" style="color:var(--green);font-weight:600;text-decoration:none"> ☎️ +7 951 448-96-66</a>
     </div>
@@ -235,8 +235,9 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     <div id="registerForm" style="display:none">
       <div class="form-group"><label class="form-label">Имя в игре</label><input class="form-input" id="regName" type="text" placeholder="Следопыт42"></div>
       <div class="form-group"><label class="form-label">Номер телефона</label><input class="form-input" id="regPhone" type="tel" placeholder="+7 900 000-00-00"></div>
-      <div class="form-group"><label class="form-label">Пароль</label><input class="form-input" id="regPass" type="password" placeholder="Минимум 6 символов"></div>
-      <div class="form-group"><label class="form-label">Повтори пароль</label><input class="form-input" id="regPass2" type="password" placeholder="Ещё раз"></div>
+      <div class="form-group"><label class="form-label">PIN-код (4 цифры)</label><input class="form-input" id="regPass" type="password" inputmode="numeric" maxlength="4" placeholder="Например: 1234" autocomplete="new-password"></div>
+      <div class="form-group"><label class="form-label">Повтори PIN</label><input class="form-input" id="regPass2" type="password" inputmode="numeric" maxlength="4" placeholder="Ещё раз" autocomplete="new-password"></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:-8px;margin-bottom:4px">Запомни PIN — он нужен для входа. Запиши его.</div>
       <div class="form-group"><label class="form-label">Город</label><input class="form-input" id="regCity" type="text" placeholder="Челябинск"></div>
       <div class="form-group" style="display:flex;align-items:flex-start;gap:10px">
         <input type="checkbox" id="regConsent" style="margin-top:3px;width:18px;height:18px;flex-shrink:0;accent-color:var(--green)">
@@ -593,8 +594,8 @@ function switchAuthTab(tab){
   document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0)===(tab==='login')));
 }
 async function doResetPassword(){
-  // Сброс невозможен без реальной почты — просим связаться с организатором
   document.getElementById('resetHint').style.display='block';
+  showToast('Напиши организатору — он задаст новый PIN');
 }
 async function doLogin(){
   var raw=document.getElementById('loginEmail').value.trim();
@@ -618,9 +619,9 @@ async function doRegister(){
   if(name.trim().length<2)return showToast('Имя должно быть минимум 2 символа');
   if(!/[a-zA-ZЀ-ӿ0-9]/.test(name))return showToast('Имя должно содержать буквы или цифры');
   if(phone.length<10)return showToast('Введи полный номер телефона');
-  if(pass.length<6)return showToast('Пароль минимум 6 символов');
+  if(!/^\d{4}$/.test(pass))return showToast('PIN должен содержать ровно 4 цифры');
   var pass2=document.getElementById('regPass2')?.value;
-  if(pass2!==undefined&&pass2!==pass)return showToast('Пароли не совпадают');
+  if(pass2!==undefined&&pass2!==pass)return showToast('PIN-коды не совпадают');
   if(!document.getElementById('regConsent').checked)return showToast('⚠️ Необходимо согласие');
   // Генерируем email из телефона (технический, пользователь его не видит)
   const email=phone+'@sledopyt.app';

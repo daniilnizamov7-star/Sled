@@ -249,12 +249,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <div class="stat-card"><div class="stat-val" id="statRank">—</div><div class="stat-label">Место</div></div>
     </div>
   </div>
-  <div class="section" id="sponsorSection" style="display:none;padding-bottom:0">
-    <div class="section-header" style="margin-bottom:10px">
-      <div class="section-title">🏆 Призы квеста</div>
-    </div>
-    <div id="sponsorBanner"></div>
-  </div>
+
   <div class="section" id="winnersSection" style="display:none;padding-bottom:0">
     <div class="section-header" style="margin-bottom:10px">
       <div class="section-title">🏆 Итоги квеста</div>
@@ -586,13 +581,38 @@ async function loadQuests(){
     if(!quests.length){list.innerHTML='<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">Квесты скоро появятся</div></div>';return;}
     const active=quests.filter(q=>q.status==='active');
     const ended=quests.filter(q=>q.status==='ended');
-    if(active[0]) loadSponsors(active[0].id);
     list.innerHTML='';
+    // Грузим спонсоров для всех активных квестов
+    const sponsorMap={};
+    for(const q of active){
+      try{
+        const sp=await sb(`quest_sponsors?quest_id=eq.${q.id}&order=place.asc&select=*`);
+        sponsorMap[q.id]=sp;
+      }catch(e){sponsorMap[q.id]=[];}
+    }
     active.forEach((q,i)=>{
+      const sponsors=sponsorMap[q.id]||[];
+      const medals={1:'🥇',2:'🥈',3:'🥉',0:'🎁'};
+      const spHtml=sponsors.length
+        ?`<div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px">
+           <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.5px;margin-bottom:8px">ПРИ ПОДДЕРЖКЕ</div>
+           ${sponsors.map(s=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+             <span style="font-size:20px">${s.emoji||medals[s.place]||'🏆'}</span>
+             <div style="flex:1">
+               <div style="font-size:13px;font-weight:600;color:var(--text)">${s.name}</div>
+               <div style="font-size:12px;color:var(--text3)">${s.prize_description}</div>
+             </div>
+             <div style="text-align:center;font-size:11px;color:var(--text3)">
+               <div style="font-size:18px">${medals[s.place]||'🎁'}</div>${s.place>0?s.place+' место':'Спонсор'}
+             </div>
+           </div>`).join('')}
+         </div>`
+        :'';
       const el=document.createElement('div');el.className=`quest-card ${q.quest_type==='team'?'team':''}`;el.style.animationDelay=`${i*.08}s`;
       el.innerHTML=`<div><span class="quest-badge ${q.quest_type==='team'?'badge-team':q.quest_type==='both'?'badge-team':'badge-solo'}">${q.quest_type==='team'?'🤝 Командный':q.quest_type==='both'?'⚡ Любой':'🏃 Личный'}</span><span class="quest-badge badge-active" style="margin-left:6px">● Активен</span></div>
       <div class="quest-title">${q.title}</div><div class="quest-desc">${q.description||''}</div>
-      <div class="quest-meta"><div class="quest-meta-item">📍 ${q.checkpoint_count||'?'} точек</div><div class="quest-meta-item">🏆 ${q.prize_description||'Приз'}</div><div class="quest-meta-item">📅 До ${formatDate(q.end_date)}</div></div>`;
+      <div class="quest-meta"><div class="quest-meta-item">📍 ${q.checkpoint_count||'?'} точек</div><div class="quest-meta-item">🏆 ${q.prize_description||'Приз'}</div><div class="quest-meta-item">📅 До ${formatDate(q.end_date)}</div></div>
+      ${spHtml}`;
       el.onclick=()=>openQuest(q);list.appendChild(el);
     });
     // Завершённые квесты
@@ -1028,8 +1048,8 @@ async function loadAdminQuestList(){
         </div>
         ${!isArchived?`
         <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-secondary btn-sm" onclick="toggleSection('cp-${q.id}');loadCheckpointsList('${q.id}')">🗺️ Точки (${q.checkpoint_count||0})</button>
-          <button class="btn btn-secondary btn-sm" onclick="toggleSection('sp-${q.id}');loadSponsorAdmin('${q.id}')">🏆 Спонсоры</button>
+          <button class="btn btn-secondary btn-sm" onclick="toggleSection('cp-${q.id}');loadCheckpointsList2('${q.id}')">🗺️ Точки (${q.checkpoint_count||0})</button>
+          <button class="btn btn-secondary btn-sm" onclick="toggleSection('sp-${q.id}');loadSponsorAdmin2('${q.id}')">🏆 Спонсоры</button>
         </div>
         <div id="cp-${q.id}" style="display:none;margin-top:10px">
           <div id="cpList-${q.id}" style="margin-bottom:8px"></div>

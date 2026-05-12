@@ -548,6 +548,13 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 <div class="modal-overlay" id="teamModal">
   <div class="modal"><div class="modal-title">🤝 Моя команда</div><div id="teamModalContent"></div><button class="btn btn-secondary" style="margin-top:12px" onclick="closeModal('teamModal')">Закрыть</button></div>
 </div>
+<div class="modal-overlay" id="photosModal">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;width:100%;max-width:500px">
+    <div class="modal-title" id="photosModalTitle">📸 Фото участников</div>
+    <div id="photosModalContent" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px"></div>
+    <button class="btn btn-secondary" onclick="closeModal('photosModal')">Закрыть</button>
+  </div>
+</div>
 <div class="modal-overlay" id="editCheckpointModal">
   <div class="modal" style="max-height:85vh;overflow-y:auto">
     <div class="modal-title">✏️ Редактировать точку</div>
@@ -1054,6 +1061,56 @@ async function joinTeamPrompt(questId){
     showToast('✅ Вступил в '+t[0].name+'!');loadTeamSection(questId);
   }catch(e){showToast('Ошибка');}
 }
+async function showQuestPhotos(questId, questTitle){
+  document.getElementById('photosModalTitle').textContent='📸 Фото — '+questTitle;
+  const content=document.getElementById('photosModalContent');
+  content.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px"><div class="spinner"></div></div>';
+  document.getElementById('photosModal').classList.add('show');
+  try{
+    // Грузим все хиты с фото по квесту
+    const hits=await sb(`checkpoint_hits?quest_id=eq.${questId}&photo_url=not.is.null&order=hit_at.desc&select=*,sledopyt_profiles(username),checkpoints(name)`);
+    if(!hits.length){
+      content.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--text3)">Фото пока нет</div>';
+      return;
+    }
+    content.innerHTML=hits.map(h=>{
+      const time=new Date(h.hit_at).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      const username=h.sledopyt_profiles?.username||'Участник';
+      const cpName=h.checkpoints?.name||'Точка';
+      return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden" id="photo-card-${h.id}">
+        <div style="position:relative">
+          <img src="${h.photo_url}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:pointer" loading="lazy" onclick="window.open('${h.photo_url}','_blank')" onerror="this.parentElement.parentElement.style.display='none'">
+          <button onclick="deleteHitPhoto('${h.id}','${h.photo_url}')" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:#fff;font-size:14px;width:26px;height:26px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+        </div>
+        <div style="padding:6px 8px">
+          <div style="font-size:12px;font-weight:600;color:var(--text)">${username}</div>
+          <div style="font-size:10px;color:var(--text3)">${cpName}</div>
+          <div style="font-size:10px;color:var(--text3)">${time}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    content.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--red)">Ошибка загрузки</div>';
+  }
+}
+
+async function deleteHitPhoto(hitId, photoUrl){
+  if(!confirm('Удалить это фото?'))return;
+  try{
+    // Убираем photo_url из хита (сам хит сохраняем — точка засчитана)
+    await sb(`checkpoint_hits?id=eq.${hitId}`,{method:'PATCH',body:{photo_url:null},prefer:'return=minimal'});
+    // Удаляем файл из Storage
+    try{
+      const path=photoUrl.split('/checkpoint-photos/')[1];
+      if(path)await fetch(`${SUPABASE_URL}/storage/v1/object/checkpoint-photos/${path}`,{method:'DELETE',headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+sessionStorage.getItem('sb_token')}});
+    }catch(e){}
+    // Скрываем карточку без перезагрузки
+    const card=document.getElementById('photo-card-'+hitId);
+    if(card)card.style.display='none';
+    showToast('Фото удалено');
+  }catch(e){showToast('Ошибка удаления');}
+}
+
 function openEditCheckpoint(id,name,hint,learning,taskType,taskText,taskTip,taskAnswer,questId){
   document.getElementById('editCpId').value=id;
   document.getElementById('editCpQuestId').value=questId;
@@ -1184,6 +1241,15 @@ async function openCheckpointByToken(token){
     document.getElementById('captionInput').value='';
     var ah=document.getElementById('answerHint');
     if(ah)ah.style.display=(cp.task_type==='riddle'||cp.task_type==='sign')?'block':'none';
+    // Проверяем — было ли уже фото на этой точке (1 фото на точку)
+    try{
+      const existingHitWithPhoto=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=eq.${cp.id}&photo_url=not.is.null&select=id`);
+      if(existingHitWithPhoto.length){
+        // Уже загружено фото — блокируем selfieArea
+        document.getElementById('selfieArea').innerHTML=`<div class="selfie-placeholder" style="opacity:.5;pointer-events:none"><div style="font-size:48px">📸</div><div style="font-size:13px;color:var(--text3)">Фото уже загружено</div></div>`;
+        document.getElementById('selfieArea').onclick=null;
+      }
+    }catch(e){}
     // Обучалка: показываем если есть learning_text и квест с обучением
     const hasLearning=cp.learning_text&&cp.quests?.with_learning!==false;
     const lc=document.getElementById('learningCard');
@@ -1540,6 +1606,7 @@ async function loadAdminQuestList(){
         <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-secondary btn-sm" onclick="toggleSection('cp-${q.id}');loadCheckpointsList2('${q.id}')">🗺️ Точки (${q.checkpoint_count||0})</button>
           <button class="btn btn-secondary btn-sm" onclick="toggleSection('sp-${q.id}');loadSponsorAdmin2('${q.id}')">🏆 Спонсоры</button>
+          <button class="btn btn-secondary btn-sm" onclick="showQuestPhotos('${q.id}','${q.title.replace(/'/g,"\\'")}')">📸 Фото</button>
         </div>
         <div id="cp-${q.id}" style="display:none;margin-top:10px">
           <div id="cpList-${q.id}" style="margin-bottom:8px"></div>

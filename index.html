@@ -194,6 +194,17 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 </style>
 </head>
 <body>
+<div id="pwaInstallBanner" style="display:none;position:fixed;bottom:80px;left:16px;right:16px;background:var(--card);border:1px solid var(--green-dim);border-radius:14px;padding:14px 16px;z-index:8888;box-shadow:0 4px 24px rgba(0,0,0,.4);animation:slideUp .3s ease">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div style="font-size:28px">📲</div>
+    <div style="flex:1">
+      <div style="font-size:13px;font-weight:600;color:var(--text)">Добавь на главный экран</div>
+      <div style="font-size:12px;color:var(--text3)">Чтобы приложение работало быстрее</div>
+    </div>
+    <button onclick="installPWA()" style="background:var(--green);color:#000;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer">Установить</button>
+    <button onclick="document.getElementById('pwaInstallBanner').style.display='none'" style="background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:0 4px">×</button>
+  </div>
+</div>
 <div id="app">
 <div id="updateBanner" class="update-banner" onclick="location.reload()">Обновление доступно — нажмите</div>
 
@@ -211,9 +222,10 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <button class="auth-tab" onclick="switchAuthTab('register')">Регистрация</button>
     </div>
     <div id="loginForm">
-      <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="loginEmail" type="email" placeholder="you@example.com"></div>
+      <div class="form-group"><label class="form-label">Номер телефона</label><input class="form-input" id="loginEmail" type="tel" placeholder="+7 900 000-00-00"></div>
       <div class="form-group"><label class="form-label">Пароль</label><input class="form-input" id="loginPass" type="password" placeholder="••••••••"></div>
       <button class="btn btn-primary" onclick="doLogin()">Войти</button>
+    <button class="btn btn-secondary" style="margin-top:8px;font-size:13px" onclick="doResetPassword()">Забыл пароль?</button>
     </div>
     <div id="registerForm" style="display:none">
       <div class="form-group"><label class="form-label">Имя в игре</label><input class="form-input" id="regName" type="text" placeholder="Следопыт42"></div>
@@ -233,7 +245,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 
 <div id="homeScreen" class="screen">
   <div class="topbar">
-    <div><div class="topbar-title">СЛЕДОПЫТ</div><div class="topbar-sub" id="homeCity">Загрузка...</div></div>
+    <div><div class="topbar-title">СЛЕДОПЫТ</div><div class="topbar-sub" id="homeCity">Загрузка...</div></div><button onclick="showHowToPlay()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text3);font-size:12px;cursor:pointer">? Как играть</button>
     <div class="topbar-right">
       <button class="btn btn-sm btn-outline" onclick="showScan()" style="padding:8px 12px;font-size:12px">📷 Скан</button>
       <div class="avatar" onclick="goScreen('profileScreen')" id="homeAvatar">👤</div>
@@ -250,6 +262,15 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     </div>
   </div>
 
+  <div class="section" id="seasonSection" style="display:none;padding-bottom:0">
+    <div class="section-header" style="margin-bottom:10px">
+      <div class="section-title">🗓️ <span id="seasonTitle">Сезон</span></div>
+    </div>
+    <div id="seasonBanner"></div>
+  </div>
+  <div class="section" id="seasonSection" style="display:none;padding-bottom:0">
+    <div id="seasonBanner"></div>
+  </div>
   <div class="section" id="winnersSection" style="display:none;padding-bottom:0">
     <div class="section-header" style="margin-bottom:10px">
       <div class="section-title">🏆 Итоги квеста</div>
@@ -326,6 +347,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
   <div class="leader-tabs">
     <div class="leader-tab active" onclick="loadLeader('solo',this)">Личный</div>
     <div class="leader-tab" onclick="loadLeader('team',this)">Командный</div>
+    <div class="leader-tab" onclick="loadSeasonLeader(this)">🗓️ Сезон</div>
   </div>
   <div id="leaderList"><div class="loader"><div class="spinner"></div></div></div>
 </div>
@@ -388,6 +410,20 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 
   <!-- ══ УЧАСТНИКИ И ТЕЛЕФОНЫ ══ -->
   <div class="admin-section">
+    <div class="admin-title">🗓️ Сезоны</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Месяц + несколько квестов + один победитель</div>
+    <input class="form-input" id="seasonTitle_in" placeholder="Название (Май 2026)" style="margin-bottom:8px">
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input class="form-input" id="seasonStarts" type="date" style="flex:1">
+      <input class="form-input" id="seasonEnds" type="date" style="flex:1">
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn btn-amber btn-sm" onclick="createSeason()">Создать</button>
+      <button class="btn btn-secondary btn-sm" onclick="loadSeasonAdmin()">Список</button>
+    </div>
+    <div id="seasonAdminList"></div>
+  </div>
+  <div class="admin-section">
     <div class="admin-title">📞 Участники и телефоны</div>
     <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Только для связи с победителями — участникам не видны</div>
     <button class="btn btn-secondary btn-sm" onclick="loadParticipantPhones()" style="margin-bottom:12px">Показать номера</button>
@@ -428,6 +464,34 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 </nav>
 </div>
 
+<div class="modal-overlay" id="howToPlayModal">
+  <div class="modal">
+    <div class="modal-title">🗺️ Как играть</div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:20px">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="font-size:24px;flex-shrink:0">1️⃣</div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--text);найди QR-код">Найди QR-код</div><div style="font-size:12px;color:var(--text3)">Первая точка указана в описании квеста. Ищи наклейку.</div></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="font-size:24px;flex-shrink:0">2️⃣</div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Отсканируй QR</div><div style="font-size:12px;color:var(--text3)">Через камеру или нажми кнопку «Скан» в приложении.</div></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="font-size:24px;flex-shrink:0">3️⃣</div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Выполни задание</div><div style="font-size:12px;color:var(--text3)">Сфото, ответ на загадку или другое — зависит от точки.</div></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="font-size:24px;flex-shrink:0">4️⃣</div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Подтверди точку</div><div style="font-size:12px;color:var(--text3)">Нажми «Подтвердить» когда ты на месте. GPS проверит что ты там.</div></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="font-size:24px;flex-shrink:0">🏆</div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Финишируй!</div><div style="font-size:12px;color:var(--text3)">После окончания квеста организатор свяжется с топ-3 из лидерборда. При ничьей — выше кто прошёл больше квестов.</div></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="closeModal('howToPlayModal')">Понятно, играть!</button>
+  </div>
+</div>
 <div class="modal-overlay" id="editQuestModal">
   <div class="modal">
     <div class="modal-title">✏️ Редактировать квест</div>
@@ -454,6 +518,13 @@ select.form-input option{background:var(--bg2);color:var(--text)}
   <div class="success-icon">🎯</div>
   <div class="success-title" id="successTitle">Точка засчитана!</div>
   <div class="success-sub" id="successSub">+10 баллов</div>
+  <div id="successPrizeHint" style="display:none;margin-top:16px;background:rgba(74,222,128,.08);border:1px solid var(--green-dim);border-radius:12px;padding:14px;max-width:280px;text-align:center">
+    <div style="font-size:24px;margin-bottom:6px">🎯</div>
+    <div style="font-size:14px;font-weight:600;color:var(--green);margin-bottom:6px">Ты в таблице лидеров!</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:6px">Приз разыгрывается после окончания квеста.</div>
+    <div style="font-size:12px;color:var(--text2)" id="successPrizeText"></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5">Организатор свяжется с победителями по завершении. Пока играй дальше — набирай больше баллов!</div>
+  </div>
   <button class="btn btn-primary btn-sm" style="margin-top:24px;width:auto;padding:12px 32px" onclick="afterSuccess()">Продолжить</button>
 </div>
 
@@ -507,17 +578,31 @@ function goTab(id,btn){
   goScreen(id);document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));btn?.classList.add('active');
   if(id==='leaderScreen')loadLeader('solo');if(id==='homeScreen'){loadQuests();loadUserStats();}
 }
-function showMain(){document.getElementById('bottomNav').style.display='flex';goScreen('homeScreen');loadQuests();loadUserStats();loadWinners();}
+function showMain(){document.getElementById('bottomNav').style.display='flex';goScreen('homeScreen');loadQuests();loadUserStats();loadWinners();loadCurrentSeason();}
 
 function switchAuthTab(tab){
   document.getElementById('loginForm').style.display=tab==='login'?'block':'none';
   document.getElementById('registerForm').style.display=tab==='register'?'block':'none';
   document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0)===(tab==='login')));
 }
+async function doResetPassword(){
+  var phone=document.getElementById('loginEmail').value.trim().replace(/\D/g,'');
+  if(!phone||phone.length<10)return showToast('Введи номер телефона в поле входа');
+  var email=phone+'@sledopyt.app';
+  try{
+    var res=await fetch(SUPABASE_URL+'/auth/v1/recover',{method:'POST',headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({email})});
+    showToast('Ссылка для сброса отправлена на почту (+номер@sledopyt.app). Свяжись с админом.');
+  }catch(e){showToast('Ошибка. Напиши админу: +7 951 448-96-66');}
+}
 async function doLogin(){
-  const email=document.getElementById('loginEmail').value.trim(),pass=document.getElementById('loginPass').value;
-  if(!email||!pass)return showToast('Заполните все поля');
-  try{const data=await sbAuth('token?grant_type=password',email,pass);if(data.error)return showToast('Ошибка: '+data.error_description);
+  var raw=document.getElementById('loginEmail').value.trim();
+  var pass=document.getElementById('loginPass').value;
+  if(!raw||!pass)return showToast('Заполни все поля');
+  // Автопреобразование: если цифры — телефон, иначе email
+  var digits=raw.replace(/\D/g,'');
+  var email=digits.length>=10?digits+'@sledopyt.app':raw;
+  const data=await sbAuth('token?grant_type=password',email,pass);
+  try{if(data.error)return showToast('Ошибка: '+data.error_description);if(data.error)return showToast('Ошибка: '+data.error_description);
   sessionStorage.setItem('sb_token',data.access_token);sessionStorage.setItem('sb_uid',data.user.id);currentUser=data.user;
   await loadProfile();subscribeRealtime();if(currentCheckpointToken)await openCheckpointByToken(currentCheckpointToken);else showMain();}
   catch(e){showToast('Ошибка входа');}
@@ -633,7 +718,7 @@ async function loadQuests(){
   }catch(e){list.innerHTML='<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>';}
 }
 
-async function openQuest(quest){
+async function openQuest(quest){currentQuestData=quest;
   currentQuestId=quest.id;
   document.getElementById('questDetailHero').innerHTML=`
     <div class="quest-detail-title">${quest.title}</div>
@@ -930,7 +1015,7 @@ async function submitCheckpoint(){
     currentProfile.points=newPts;currentProfile.checkpoints_hit=newHits;
     const msg=await checkQuestCompletion(currentCheckpointData.quest_id);
     document.getElementById('successSub').textContent=msg||`+${PTS.CP} баллов за точку!`;
-    var _fin=msg&&(msg.indexOf('\u0444\u0438\u043d\u0438\u0448')>=0||msg.indexOf('\u0437\u0430\u0432')>=0);if(_fin){launchConfetti();playHitSound('complete');}else{playHitSound('hit');}document.getElementById('successOverlay').classList.add('show');
+    var _fin=msg&&(msg.indexOf('\u0444\u0438\u043d\u0438\u0448')>=0||msg.indexOf('\u0437\u0430\u0432')>=0);if(_fin){launchConfetti();playHitSound('complete');var _ph=document.getElementById('successPrizeHint');var _pt=document.getElementById('successPrizeText');if(_ph){_ph.style.display='block';if(_pt&&currentQuestData&&currentQuestData.prize_description)_pt.textContent=currentQuestData.prize_description;}}else{playHitSound('hit');var _ph2=document.getElementById('successPrizeHint');if(_ph2)_ph2.style.display='none';}document.getElementById('successOverlay').classList.add('show');
     currentCheckpointData=null;selfieBlob=null;document.getElementById('captionInput').value='';
   }catch(e){btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';showToast('Ошибка: '+(e.message||'попробуй ещё раз'));}
 }
@@ -939,16 +1024,26 @@ async function checkQuestCompletion(questId){
   try{
     const[total,hits]=await Promise.all([sb(`checkpoints?quest_id=eq.${questId}&select=id`),sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&select=id`)]);
     if(hits.length<total.length)return null;
-    let bonus=PTS.COMPLETE,isFirst=false;
+    let place=1,speedBonus=10;
     try{
-      const completions=await sb(`quest_completions?quest_id=eq.${questId}&select=id&limit=1`);
-      isFirst=completions.length===0;if(isFirst)bonus=PTS.COMPLETE+PTS.FIRST;
-      await sb('quest_completions',{method:'POST',body:{user_id:currentUser.id,quest_id:questId,finished_at:new Date().toISOString(),is_first:isFirst,bonus_points:bonus},prefer:'return=minimal'});
-    }catch(e2){}
-    const newPts=(currentProfile?.points||0)+bonus,newQ=(currentProfile?.quests_completed||0)+1;
-    await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{quests_completed:newQ,points:newPts},prefer:'return=minimal'});
-    currentProfile.points=newPts;currentProfile.quests_completed=newQ;
-    return isFirst?`🏆 Первый финиш! +${bonus} баллов!`:`🎉 Квест завершён! +${bonus} баллов!`;
+      const completions=await sb(`quest_completions?quest_id=eq.${questId}&select=id&order=finished_at.asc`);
+      place=completions.length+1;
+      if(place===1)speedBonus=50;
+      else if(place===2)speedBonus=30;
+      else if(place===3)speedBonus=20;
+      else speedBonus=10;
+      const bonus=PTS.COMPLETE+speedBonus;
+      const isFirst=place===1;
+      await sb('quest_completions',{method:'POST',body:{user_id:currentUser.id,quest_id:questId,finished_at:new Date().toISOString(),is_first:isFirst,bonus_points:bonus,place},prefer:'return=minimal'});
+      const newPts=(currentProfile?.points||0)+bonus,newQ=(currentProfile?.quests_completed||0)+1;
+      await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{quests_completed:newQ,points:newPts},prefer:'return=minimal'});
+      currentProfile.points=newPts;currentProfile.quests_completed=newQ;
+      const medals=['🥇','🥈','🥉'];
+      const medal=place<=3?medals[place-1]:'🎯';
+      return `${medal} ${place<=3?place+'-е место! ':''}Финиш! +${bonus} баллов (${speedBonus} бонус скорости)`;
+    }catch(e2){
+      return '🎉 Квест завершён!';
+    }
   }catch(e){return '🎉 Квест завершён!';}
 }
 function afterSuccess(){document.getElementById('successOverlay').classList.remove('show');loadProfile();showMain();}
@@ -994,7 +1089,7 @@ async function loadLeader(type,tabEl){
   const list=document.getElementById('leaderList');list.innerHTML='<div class="loader"><div class="spinner"></div></div>';
   try{
     if(type==='team'){const data=await sb(`teams?select=name,points&order=points.desc&limit=50`);list.innerHTML=data.length?data.map((t,i)=>`<div class="leader-item"><div class="leader-rank ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div><div class="leader-avatar">🤝</div><div class="leader-info"><div class="leader-name">${t.name}</div></div><div class="leader-pts">${t.points||0}</div></div>`).join(''):'<div class="empty"><div class="empty-icon">🤝</div><div class="empty-text">Нет команд</div></div>';}
-    else{const data=await sb(`sledopyt_profiles?select=id,username,city,points,quests_completed&order=points.desc&limit=50`);list.innerHTML=data.length?data.map((p,i)=>`<div class="leader-item" style="animation-delay:${i*.04}s"><div class="leader-rank ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div><div class="leader-avatar">${getEmoji(p.username)}</div><div class="leader-info"><div class="leader-name">${p.username} ${p.id===currentUser?.id?'<span class="me-badge">Я</span>':''}</div><div class="leader-meta">📍 ${p.city||'—'} · ${p.quests_completed||0} квестов</div></div><div class="leader-pts">${p.points||0}</div></div>`).join(''):'<div class="empty"><div class="empty-icon">🏆</div><div class="empty-text">Нет участников</div></div>';}
+    else{const data=await sb(`sledopyt_profiles?select=id,username,city,points,quests_completed,created_at&order=points.desc,quests_completed.desc,created_at.asc&limit=50`);list.innerHTML=data.length?data.map((p,i)=>`<div class="leader-item" style="animation-delay:${i*.04}s"><div class="leader-rank ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div><div class="leader-avatar">${getEmoji(p.username)}</div><div class="leader-info"><div class="leader-name">${p.username} ${p.id===currentUser?.id?'<span class="me-badge">Я</span>':''}</div><div class="leader-meta">📍 ${p.city||'—'} · ${p.quests_completed||0} квестов</div></div><div class="leader-pts">${p.points||0}</div></div>`).join(''):'<div class="empty"><div class="empty-icon">🏆</div><div class="empty-text">Нет участников</div></div>';}
   }catch(e){list.innerHTML='<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>';}
 }
 
@@ -1595,6 +1690,204 @@ async function loadParticipantPhones(){
     }).join("") || '<div style="font-size:13px;color:var(--text3)">Нет участников с телефоном</div>';
   }catch(e){}
 }
+
+// PWA install
+var _pwaDeferred=null;
+window.addEventListener('beforeinstallprompt',function(e){
+  e.preventDefault();_pwaDeferred=e;
+  setTimeout(function(){document.getElementById('pwaInstallBanner').style.display='block';},3000);
+});
+function installPWA(){
+  document.getElementById('pwaInstallBanner').style.display='none';
+  if(_pwaDeferred){_pwaDeferred.prompt();}
+  else{showToast('Найди в меню браузера «Добавить на главный экран»');}
+}
+
+// How to play modal
+function showHowToPlay(){
+  document.getElementById('howToPlayModal').classList.add('show');
+}
+
+// Store current quest for prize hint
+var currentSeason=null;
+async function loadCurrentSeason(){
+  try{
+    var now=new Date().toISOString();
+    var seasons=await sb("seasons?starts_at=lte."+now+"&ends_at=gte."+now+"&order=starts_at.desc&limit=1&select=*");
+    if(!seasons.length){document.getElementById("seasonSection").style.display="none";return;}
+    currentSeason=seasons[0];
+    document.getElementById("seasonTitle").textContent=currentSeason.title||"Сезон";
+    var myPts=await getMySeasonPoints(currentSeason.id);
+    var endsIn=Math.ceil((new Date(currentSeason.ends_at)-Date.now())/86400000);
+    document.getElementById("seasonBanner").innerHTML=
+      '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+      +'<div style="font-size:13px;font-weight:600;color:var(--text)">'+currentSeason.title+'</div>'
+      +'<div style="font-size:12px;color:var(--text3)">осталось '+endsIn+' дн.</div></div>'
+      +'<div style="display:flex;gap:12px">'
+      +'<div style="text-align:center;flex:1"><div style="font-size:22px;font-weight:700;color:var(--green)">'+myPts+'</div>'
+      +'<div style="font-size:11px;color:var(--text3)">Твои баллы</div></div>'
+      +'<div style="text-align:center;flex:1"><div style="font-size:22px">🔒</div>'
+      +'<div style="font-size:11px;color:var(--text3)">Приз — секрет</div></div></div>'
+      +'<div style="margin-top:10px;font-size:12px;color:var(--text3);text-align:center">'
+      +'Проходи все квесты сезона — чем больше баллов, тем выше!</div></div>';
+    document.getElementById("seasonSection").style.display="block";
+  }catch(e){document.getElementById("seasonSection").style.display="none";}
+}
+async function getMySeasonPoints(sid){
+  try{
+    var qs=await sb("quests?season_id=eq."+sid+"&select=id");
+    if(!qs.length)return 0;
+    var ids=qs.map(function(q){return q.id;}).join(",");
+    var h2=await sb("checkpoint_hits?user_id=eq."+currentUser.id+"&quest_id=in.("+ids+")&select=points");
+    var c2=await sb("quest_completions?user_id=eq."+currentUser.id+"&quest_id=in.("+ids+")&select=bonus_points");
+    return h2.reduce(function(s,x){return s+(x.points||10);},0)
+      +c2.reduce(function(s,x){return s+(x.bonus_points||0);},0);
+  }catch(e){return 0;}
+}
+async function loadSeasonLeader(tabEl){
+  if(tabEl){document.querySelectorAll(".leader-tab").forEach(function(t){t.classList.remove("active");});tabEl.classList.add("active");}
+  var list=document.getElementById("leaderList");
+  list.innerHTML='<div class="loader"><div class="spinner"></div></div>';
+  if(!currentSeason){list.innerHTML='<div class="empty"><div class="empty-icon">🗓️</div><div class="empty-text">Сезон ещё не стартовал</div></div>';return;}
+  try{
+    var qs=await sb("quests?season_id=eq."+currentSeason.id+"&select=id");
+    if(!qs.length){list.innerHTML='<div class="empty"><div class="empty-text">Квестов пока нет</div></div>';return;}
+    var ids=qs.map(function(q){return q.id;}).join(",");
+    var hits=await sb("checkpoint_hits?quest_id=in.("+ids+")&select=user_id,points");
+    var comps=await sb("quest_completions?quest_id=in.("+ids+")&select=user_id,bonus_points");
+    var pts={};
+    hits.forEach(function(x){pts[x.user_id]=(pts[x.user_id]||0)+(x.points||10);});
+    comps.forEach(function(x){pts[x.user_id]=(pts[x.user_id]||0)+(x.bonus_points||0);});
+    var sorted=Object.entries(pts).sort(function(a,b){return b[1]-a[1];}).slice(0,50);
+    if(!sorted.length){list.innerHTML='<div class="empty"><div class="empty-text">Пока никто</div></div>';return;}
+    var uids=sorted.map(function(e){return e[0];}).join(",");
+    var profs=await sb("sledopyt_profiles?id=in.("+uids+")&select=id,username");
+    var nm={}; profs.forEach(function(p){nm[p.id]=p.username;});
+    var med=["🥇","🥈","🥉"];
+    list.innerHTML=sorted.map(function(e,i){
+      var uid=e[0],sc=e[1],name=nm[uid]||"Участник";
+      return '<div class="leader-item"><div class="leader-rank '+(i<3?"top"+(i+1):"")+'">'
+        +(i<3?med[i]:"#"+(i+1))+"</div>"
+        +'<div class="leader-avatar">'+getEmoji(name)+"</div>"
+        +'<div class="leader-info"><div class="leader-name">'+name
+        +(uid===currentUser?.id?'<span class="me-badge">Я</span>':"")+"</div>"
+        +'<div class="leader-meta">🗓️ '+currentSeason.title+"</div></div>"
+        +'<div class="leader-pts">'+sc+"</div></div>";
+    }).join("");
+  }catch(e){list.innerHTML='<div class="empty"><div class="empty-text">Ошибка</div></div>';}
+}
+async function createSeason(){
+  var title=document.getElementById("seasonTitle_in").value.trim();
+  var starts=document.getElementById("seasonStarts").value;
+  var ends=document.getElementById("seasonEnds").value;
+  if(!title||!starts||!ends)return showToast("Заполни все поля");
+  try{
+    await sb("seasons",{method:"POST",body:{title,starts_at:new Date(starts).toISOString(),ends_at:new Date(ends).toISOString()},prefer:"return=minimal"});
+    showToast("✅ Сезон создан!");loadSeasonAdmin();
+  }catch(e){showToast("Ошибка: "+JSON.stringify(e));}
+}
+function doLinkQuestToSeason(sid){
+  var sel=document.getElementById("linkQ_"+sid);
+  if(!sel||!sel.value)return showToast("Выбери квест");
+  sb("quests?id=eq."+sel.value,{method:"PATCH",body:{season_id:sid},prefer:"return=minimal"})
+    .then(function(){showToast("✅ Квест привязан!");loadSeasonAdmin();})
+    .catch(function(){showToast("Ошибка");});
+}
+async function loadSeasonAdmin(){
+  var list=document.getElementById("seasonAdminList");if(!list)return;
+  try{
+    var seasons=await sb("seasons?order=starts_at.desc&select=*");
+    var quests=await sb("quests?select=id,title,season_id");
+    list.innerHTML=seasons.length?seasons.map(function(s){
+      var sq=quests.filter(function(q){return q.season_id===s.id;});
+      var fq=quests.filter(function(q){return !q.season_id;});
+      var opts=fq.map(function(q){
+        return '<option value="'+q.id+'">'+q.title+"</option>";
+      }).join("");
+      return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px">'
+        +'<div style="font-size:13px;font-weight:600;color:var(--text)">'+s.title+"</div>"
+        +'<div style="font-size:11px;color:var(--text3);margin:4px 0">'+formatDate(s.starts_at)+" — "+formatDate(s.ends_at)+"</div>"
+        +(sq.length?'<div style="font-size:12px;color:var(--green);margin-bottom:6px">'+sq.map(function(q){return q.title;}).join(", ")+"</div>":"")
+        +'<div style="display:flex;gap:8px"><select id="linkQ_'+s.id+'" class="form-input" style="flex:1;font-size:12px"><option value="">Привязать...</option>'+opts+"</select>"
+        +'<button class="btn btn-secondary btn-sm" data-sid="'+s.id+'" onclick="doLinkQuestToSeason(this.dataset.sid)">Привязать</button></div></div>';
+    }).join(""):'<div style="font-size:13px;color:var(--text3)">Сезонов пока нет</div>';
+  }catch(e){}
+}
+var currentQuestData=null;
+var currentSeasonData=null;
+
+// СЕЗОН
+async function loadCurrentSeason(){
+  try{
+    var seasons=await sb('seasons?status=eq.active&order=starts_at.desc&limit=1&select=*');
+    if(!seasons.length){document.getElementById('seasonSection').style.display='none';return;}
+    currentSeasonData=seasons[0];
+    renderSeasonBanner(currentSeasonData);
+  }catch(e){document.getElementById('seasonSection').style.display='none';}
+}
+function renderSeasonBanner(season){
+  var sec=document.getElementById('seasonSection');
+  var ban=document.getElementById('seasonBanner');
+  if(!sec||!ban)return;
+  var end=new Date(season.ends_at);
+  var daysLeft=Math.ceil((end-Date.now())/86400000);
+  ban.innerHTML='<div class="quest-card" style="background:linear-gradient(135deg,rgba(251,191,36,.08),rgba(74,222,128,.08));border-color:var(--amber)">'
+    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'
+    +'<div style="font-size:28px">🔥</div>'
+    +'<div style="flex:1">'
+    +'<div style="font-size:13px;font-weight:700;color:var(--amber)">'+season.title+'</div>'
+    +'<div style="font-size:12px;color:var(--text3)">'+daysLeft+' дней до окончания</div>'
+    +'</div>'
+    +'<button class="btn btn-secondary btn-sm" onclick="goTab(\'leaderScreen\',document.querySelectorAll(\'.leader-tab\')[2]);setTimeout(function(){loadSeasonLeader(document.querySelectorAll(\'.leader-tab\')[2]);},50)" style="font-size:11px">Рейтинг</button>'
+    +'</div>'
+    +'<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px;background:rgba(0,0,0,.2);border-radius:8px;line-height:1.6">'
+    +'🎁 Главный приз сезона — <strong style="color:var(--amber)">СЕКРЕТ 🤫</strong><br>'
+    +'Итоги подведём '+new Date(season.ends_at).toLocaleDateString('ru-RU',{day:'numeric',month:'long'})
+    +'</div>'
+    +'</div>';
+  sec.style.display='block';
+}
+async function loadSeasonLeader(tabEl){
+  if(tabEl){document.querySelectorAll('.leader-tab').forEach(function(t){t.classList.remove('active');});tabEl.classList.add('active');}
+  var list=document.getElementById('leaderList');
+  list.innerHTML='<div class="loader"><div class="spinner"></div></div>';
+  try{
+    if(!currentSeasonData){
+      var seas=await sb('seasons?status=eq.active&order=starts_at.desc&limit=1&select=*');
+      if(!seas.length){list.innerHTML='<div class="empty"><div class="empty-icon">🔥</div><div class="empty-text">Нет активного сезона</div></div>';return;}
+      currentSeasonData=seas[0];
+    }
+    var season=currentSeasonData;
+    var quests=await sb('quests?season_id=eq.'+season.id+'&select=id');
+    if(!quests.length){list.innerHTML='<div class="empty"><div class="empty-text">Квесты сезона ещё не назначены</div></div>';return;}
+    var qIds=quests.map(function(q){return q.id;}).join(',');
+    var hits=await sb('checkpoint_hits?quest_id=in.('+qIds+')&select=user_id,points');
+    var comps=await sb('quest_completions?quest_id=in.('+qIds+')&select=user_id,bonus_points');
+    var totals={};
+    hits.forEach(function(h){totals[h.user_id]=(totals[h.user_id]||0)+(h.points||10);});
+    comps.forEach(function(c){totals[c.user_id]=(totals[c.user_id]||0)+(c.bonus_points||0);});
+    if(!Object.keys(totals).length){list.innerHTML='<div class="empty"><div class="empty-text">Ещё нет участников</div></div>';return;}
+    var sorted=Object.keys(totals).sort(function(a,b){return totals[b]-totals[a];});
+    var uids=sorted.slice(0,50).join(',');
+    var profiles=await sb('sledopyt_profiles?id=in.('+uids+')&select=id,username,city');
+    var pm={};profiles.forEach(function(p){pm[p.id]=p;});
+    var medals=['🥇','🥈','🥉'];
+    list.innerHTML='<div style="text-align:center;margin-bottom:12px;font-size:12px;color:var(--amber);font-weight:600">🔥 '+season.title+'</div>'
+    +sorted.slice(0,50).map(function(uid,i){
+      var p=pm[uid];if(!p)return '';
+      var pts=totals[uid];
+      var isMe=currentUser&&uid===currentUser.id;
+      return '<div class="leader-item" style="animation-delay:'+i*.04+'s">'
+        +'<div class="leader-rank '+(i===0?'top1':i===1?'top2':i===2?'top3':'')+'">'+( i<3?medals[i]:'#'+(i+1))+'</div>'
+        +'<div class="leader-avatar">'+getEmoji(p.username)+'</div>'
+        +'<div class="leader-info"><div class="leader-name">'+p.username+(isMe?' <span class="me-badge">Я</span>':'')+'</div>'
+        +'<div class="leader-meta">📍 '+(p.city||'—')+'</div></div>'
+        +'<div class="leader-pts">'+(i===0?'<span style="color:var(--amber)">'+pts+'</span>':pts)+'</div></div>';
+    }).join('');
+  }catch(e){list.innerHTML='<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>';}
+}
+
 
 function closeModal(id){document.getElementById(id).classList.remove('show');}
 

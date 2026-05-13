@@ -923,13 +923,19 @@ async function loadUserStats(){
 async function loadQuests(){
   const list=document.getElementById('questsList');list.innerHTML='<div class="loader"><div class="spinner"></div></div>';
   try{
-    // Грузим и активные и завершённые
     const allQuests=await sb(`quests?select=*&order=created_at.desc&limit=20`);
     const quests=allQuests.filter(q=>q.status!=='archived'&&!q.access_code&&(q.status==='active'||new Date(q.end_date)>new Date(Date.now()-7*24*60*60*1000)));
     if(!quests.length){list.innerHTML='<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">Квесты скоро появятся</div></div>';return;}
     const active=quests.filter(q=>q.status==='active');
     const ended=quests.filter(q=>q.status==='ended');
     list.innerHTML='';
+    // Грузим сезоны для бейджей
+    const seasonIds=[...new Set(quests.filter(q=>q.season_id).map(q=>q.season_id))];
+    const seasonMap={};
+    if(seasonIds.length){
+      const seasons=await sb(`seasons?id=in.(${seasonIds.join(',')})&select=id,title`).catch(()=>[]);
+      seasons.forEach(s=>seasonMap[s.id]=s.title);
+    }
     // Грузим спонсоров для всех активных квестов
     const sponsorMap={};
     for(const q of active){
@@ -956,8 +962,11 @@ async function loadQuests(){
            </div>`).join('')}
          </div>`
         :'';
+      const seasonBadge=q.season_id&&seasonMap[q.season_id]
+        ?`<span class="quest-badge" style="background:rgba(251,191,36,.15);color:var(--amber);border:1px solid var(--amber-dim);margin-left:6px">🔥 ${seasonMap[q.season_id]}</span>`
+        :'';
       const el=document.createElement('div');el.className=`quest-card ${q.quest_type==='team'?'team':''}`;el.style.animationDelay=`${i*.08}s`;
-      el.innerHTML=`<div><span class="quest-badge ${q.quest_type==='team'?'badge-team':q.quest_type==='both'?'badge-team':'badge-solo'}">${q.quest_type==='team'?'🤝 Командный':q.quest_type==='both'?'⚡ Любой':'🏃 Личный'}</span><span class="quest-badge badge-active" style="margin-left:6px">● Активен</span></div>
+      el.innerHTML=`<div><span class="quest-badge ${q.quest_type==='team'?'badge-team':q.quest_type==='both'?'badge-team':'badge-solo'}">${q.quest_type==='team'?'🤝 Командный':q.quest_type==='both'?'⚡ Любой':'🏃 Личный'}</span><span class="quest-badge badge-active" style="margin-left:6px">● Активен</span>${seasonBadge}</div>
       <div class="quest-title">${q.title}</div><div class="quest-desc">${q.description||''}</div>
       <div class="quest-meta"><div class="quest-meta-item">📍 ${q.checkpoint_count||'?'} точек</div><div class="quest-meta-item">🏆 ${q.prize_description||'Приз'}</div><div class="quest-meta-item">📅 До ${formatDate(q.end_date)}</div></div>
       ${spHtml}`;

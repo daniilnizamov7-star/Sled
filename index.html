@@ -710,7 +710,8 @@ async function refreshTokenIfNeeded(){
 async function sb(path,opts={}){
   await refreshTokenIfNeeded();
   const url=`${SUPABASE_URL}/rest/v1/${path}`;
-  const headers={'apikey':SUPABASE_KEY,'Authorization':`Bearer ${sessionStorage.getItem('sb_token')||SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':opts.prefer||'return=representation',...opts.headers};
+  const isGet=!opts.method||opts.method==='GET';
+  const headers={'apikey':SUPABASE_KEY,'Authorization':`Bearer ${sessionStorage.getItem('sb_token')||SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':opts.prefer||'return=representation',...(isGet?{'Cache-Control':'no-cache'}:{}), ...opts.headers};
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),15000);
   try{
@@ -1059,7 +1060,7 @@ async function loadQuestGallery(questId){
   el.innerHTML='<div class="loader"><div class="spinner"></div></div>';
   try{
     // Показываем featured + approved фото
-    const hits=await sb(`checkpoint_hits?quest_id=eq.${questId}&photo_url=not.is.null&photo_status=in.(featured,approved)&order=photo_status.asc,hit_at.desc&select=id,user_id,checkpoint_id,photo_url,hit_at,photo_status`);
+    const hits=await sb(`checkpoint_hits?quest_id=eq.${questId}&photo_url=not.is.null&photo_status=in.(featured,approved)&order=hit_at.desc&select=id,user_id,checkpoint_id,photo_url,hit_at,photo_status`);
     if(!hits.length){
       el.innerHTML=`<div style="padding:32px 20px;text-align:center;color:var(--text3)">
         <div style="font-size:40px;margin-bottom:12px">📷</div>
@@ -1322,18 +1323,14 @@ async function showQuestPhotos(questId, questTitle){
       const cpName=cpMap[h.checkpoint_id]||'Точка';
       const safeUrl=h.photo_url.replace(/'/g,'%27');
       const status=h.photo_status||'pending';
-      const statusBadge=status==='approved'?'<span style="background:rgba(74,222,128,.2);color:var(--green);font-size:10px;padding:2px 6px;border-radius:10px">✅ Одобрено</span>':
-        status==='rejected'?'<span style="background:rgba(248,113,113,.2);color:var(--red);font-size:10px;padding:2px 6px;border-radius:10px">❌ Отклонено</span>':
-        status==='featured'?'<span style="background:rgba(251,191,36,.2);color:var(--amber);font-size:10px;padding:2px 6px;border-radius:10px">🌟 В галерею</span>':
-        '<span style="background:var(--bg3);color:var(--text3);font-size:10px;padding:2px 6px;border-radius:10px">⏳ Ожидает</span>';
-      return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden" id="photo-card-${h.id}">
+      return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden" id="photo-card-${h.id}" data-status="${status}">
         <div style="position:relative">
           <img src="${h.photo_url}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:pointer" loading="lazy" onclick="window.open('${safeUrl}','_blank')" onerror="this.parentElement.parentElement.style.display='none'">
         </div>
         <div style="padding:8px">
           <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px">${username}</div>
           <div style="font-size:10px;color:var(--text3);margin-bottom:6px">${cpName} · ${time}</div>
-          ${statusBadge}
+          <div id="photo-badge-${h.id}">${renderPhotoBadge(status)}</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:8px">
             <button onclick="moderatePhoto('${h.id}','approved','${h.user_id}')" style="background:rgba(74,222,128,.15);border:1px solid var(--green-dim);color:var(--green);border-radius:6px;padding:4px;font-size:11px;cursor:pointer">✅</button>
             <button onclick="moderatePhoto('${h.id}','featured','${h.user_id}')" style="background:rgba(251,191,36,.15);border:1px solid var(--amber-dim);color:var(--amber);border-radius:6px;padding:4px;font-size:11px;cursor:pointer">🌟</button>
@@ -1348,55 +1345,61 @@ async function showQuestPhotos(questId, questTitle){
   }
 }
 
+function renderPhotoBadge(status){
+  if(status==='approved')return '<span style="background:rgba(74,222,128,.2);color:var(--green);font-size:10px;padding:2px 6px;border-radius:10px">✅ Одобрено</span>';
+  if(status==='featured')return '<span style="background:rgba(251,191,36,.2);color:var(--amber);font-size:10px;padding:2px 6px;border-radius:10px">🌟 В галерею</span>';
+  if(status==='rejected')return '<span style="background:rgba(248,113,113,.2);color:var(--red);font-size:10px;padding:2px 6px;border-radius:10px">❌ Отклонено</span>';
+  return '<span style="background:var(--bg3);color:var(--text3);font-size:10px;padding:2px 6px;border-radius:10px">⏳ Ожидает</span>';
+}
+
 async function moderatePhoto(hitId, status, userId){
   try{
-    const prev=await sb(`checkpoint_hits?id=eq.${hitId}&select=photo_status`);
-    const prevStatus=prev[0]?.photo_status||'pending';
+    // Читаем текущий статус из DOM — надёжнее чем из Supabase (нет кэша)
+    const card=document.getElementById('photo-card-'+hitId);
+    const prevStatus=card?.dataset?.status||'pending';
 
-    // Не делаем ничего если статус не изменился
     if(prevStatus===status)return showToast('Статус уже установлен');
+
+    // Блокируем кнопки пока идёт запрос
+    const btns=card?.querySelectorAll('button');
+    btns?.forEach(b=>b.disabled=true);
 
     await sb(`checkpoint_hits?id=eq.${hitId}`,{method:'PATCH',body:{photo_status:status},prefer:'return=minimal'});
 
-    // Состояния с баллами: approved, featured
-    // Состояния без баллов: pending, rejected
     const wasRewarded=prevStatus==='approved'||prevStatus==='featured';
     const willReward=status==='approved'||status==='featured';
 
     if(willReward&&!wasRewarded){
-      // pending/rejected → approved/featured: начисляем +5
       const prof=await sb(`sledopyt_profiles?id=eq.${userId}&select=points`);
       if(prof.length){
         await sb(`sledopyt_profiles?id=eq.${userId}`,{method:'PATCH',body:{points:(prof[0].points||0)+PTS.PHOTO_BONUS},prefer:'return=minimal'});
       }
       showToast(status==='featured'?'🌟 В галерею +'+PTS.PHOTO_BONUS+' баллов':'✅ Одобрено +'+PTS.PHOTO_BONUS+' баллов');
     } else if(!willReward&&wasRewarded){
-      // approved/featured → rejected: отнимаем -5
       const prof=await sb(`sledopyt_profiles?id=eq.${userId}&select=points`);
       if(prof.length){
         await sb(`sledopyt_profiles?id=eq.${userId}`,{method:'PATCH',body:{points:Math.max(0,(prof[0].points||0)-PTS.PHOTO_BONUS)},prefer:'return=minimal'});
       }
       showToast('❌ Фото отклонено −'+PTS.PHOTO_BONUS+' баллов');
     } else if(wasRewarded&&willReward){
-      // approved ↔ featured: баллы не меняем
       showToast(status==='featured'?'🌟 Добавлено в галерею':'✅ Одобрено');
     } else {
-      // pending → rejected или rejected → pending
       showToast(status==='rejected'?'❌ Фото отклонено':'⏳ Возвращено на проверку');
     }
 
-    // Обновляем карточку без перезагрузки
-    const card=document.getElementById('photo-card-'+hitId);
+    // Обновляем DOM-статус и badge
     if(card){
-      const badge=card.querySelector('span[style*="border-radius:10px"]');
-      if(badge){
-        badge.outerHTML=status==='approved'?'<span style="background:rgba(74,222,128,.2);color:var(--green);font-size:10px;padding:2px 6px;border-radius:10px">✅ Одобрено</span>':
-          status==='featured'?'<span style="background:rgba(251,191,36,.2);color:var(--amber);font-size:10px;padding:2px 6px;border-radius:10px">🌟 В галерею</span>':
-          status==='rejected'?'<span style="background:rgba(248,113,113,.2);color:var(--red);font-size:10px;padding:2px 6px;border-radius:10px">❌ Отклонено</span>':
-          '<span style="background:var(--bg3);color:var(--text3);font-size:10px;padding:2px 6px;border-radius:10px">⏳ Ожидает</span>';
-      }
+      card.dataset.status=status;
+      const badge=document.getElementById('photo-badge-'+hitId);
+      if(badge)badge.innerHTML=renderPhotoBadge(status);
     }
-  }catch(e){showToast('Ошибка: '+(e?.message||JSON.stringify(e)));}
+    btns?.forEach(b=>b.disabled=false);
+  }catch(e){
+    // Разблокируем кнопки при ошибке
+    const card=document.getElementById('photo-card-'+hitId);
+    card?.querySelectorAll('button')?.forEach(b=>b.disabled=false);
+    showToast('Ошибка: '+(e?.message||JSON.stringify(e)));
+  }
 }
 
 async function deleteHitPhoto(hitId, photoUrl){

@@ -438,7 +438,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
         <input type="checkbox" id="qSpeedBonus" checked style="width:18px;height:18px;accent-color:var(--amber);flex-shrink:0">
         <label for="qSpeedBonus" style="font-size:13px;color:var(--text2);cursor:pointer">⚡ Бонус за скорость (+${PTS.FIRST} тому кто первым завершит)</label>
       </div>
-      <div class="form-group"><label class="form-label">Код доступа <span style="color:var(--text3);font-weight:400">(для корпоративных — необязательно)</span></label><input class="form-input" id="qAccessCode" placeholder="ARNEST2026" style="text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase();document.getElementById('qGroupsBlock').style.display=this.value.trim()?'block':'none'"></div>
+      <div class="form-group"><label class="form-label">Код доступа <span style="color:var(--text3);font-weight:400">(для корпоративных — необязательно)</span></label><input class="form-input" id="qAccessCode" placeholder="AWE123" style="text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase();document.getElementById('qGroupsBlock').style.display=this.value.trim()?'block':'none'"></div>
       <div class="form-group" id="qGroupsBlock" style="display:none">
         <label class="form-label">Группы участников <span style="color:var(--text3);font-weight:400">(через запятую)</span></label>
         <input class="form-input" id="qGroups" placeholder="Смена 1, Смена 2, Смена 3, Смена 4, Смена 5">
@@ -601,7 +601,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">Введи код доступа от организатора чтобы попасть в корпоративный квест</div>
       <div class="form-group">
         <label class="form-label">Код доступа</label>
-        <input class="form-input" id="corpCodeInput" placeholder="ARNEST2026" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;text-align:center" oninput="this.value=this.value.toUpperCase()">
+        <input class="form-input" id="corpCodeInput" placeholder="AWE123" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;text-align:center" oninput="this.value=this.value.toUpperCase()">
       </div>
       <button class="btn btn-amber" onclick="joinCorporateQuest()" style="margin-bottom:10px">Войти в корпоратив</button>
     </div>

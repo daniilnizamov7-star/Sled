@@ -239,7 +239,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     </div>
     <div id="loginForm">
       <div class="form-group"><label class="form-label">Номер телефона</label><input class="form-input" id="loginEmail" type="tel" placeholder="+7 900 000-00-00"></div>
-      <div class="form-group"><label class="form-label">PIN-код</label><input class="form-input" id="loginPass" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="current-password"></div>
+      <div class="form-group"><label class="form-label">PIN-код</label><input class="form-input" id="loginPass" type="password" inputmode="numeric" maxlength="6" placeholder="••••" autocomplete="current-password"></div>
       <button class="btn btn-primary" onclick="doLogin()">Войти</button>
     <button class="btn btn-secondary" style="margin-top:8px;font-size:13px" onclick="doResetPassword()">Забыл пароль?</button>
     <div id="resetHint" style="display:none;margin-top:10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:13px;color:var(--text2);line-height:1.6">
@@ -251,8 +251,8 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     <div id="registerForm" style="display:none">
       <div class="form-group"><label class="form-label">Имя в игре</label><input class="form-input" id="regName" type="text" placeholder="Следопыт42"></div>
       <div class="form-group"><label class="form-label">Номер телефона</label><input class="form-input" id="regPhone" type="tel" placeholder="+7 900 000-00-00"></div>
-      <div class="form-group"><label class="form-label">PIN-код (4 цифры)</label><input class="form-input" id="regPass" type="password" inputmode="numeric" maxlength="4" placeholder="Например: 1234" autocomplete="new-password"></div>
-      <div class="form-group"><label class="form-label">Повтори PIN</label><input class="form-input" id="regPass2" type="password" inputmode="numeric" maxlength="4" placeholder="Ещё раз" autocomplete="new-password"></div>
+      <div class="form-group"><label class="form-label">PIN-код (6 цифр)</label><input class="form-input" id="regPass" type="password" inputmode="numeric" maxlength="6" placeholder="Например: 123456" autocomplete="new-password"></div>
+      <div class="form-group"><label class="form-label">Повтори PIN</label><input class="form-input" id="regPass2" type="password" inputmode="numeric" maxlength="6" placeholder="Ещё раз" autocomplete="new-password"></div>
       <div style="font-size:11px;color:var(--text3);margin-top:-8px;margin-bottom:4px">Запомни PIN — он нужен для входа. Запиши его.</div>
       <div class="form-group"><label class="form-label">Город</label><input class="form-input" id="regCity" type="text" placeholder="Челябинск"></div>
       <div class="form-group" style="display:flex;align-items:flex-start;gap:10px">
@@ -775,26 +775,46 @@ async function doRegister(){
   if(name.trim().length<2)return showToast('Имя должно быть минимум 2 символа');
   if(!/[a-zA-ZЀ-ӿ0-9]/.test(name))return showToast('Имя должно содержать буквы или цифры');
   if(phone.length<10)return showToast('Введи полный номер телефона');
-  if(!/^\d{4}$/.test(pass))return showToast('PIN должен содержать ровно 4 цифры');
+  if(!/^\d{6}$/.test(pass))return showToast('PIN должен содержать ровно 6 цифр');
   var pass2=document.getElementById('regPass2')?.value;
   if(pass2!==undefined&&pass2!==pass)return showToast('PIN-коды не совпадают');
   if(!document.getElementById('regConsent').checked)return showToast('⚠️ Необходимо согласие');
   // Генерируем email из телефона (технический, пользователь его не видит)
   const email=phone+'@sledopyt.app';
-  try{const data=await sbAuth('signup',email,pass,{username:name,city});
-  if(data.error)return showToast('Ошибка: '+(data.error_description||JSON.stringify(data.error)));
-  sessionStorage.setItem('sb_token',data.access_token);
-  sessionStorage.setItem('sb_uid',data.user.id);
-  if(data.refresh_token)sessionStorage.setItem('sb_refresh',data.refresh_token);
-  sessionStorage.setItem('sb_token_exp',Date.now()+((data.expires_in||3600)-120)*1000);
-  currentUser=data.user;
-  await sb('sledopyt_profiles',{method:'POST',body:{id:data.user.id,username:name,city,phone:phone,points:20,quests_completed:0,checkpoints_hit:0,is_admin:false},prefer:'return=minimal'});
-  // Приветственные баллы в историю
-  try{await sb('manual_points',{method:'POST',body:{user_id:data.user.id,points:20,reason:'🎉 Приветственный бонус за регистрацию',given_by:data.user.id},prefer:'return=minimal'});}catch(e2){}
-  await loadProfile();
-  // Показать экран приветствия с баллами
-  setTimeout(()=>{showToast('🎉 +20 баллов за регистрацию — добро пожаловать!');},600);
-  showMain();}catch(e){showToast('Ошибка регистрации: '+JSON.stringify(e));}
+  const regBtn=document.querySelector('#registerForm .btn-primary');
+  if(regBtn){regBtn.disabled=true;regBtn.textContent='Регистрируем...';}
+  try{
+    const data=await sbAuth('signup',email,pass,{username:name,city});
+    if(data.error){
+      if(regBtn){regBtn.disabled=false;regBtn.textContent='Создать аккаунт';}
+      const msg=data.error_description||data.error?.message||JSON.stringify(data.error);
+      if(msg.includes('already registered')||msg.includes('already been registered'))
+        return showToast('Этот номер уже зарегистрирован — войди через "Войти"');
+      if(msg.includes('password'))
+        return showToast('PIN должен быть 4 цифры');
+      return showToast('Ошибка: '+msg);
+    }
+    if(!data.access_token||!data.user){
+      if(regBtn){regBtn.disabled=false;regBtn.textContent='Создать аккаунт';}
+      // Supabase email confirmation может быть включён
+      if(data.user&&!data.access_token)
+        return showToast('Проверь email для подтверждения (или отключи подтверждение в Supabase)');
+      return showToast('Ошибка: нет токена в ответе');
+    }
+    sessionStorage.setItem('sb_token',data.access_token);
+    sessionStorage.setItem('sb_uid',data.user.id);
+    if(data.refresh_token)sessionStorage.setItem('sb_refresh',data.refresh_token);
+    sessionStorage.setItem('sb_token_exp',Date.now()+((data.expires_in||3600)-120)*1000);
+    currentUser=data.user;
+    await sb('sledopyt_profiles',{method:'POST',body:{id:data.user.id,username:name,city,phone:phone,points:20,quests_completed:0,checkpoints_hit:0,is_admin:false},prefer:'return=minimal'});
+    try{await sb('manual_points',{method:'POST',body:{user_id:data.user.id,points:20,reason:'🎉 Приветственный бонус за регистрацию',given_by:data.user.id},prefer:'return=minimal'});}catch(e2){}
+    await loadProfile();
+    setTimeout(()=>{showToast('🎉 +20 баллов за регистрацию — добро пожаловать!');},600);
+    showMain();
+  }catch(e){
+    if(regBtn){regBtn.disabled=false;regBtn.textContent='Создать аккаунт';}
+    showToast('Ошибка регистрации: '+(e?.message||e?.hint||JSON.stringify(e)));
+  }
 }
 async function doLogout(){sessionStorage.clear();currentUser=null;currentProfile=null;goScreen('authScreen');}
 

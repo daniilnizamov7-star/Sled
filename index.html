@@ -1532,13 +1532,25 @@ function checkSubmitReady(){
   btn.disabled=false;btn.style.opacity='1';
 }
 async function compressImage(file,maxSize,quality){
-  return new Promise(resolve=>{
-    const img=new Image();img.onload=()=>{
-      const canvas=document.createElement('canvas');let w=img.width,h=img.height;
-      if(w>maxSize||h>maxSize){if(w>h){h=h*maxSize/w;w=maxSize;}else{w=w*maxSize/h;h=maxSize;}}
-      canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);
-      canvas.toBlob(resolve,'image/jpeg',quality);
-    };img.src=URL.createObjectURL(file);
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    const objUrl=URL.createObjectURL(file);
+    img.onload=()=>{
+      try{
+        const canvas=document.createElement('canvas');
+        let w=img.width,h=img.height;
+        if(w>maxSize||h>maxSize){if(w>h){h=Math.round(h*maxSize/w);w=maxSize;}else{w=Math.round(w*maxSize/h);h=maxSize;}}
+        canvas.width=w;canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        canvas.toBlob(blob=>{
+          URL.revokeObjectURL(objUrl); // освобождаем память
+          if(blob)resolve(blob);
+          else reject(new Error('Не удалось сжать фото'));
+        },'image/jpeg',quality);
+      }catch(e){URL.revokeObjectURL(objUrl);reject(e);}
+    };
+    img.onerror=()=>{URL.revokeObjectURL(objUrl);reject(new Error('Не удалось загрузить фото'));};
+    img.src=objUrl;
   });
 }
 

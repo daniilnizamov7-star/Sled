@@ -1713,7 +1713,7 @@ async function submitCheckpoint(){
       if(prevHits.length===1){ // только что создали первый хит
         const existComp=await sb(`quest_completions?user_id=eq.${currentUser.id}&quest_id=eq.${currentCheckpointData.quest_id}&select=id`);
         if(!existComp.length){
-          await sb('quest_completions',{method:'POST',body:{user_id:currentUser.id,quest_id:currentCheckpointData.quest_id,started_at:new Date().toISOString(),finished_at:null,bonus_points:0,is_first:false,place:0},prefer:'return=minimal'});
+          await sb('quest_completions',{method:'POST',body:{user_id:currentUser.id,quest_id:currentCheckpointData.quest_id,started_at:new Date().toISOString(),finished_at:null,bonus_points:0,is_first:false},prefer:'return=minimal'});
         }
       }
     }catch(e){}
@@ -1768,9 +1768,9 @@ async function checkQuestCompletion(questId){
       const startedAt=existComp[0]?.started_at||new Date().toISOString();
       const finishedAt=new Date().toISOString();
       if(existComp.length){
-        await sb(`quest_completions?user_id=eq.${currentUser.id}&quest_id=eq.${questId}`,{method:'PATCH',body:{finished_at:finishedAt,is_first:isFirst,bonus_points:bonus,place},prefer:'return=minimal'});
+        await sb(`quest_completions?user_id=eq.${currentUser.id}&quest_id=eq.${questId}`,{method:'PATCH',body:{finished_at:finishedAt,is_first:isFirst,bonus_points:bonus},prefer:'return=minimal'});
       } else {
-        await sb('quest_completions',{method:'POST',body:{user_id:currentUser.id,quest_id:questId,started_at:startedAt,finished_at:finishedAt,is_first:isFirst,bonus_points:bonus,place},prefer:'return=minimal'});
+        await sb('quest_completions',{method:'POST',body:{user_id:currentUser.id,quest_id:questId,started_at:startedAt,finished_at:finishedAt,is_first:isFirst,bonus_points:bonus},prefer:'return=minimal'});
       }
       const newPts=(currentProfile?.points||0)+bonus,newQ=(currentProfile?.quests_completed||0)+1;
       await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{quests_completed:newQ,points:newPts},prefer:'return=minimal'});
@@ -2617,7 +2617,8 @@ async function doExportQuestCSV(questId){
   try{
     showToast('Подготавливаем экспорт...');
     const filter=questId?`quest_id=eq.${questId}&`:'';
-    const comps=await sb(`quest_completions?${filter}select=user_id,quest_id,bonus_points,place,finished_at,started_at&order=bonus_points.desc&limit=500`);
+    // place убран из SELECT — считаем место клиентски по порядку сортировки
+    const comps=await sb(`quest_completions?${filter}select=user_id,quest_id,bonus_points,is_first,finished_at,started_at&order=bonus_points.desc&limit=500`);
     if(!comps.length)return showToast('Данных нет');
     const userIds=[...new Set(comps.map(c=>c.user_id))].join(',');
     const questIds=[...new Set(comps.map(c=>c.quest_id))].join(',');
@@ -2627,11 +2628,16 @@ async function doExportQuestCSV(questId){
     ]);
     const pm={};profiles.forEach(p=>pm[p.id]=p);
     const qm={};quests.forEach(q=>qm[q.id]=q.title);
-    const rows=[['Участник','Телефон','Квест','Место','Баллы','Время начала','Финиш','Время прохождения (мин)']];
-    comps.forEach(c=>{
+    const rows=[['Участник','Телефон','Квест','Место','Баллы','Финишировал','Время начала','Финиш','Время прохождения (мин)']];
+    // Считаем место отдельно по каждому квесту
+    const placeCounters={};
+    comps.forEach((c,i)=>{
       const p=pm[c.user_id]||{};
       const dur=c.started_at&&c.finished_at?Math.round((new Date(c.finished_at)-new Date(c.started_at))/60000):'—';
-      rows.push([p.username||'—',p.phone||'—',qm[c.quest_id]||'—',c.place||'—',c.bonus_points||0,
+      if(!placeCounters[c.quest_id])placeCounters[c.quest_id]=0;
+      const placeNum=c.finished_at?(++placeCounters[c.quest_id]):'—';
+      rows.push([p.username||'—',p.phone||'—',qm[c.quest_id]||'—',placeNum,c.bonus_points||0,
+        c.finished_at?'Да':'Нет',
         c.started_at?new Date(c.started_at).toLocaleString('ru'):'—',
         c.finished_at?new Date(c.finished_at).toLocaleString('ru'):'—',dur]);
     });

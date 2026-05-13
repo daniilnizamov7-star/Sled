@@ -2557,7 +2557,9 @@ async function loadSeasonAdmin(){
         +'<div>'
         +'<div style="font-size:13px;font-weight:600;color:var(--text)">'+s.title+"</div>"
         +'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+formatDate(s.starts_at)+" — "+formatDate(s.ends_at)+"</div>"
-        +(sq.length?'<div style="font-size:11px;color:var(--green);margin-top:4px">📌 '+sq.map(function(q){return q.title;}).join(", ")+"</div>":"")
+        +(sq.length?'<div style="font-size:11px;color:var(--green);margin-top:4px">📌 '+sq.map(function(q){
+        return q.title+' <button onclick="unlinkQuestFromSeason(\''+q.id+'\',\''+q.title.replace(/'/g,"\\'")+'\')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px;padding:0 2px">✕</button>';
+      }).join(', ')+"</div>":"")
         +'</div>'
         +'<div style="display:flex;gap:6px">'
         +'<button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="editSeasonPrompt(\''+s.id+'\',\''+s.title.replace(/'/g,"\\'")+'\',\''+s.starts_at.slice(0,10)+'\',\''+s.ends_at.slice(0,10)+'\')">✏️</button>'
@@ -2568,6 +2570,15 @@ async function loadSeasonAdmin(){
         +'</div>';
     }).join("");
   }catch(e){list.innerHTML='<div style="font-size:13px;color:var(--red)">Ошибка загрузки</div>';}
+}
+
+async function unlinkQuestFromSeason(questId, questTitle){
+  if(!confirm('Открепить квест "'+questTitle+'" от сезона?'))return;
+  try{
+    await sb('quests?id=eq.'+questId,{method:'PATCH',body:{season_id:null},prefer:'return=minimal'});
+    showToast('✅ Квест откреплён от сезона');
+    loadSeasonAdmin();
+  }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
 }
 
 async function deleteSeason(id, title){

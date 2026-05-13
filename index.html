@@ -227,7 +227,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     onended="onSplashVideoEnd()"
     onerror="onSplashVideoEnd()">
   </video>
-  <button id="splashSkip" onclick="_videoEnded=true;hideSplash()">Пропустить →</button>
+  <button id="splashSkip" onclick="hideSplash(_pendingShow||null)">Пропустить →</button>
 </div>
 
 <div id="authScreen" class="screen">
@@ -713,42 +713,48 @@ async function uploadPhoto(bucket,path,blob){
   return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
 }
 
-let _appReady=false,_videoEnded=false;
+let _splashDone=false;
 
-function hideSplash(){
-  if(!_appReady||!_videoEnded)return; // ждём и видео и загрузку
+function hideSplash(andShow){
+  if(_splashDone)return;
+  _splashDone=true;
   const splash=document.getElementById('splash');
+  const video=document.getElementById('splashVideo');
+  if(video)video.pause();
   splash.style.transition='opacity .5s ease';
   splash.style.opacity='0';
-  setTimeout(()=>{splash.style.display='none';},500);
+  setTimeout(()=>{
+    splash.style.display='none';
+    if(andShow)andShow();
+  },500);
 }
+
+// Страховка — максимум 6 секунд
+let _splashTimer=setTimeout(()=>{
+  hideSplash(()=>{goScreen('authScreen');});
+},6000);
 
 function onSplashVideoEnd(){
-  _videoEnded=true;
-  hideSplash();
+  // Видео закончилось — ждём ещё немного если данные ещё грузятся (макс 2 сек)
+  setTimeout(()=>{
+    if(!_splashDone)hideSplash(_pendingShow||null);
+  },500);
 }
 
-// Страховка — если видео не загрузилось, через 6 сек принудительно
-setTimeout(()=>{_videoEnded=true;hideSplash();},6000);
+let _pendingShow=null;
 
 window.addEventListener('load',async()=>{
   const cpToken=new URLSearchParams(window.location.search).get('cp')||sessionStorage.getItem('sb_pending_cp');
   if(cpToken){currentCheckpointToken=cpToken;sessionStorage.setItem('sb_pending_cp',cpToken);}
   const token=sessionStorage.getItem('sb_token'),uid=sessionStorage.getItem('sb_uid');
   if(token&&uid){currentUser={id:uid};await loadProfile();subscribeRealtime();}
-  _appReady=true;
-  hideSplash();
-  // Показываем нужный экран после скрытия сплэша
-  const splash=document.getElementById('splash');
-  const checkAndShow=()=>{
-    if(splash.style.display==='none'||parseFloat(splash.style.opacity||'1')===0){
-      if(token&&uid){if(currentCheckpointToken)openCheckpointByToken(currentCheckpointToken);else showMain();}
-      else goScreen('authScreen');
-    } else {
-      setTimeout(checkAndShow,100);
-    }
+  clearTimeout(_splashTimer);
+  const showFn=()=>{
+    if(token&&uid){if(currentCheckpointToken)openCheckpointByToken(currentCheckpointToken);else showMain();}
+    else goScreen('authScreen');
   };
-  setTimeout(checkAndShow,100);
+  _pendingShow=showFn;
+  hideSplash(showFn);
 });
 window.addEventListener('popstate',()=>{const _ov=document.getElementById('successOverlay');if(_ov&&_ov.classList.contains('show')){_ov.classList.remove('show');return;}if(screenHistory.length>1){screenHistory.pop();showScreenDirect(screenHistory[screenHistory.length-1]);}});
 

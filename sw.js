@@ -1,4 +1,4 @@
-const CACHE = 'sledopyt-v1';
+const CACHE = 'sledopyt-v8';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -15,15 +15,26 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
 
-  // Network-first for index.html and API
-  if (url.pathname === '/' || url.pathname === '/index.html' || url.hostname.includes('supabase')) {
+  // Supabase и внешние API — никогда не перехватываем, идут напрямую
+  if (url.hostname.includes('supabase') || url.hostname.includes('supabase.co')) return;
+
+  // index.html — network-first, фолбэк на кэш
+  if (url.pathname === '/' || url.pathname === '/index.html') {
     e.respondWith(
-      fetch(e.request).catch(() => caches.match(e.request))
+      fetch(e.request, {signal: AbortSignal.timeout(5000)})
+        .then(res => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
+          }
+          return res;
+        })
+        .catch(() => caches.match(e.request))
     );
     return;
   }
 
-  // Cache-first for static assets
+  // Статика (JS, CSS, иконки) — cache-first
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;

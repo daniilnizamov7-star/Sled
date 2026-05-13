@@ -227,7 +227,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     onended="onSplashVideoEnd()"
     onerror="onSplashVideoEnd()">
   </video>
-  <button id="splashSkip" onclick="hideSplash(_pendingShow||null)">Пропустить →</button>
+  <button id="splashSkip" onclick="if(typeof hideSplash==='function'){_splashMinTime=true;hideSplash(_pendingShow||null);}">Пропустить →</button>
 </div>
 
 <div id="authScreen" class="screen">
@@ -446,7 +446,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
         <input type="checkbox" id="qSpeedBonus" checked style="width:18px;height:18px;accent-color:var(--amber);flex-shrink:0">
         <label for="qSpeedBonus" style="font-size:13px;color:var(--text2);cursor:pointer">⚡ Бонус за скорость (+${PTS.FIRST} тому кто первым завершит)</label>
       </div>
-      <div class="form-group"><label class="form-label">Код доступа <span style="color:var(--text3);font-weight:400">(для корпоративных — необязательно)</span></label><input class="form-input" id="qAccessCode" placeholder="QWE123" style="text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase();document.getElementById('qGroupsBlock').style.display=this.value.trim()?'block':'none'"></div>
+      <div class="form-group"><label class="form-label">Код доступа <span style="color:var(--text3);font-weight:400">(для корпоративных — необязательно)</span></label><input class="form-input" id="qAccessCode" placeholder="ARNEST2026" style="text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase();document.getElementById('qGroupsBlock').style.display=this.value.trim()?'block':'none'"></div>
       <div class="form-group" id="qGroupsBlock" style="display:none">
         <label class="form-label">Группы участников <span style="color:var(--text3);font-weight:400">(через запятую)</span></label>
         <input class="form-input" id="qGroups" placeholder="Смена 1, Смена 2, Смена 3, Смена 4, Смена 5">
@@ -609,7 +609,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">Введи код доступа от организатора чтобы попасть в корпоративный квест</div>
       <div class="form-group">
         <label class="form-label">Код доступа</label>
-        <input class="form-input" id="corpCodeInput" placeholder="QWE123" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;text-align:center" oninput="this.value=this.value.toUpperCase()">
+        <input class="form-input" id="corpCodeInput" placeholder="ARNEST2026" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;text-align:center" oninput="this.value=this.value.toUpperCase()">
       </div>
       <button class="btn btn-amber" onclick="joinCorporateQuest()" style="margin-bottom:10px">Войти в корпоратив</button>
     </div>
@@ -1327,7 +1327,7 @@ function showCorporateModal(){
     <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">Введи код доступа от организатора чтобы попасть в корпоративный квест</div>
     <div class="form-group">
       <label class="form-label">Код доступа</label>
-      <input class="form-input" id="corpCodeInput" placeholder="QWE123" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;text-align:center" oninput="this.value=this.value.toUpperCase()">
+      <input class="form-input" id="corpCodeInput" placeholder="ARNEST2026" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;text-align:center" oninput="this.value=this.value.toUpperCase()">
     </div>
     <button class="btn btn-amber" onclick="joinCorporateQuest()" style="margin-bottom:10px">Войти в корпоратив</button>
   `;
@@ -2571,28 +2571,35 @@ async function loadSeasonAdmin(){
 async function deleteSeason(id, title){
   if(!confirm('Удалить сезон "'+title+'"?\nКвесты останутся, но будут откреплены от сезона.'))return;
   try{
-    // Сначала откреплям квесты от сезона
-    await sb('quests?season_id=eq.'+id,{method:'PATCH',body:{season_id:null},prefer:'return=minimal'});
-    // Удаляем записи season_leaders если есть
-    await sb('season_leaders?season_id=eq.'+id,{method:'DELETE'}).catch(()=>{});
-    // Удаляем сам сезон
-    await sb('seasons?id=eq.'+id,{method:'DELETE'});
+    // Шаг 1: откреплям квесты
+    try{await sb('quests?season_id=eq.'+id,{method:'PATCH',body:{season_id:null},prefer:'return=minimal'});}
+    catch(e1){console.warn('quests unlink:',e1);}
+    // Шаг 2: чистим связанные таблицы
+    try{await sb('season_leaders?season_id=eq.'+id,{method:'DELETE'});}catch(e2){}
+    try{await sb('checkpoint_hits?quest_id=in.(select id from quests where season_id=eq.'+id+')',{method:'DELETE'});}catch(e3){}
+    // Шаг 3: удаляем сезон
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/seasons?id=eq.${id}`,{
+      method:'DELETE',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+(sessionStorage.getItem('sb_token')||SUPABASE_KEY),'Content-Type':'application/json'}
+    });
+    if(!res.ok){
+      const err=await res.json();
+      const msg=JSON.stringify(err);
+      console.error('deleteSeason error:',msg);
+      if(msg.includes('23503')||msg.includes('foreign')){
+        // Показываем таблицу которая мешает
+        const detail=err.details||err.message||msg;
+        showToast('FK ошибка: '+detail.slice(0,100));
+      } else {
+        showToast('Ошибка: '+msg.slice(0,100));
+      }
+      return;
+    }
     showToast('🗑️ Сезон удалён');
     loadSeasonAdmin();
-    // Обновляем главную если сезон был активным
     loadCurrentSeason();
   }catch(e){
-    const msg=JSON.stringify(e);
-    // Если FK ошибка — показываем что нужно сделать в Supabase
-    if(msg.includes('23503')||msg.includes('foreign')){
-      showToast('⚠️ Выполни SQL в Supabase для каскадного удаления');
-      if(confirm('Скопировать SQL для исправления?')){
-        const sql='ALTER TABLE quests DROP CONSTRAINT IF EXISTS quests_season_id_fkey;\nALTER TABLE quests ADD CONSTRAINT quests_season_id_fkey FOREIGN KEY (season_id) REFERENCES seasons(id) ON DELETE SET NULL;';
-        navigator.clipboard?.writeText(sql).then(()=>showToast('✅ SQL скопирован'));
-      }
-    } else {
-      showToast('Ошибка: '+msg);
-    }
+    showToast('Ошибка: '+(e?.message||JSON.stringify(e)));
   }
 }
 

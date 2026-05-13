@@ -683,9 +683,18 @@ async function sb(path,opts={}){
   await refreshTokenIfNeeded();
   const url=`${SUPABASE_URL}/rest/v1/${path}`;
   const headers={'apikey':SUPABASE_KEY,'Authorization':`Bearer ${sessionStorage.getItem('sb_token')||SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':opts.prefer||'return=representation',...opts.headers};
-  const res=await fetch(url,{method:opts.method||'GET',headers,body:opts.body?JSON.stringify(opts.body):undefined});
-  if(!res.ok){const e=await res.json();throw e;}
-  const t=await res.text();return t?JSON.parse(t):[];
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),8000);
+  try{
+    const res=await fetch(url,{method:opts.method||'GET',headers,body:opts.body?JSON.stringify(opts.body):undefined,signal:controller.signal});
+    clearTimeout(timeout);
+    if(!res.ok){const e=await res.json();throw e;}
+    const t=await res.text();return t?JSON.parse(t):[];
+  }catch(e){
+    clearTimeout(timeout);
+    if(e.name==='AbortError')throw {message:'Превышено время ожидания — проверь интернет-соединение'};
+    throw e;
+  }
 }
 async function sbAuth(action,email,password,meta={}){
   const res=await fetch(`${SUPABASE_URL}/auth/v1/${action}`,{method:'POST',headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password,data:meta})});
@@ -1736,7 +1745,17 @@ async function loadLeader(type,tabEl,append=false){
       else list.insertAdjacentHTML('beforeend',items);
       if(data.length===PAGE){_leaderOffset+=PAGE;list.insertAdjacentHTML('beforeend',`<div class="load-more-btn" style="text-align:center;padding:12px"><button class="btn btn-secondary" onclick="loadLeader('solo',null,true)" style="font-size:13px">Загрузить ещё</button></div>`);}
     }
-  }catch(e){if(!append)list.innerHTML='<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>';}
+  }catch(e){
+    if(!append){
+      const msg=e?.message||'Ошибка загрузки';
+      const isTimeout=msg.includes('ожидания')||e?.name==='AbortError';
+      list.innerHTML=`<div class="empty">
+        <div class="empty-icon">${isTimeout?'⏱':'⚠️'}</div>
+        <div class="empty-text" style="margin-bottom:12px">${isTimeout?'Медленное соединение — попробуй ещё раз':'Ошибка загрузки'}</div>
+        <button class="btn btn-secondary btn-sm" onclick="loadLeader('${type}',null)">🔄 Повторить</button>
+      </div>`;
+    }
+  }
 }
 
 function toggleTaskFields(){

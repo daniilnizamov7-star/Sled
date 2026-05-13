@@ -438,7 +438,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
         <input type="checkbox" id="qSpeedBonus" checked style="width:18px;height:18px;accent-color:var(--amber);flex-shrink:0">
         <label for="qSpeedBonus" style="font-size:13px;color:var(--text2);cursor:pointer">⚡ Бонус за скорость (+${PTS.FIRST} тому кто первым завершит)</label>
       </div>
-      <div class="form-group"><label class="form-label">Код доступа <span style="color:var(--text3);font-weight:400">(для корпоративных — необязательно)</span></label><input class="form-input" id="qAccessCode" placeholder="AWE123" style="text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase();document.getElementById('qGroupsBlock').style.display=this.value.trim()?'block':'none'"></div>
+      <div class="form-group"><label class="form-label">Код доступа <span style="color:var(--text3);font-weight:400">(для корпоративных — необязательно)</span></label><input class="form-input" id="qAccessCode" placeholder="ARNEST2026" style="text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase();document.getElementById('qGroupsBlock').style.display=this.value.trim()?'block':'none'"></div>
       <div class="form-group" id="qGroupsBlock" style="display:none">
         <label class="form-label">Группы участников <span style="color:var(--text3);font-weight:400">(через запятую)</span></label>
         <input class="form-input" id="qGroups" placeholder="Смена 1, Смена 2, Смена 3, Смена 4, Смена 5">
@@ -601,7 +601,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">Введи код доступа от организатора чтобы попасть в корпоративный квест</div>
       <div class="form-group">
         <label class="form-label">Код доступа</label>
-        <input class="form-input" id="corpCodeInput" placeholder="AWE123" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;text-align:center" oninput="this.value=this.value.toUpperCase()">
+        <input class="form-input" id="corpCodeInput" placeholder="ARNEST2026" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;text-align:center" oninput="this.value=this.value.toUpperCase()">
       </div>
       <button class="btn btn-amber" onclick="joinCorporateQuest()" style="margin-bottom:10px">Войти в корпоратив</button>
     </div>
@@ -684,7 +684,7 @@ async function sb(path,opts={}){
   const url=`${SUPABASE_URL}/rest/v1/${path}`;
   const headers={'apikey':SUPABASE_KEY,'Authorization':`Bearer ${sessionStorage.getItem('sb_token')||SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':opts.prefer||'return=representation',...opts.headers};
   const controller=new AbortController();
-  const timeout=setTimeout(()=>controller.abort(),8000);
+  const timeout=setTimeout(()=>controller.abort(),15000);
   try{
     const res=await fetch(url,{method:opts.method||'GET',headers,body:opts.body?JSON.stringify(opts.body):undefined,signal:controller.signal});
     clearTimeout(timeout);
@@ -746,8 +746,11 @@ function showMain(){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   const homeTab=document.getElementById('tabHome');if(homeTab)homeTab.classList.add('active');
   goScreen('homeScreen');
-  // Грузим всё параллельно — не ждём друг друга
-  Promise.all([loadQuests(),loadUserStats(),loadWinners(),loadCurrentSeason()]).catch(()=>{});
+  // Грузим последовательно с небольшой задержкой — Supabase ограничивает параллельные соединения
+  loadQuests();
+  setTimeout(()=>loadUserStats(),100);
+  setTimeout(()=>loadCurrentSeason(),200);
+  setTimeout(()=>loadWinners(),300);
 }
 
 function switchAuthTab(tab){
@@ -1273,7 +1276,7 @@ function showCorporateModal(){
     <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">Введи код доступа от организатора чтобы попасть в корпоративный квест</div>
     <div class="form-group">
       <label class="form-label">Код доступа</label>
-      <input class="form-input" id="corpCodeInput" placeholder="AWE123" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;text-align:center" oninput="this.value=this.value.toUpperCase()">
+      <input class="form-input" id="corpCodeInput" placeholder="ARNEST2026" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;text-align:center" oninput="this.value=this.value.toUpperCase()">
     </div>
     <button class="btn btn-amber" onclick="joinCorporateQuest()" style="margin-bottom:10px">Войти в корпоратив</button>
   `;

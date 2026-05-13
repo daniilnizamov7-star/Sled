@@ -736,7 +736,9 @@ function showMain(){
   document.getElementById('bottomNav').style.display='flex';
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   const homeTab=document.getElementById('tabHome');if(homeTab)homeTab.classList.add('active');
-  goScreen('homeScreen');loadQuests();loadUserStats();loadWinners();loadCurrentSeason();
+  goScreen('homeScreen');
+  // Грузим всё параллельно — не ждём друг друга
+  Promise.all([loadQuests(),loadUserStats(),loadWinners(),loadCurrentSeason()]).catch(()=>{});
 }
 
 function switchAuthTab(tab){
@@ -819,7 +821,16 @@ async function doRegister(){
 async function doLogout(){sessionStorage.clear();currentUser=null;currentProfile=null;goScreen('authScreen');}
 
 async function loadProfile(){
-  try{const d=await sb(`sledopyt_profiles?id=eq.${currentUser.id}&select=*`);if(d.length){currentProfile=d[0];updateProfileUI();}}catch(e){}
+  try{
+    const d=await sb(`sledopyt_profiles?id=eq.${currentUser.id}&select=*`);
+    if(d.length){currentProfile=d[0];updateProfileUI();}
+    else{
+      // Профиль не найден — создаём базовый
+      await sb('sledopyt_profiles',{method:'POST',body:{id:currentUser.id,username:'Участник',city:'Челябинск',points:0,quests_completed:0,checkpoints_hit:0,is_admin:false},prefer:'return=minimal'}).catch(()=>{});
+      const d2=await sb(`sledopyt_profiles?id=eq.${currentUser.id}&select=*`);
+      if(d2.length){currentProfile=d2[0];updateProfileUI();}
+    }
+  }catch(e){}
 }
 function updateProfileUI(){
   if(!currentProfile)return;
@@ -841,7 +852,6 @@ function updateProfileUI(){
 function getEmoji(name){const e=['🐺','🦊','🐻','🦁','🐯','🦅','🐍','🦋','🐬','🦄'];let h=0;for(let c of(name||''))h=(h*31+c.charCodeAt(0))&0xffff;return e[h%e.length];}
 async function loadUserStats(){
   try{
-    // Считаем ранк через count профилей с баллами больше своих
     const myPts=currentProfile?.points||0;
     const above=await sb(`sledopyt_profiles?select=id&points=gt.${myPts}`);
     document.getElementById('statRank').textContent='#'+(above.length+1);
@@ -2333,29 +2343,35 @@ function fillDemoQuest(){
 // Победители на главном экране
 async function loadWinners(){
   try{
-    const ended=await sb("quests?status=eq.ended&order=created_at.desc&limit=3&select=*");
+    const ended=await sb("quests?status=eq.ended&order=created_at.desc&limit=3&select=id,title");
     if(!ended.length){document.getElementById("winnersSection").style.display="none";return;}
-    const section=document.getElementById("winnersSection");
-    const banner=document.getElementById("winnersBanner");
+    const questIds=ended.map(q=>q.id).join(',');
+    // Грузим completions для всех квестов одним запросом
+    const [compsAll]=await Promise.all([
+      sb(`quest_completions?quest_id=in.(${questIds})&order=finished_at.asc&select=user_id,bonus_points,finished_at,quest_id&limit=9`)
+    ]);
+    if(!compsAll.length){document.getElementById("winnersSection").style.display="none";return;}
+    const userIds=[...new Set(compsAll.map(c=>c.user_id))].join(',');
+    const profiles=await sb(`sledopyt_profiles?id=in.(${userIds})&select=id,username`);
+    const nm={};profiles.forEach(p=>nm[p.id]=p.username);
+    const medals=["🥇","🥈","🥉"];
     let html="";
     for(const q of ended){
-      const comps=await sb(`quest_completions?quest_id=eq.${q.id}&order=finished_at.asc&limit=3&select=user_id,bonus_points,finished_at`);
+      const comps=compsAll.filter(c=>c.quest_id===q.id).slice(0,3);
       if(!comps.length)continue;
-      const ids=comps.map(function(c){return c.user_id;}).join(",");
-      const profiles=await sb(`sledopyt_profiles?id=in.(${ids})&select=id,username`);
-      const nm={}; profiles.forEach(function(p){nm[p.id]=p.username;});
-      const medals=["🥇","🥈","🥉"];
       html+='<div class="quest-card" style="margin-bottom:12px">'
         +'<div class="quest-title" style="font-size:13px;margin-bottom:10px">'+q.title+'</div>'
-        +comps.slice(0,3).map(function(c,i){
+        +comps.map(function(c,i){
           return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--border)">'
             +'<span style="font-size:20px">'+medals[i]+'</span>'
-            +'<span style="font-size:14px;font-weight:600;color:var(--text);flex:1">'+( nm[c.user_id]||"—")+'</span>'
+            +'<span style="font-size:14px;font-weight:600;color:var(--text);flex:1">'+(nm[c.user_id]||"—")+'</span>'
             +'<span style="font-size:12px;color:var(--text3)">'+formatDate(c.finished_at)+'</span>'
             +"</div>";
         }).join("")
         +"</div>";
     }
+    const section=document.getElementById("winnersSection");
+    const banner=document.getElementById("winnersBanner");
     if(html){section.style.display="block";banner.innerHTML=html;}
     else{section.style.display="none";}
   }catch(e){document.getElementById("winnersSection").style.display="none";}

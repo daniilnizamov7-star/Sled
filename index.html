@@ -317,6 +317,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 <div id="questScreen" class="screen">
   <div class="topbar"><button class="back-btn" onclick="goBack()">← Назад</button></div>
   <div class="quest-detail-hero" id="questDetailHero"></div>
+  <div id="sponsorSection" style="display:none;padding:0 16px 4px"><div id="sponsorBanner"></div></div>
   <div class="detail-tabs">
     <div class="detail-tab active" onclick="switchDetailTab('route',this)">🗺️ Маршрут</div>
     <div class="detail-tab" onclick="switchDetailTab('rating',this)">🏆 Рейтинг</div>
@@ -1009,6 +1010,7 @@ async function openQuest(quest){currentQuestData=quest;
   goScreen('questScreen');
   const firstTab=document.querySelector('#questScreen .detail-tab');switchDetailTab('route',firstTab);
   if(quest.end_date)setTimeout(function(){startQuestTimer(quest.end_date);},60);
+  loadSponsors(quest.id);
 }
 
 function switchDetailTab(tab,el){
@@ -2569,12 +2571,29 @@ async function loadSeasonAdmin(){
 async function deleteSeason(id, title){
   if(!confirm('Удалить сезон "'+title+'"?\nКвесты останутся, но будут откреплены от сезона.'))return;
   try{
-    // Откреплям квесты от сезона
-    await sb('quests?season_id=eq.'+id,{method:'PATCH',body:{season_id:null},prefer:'return=minimal'}).catch(()=>{});
+    // Сначала откреплям квесты от сезона
+    await sb('quests?season_id=eq.'+id,{method:'PATCH',body:{season_id:null},prefer:'return=minimal'});
+    // Удаляем записи season_leaders если есть
+    await sb('season_leaders?season_id=eq.'+id,{method:'DELETE'}).catch(()=>{});
+    // Удаляем сам сезон
     await sb('seasons?id=eq.'+id,{method:'DELETE'});
     showToast('🗑️ Сезон удалён');
     loadSeasonAdmin();
-  }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
+    // Обновляем главную если сезон был активным
+    loadCurrentSeason();
+  }catch(e){
+    const msg=JSON.stringify(e);
+    // Если FK ошибка — показываем что нужно сделать в Supabase
+    if(msg.includes('23503')||msg.includes('foreign')){
+      showToast('⚠️ Выполни SQL в Supabase для каскадного удаления');
+      if(confirm('Скопировать SQL для исправления?')){
+        const sql='ALTER TABLE quests DROP CONSTRAINT IF EXISTS quests_season_id_fkey;\nALTER TABLE quests ADD CONSTRAINT quests_season_id_fkey FOREIGN KEY (season_id) REFERENCES seasons(id) ON DELETE SET NULL;';
+        navigator.clipboard?.writeText(sql).then(()=>showToast('✅ SQL скопирован'));
+      }
+    } else {
+      showToast('Ошибка: '+msg);
+    }
+  }
 }
 
 function editSeasonPrompt(id, title, starts, ends){

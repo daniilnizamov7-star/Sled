@@ -1868,8 +1868,8 @@ async function loadAdminQuestList(){
           <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0;margin-left:10px">
             ${!isArchived?`<button class="btn btn-sm ${isActive?'btn-red':'btn-primary'}" onclick="toggleQuestStatus('${q.id}','${q.status}')">${isActive?'Завершить':'Активировать'}</button>`:''}
             ${!isArchived?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="openEditQuest('${q.id}','${q.title}','${(q.description||'').replace(/'/g,"\\'")  }','${(q.prize_description||'').replace(/'/g,"\\'")  }','${q.end_date}')">✏️ Изменить</button>`:''}
-            ${!isArchived?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="deleteQuest('${q.id}','${q.title}')">📦 В архив</button>`:''}
-            ${isArchived?`<button class="btn btn-sm btn-primary" style="font-size:11px" onclick="unarchiveQuest('${q.id}')">↩ Вернуть</button><button class="btn btn-sm btn-red" style="font-size:11px" onclick="hardDeleteQuest('${q.id}','${q.title}')">🗑 Удалить</button>`:''}
+            ${!isArchived?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="archiveQuest('${q.id}','${q.title.replace(/'/g,"\\'")}')">📦 В архив</button>`:''}
+            ${isArchived?`<button class="btn btn-sm btn-primary" style="font-size:11px" onclick="unarchiveQuest('${q.id}')">↩ Вернуть</button><button class="btn btn-sm btn-red" style="font-size:11px" onclick="deleteQuest('${q.id}','${q.title.replace(/'/g,"\\'")}')">🗑 Удалить</button>`:''}
           </div>
         </div>
         ${!isArchived?`
@@ -1983,6 +1983,15 @@ async function toggleQuestStatus(id,status){
     showToast('✅ Квест активирован');
   }
   loadAdminQuestList();
+}
+
+async function archiveQuest(id,title){
+  if(!confirm(`Отправить квест "${title}" в архив?\nДанные сохранятся, квест скроется из публичного списка.`))return;
+  try{
+    await sb(`quests?id=eq.${id}`,{method:'PATCH',body:{status:'archived'},prefer:'return=minimal'});
+    showToast('📦 Квест в архиве');
+    loadAdminQuestList();
+  }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
 }
 
 async function deleteQuest(id,title){

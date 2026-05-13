@@ -1261,18 +1261,27 @@ async function showQuestPhotos(questId, questTitle){
 async function deleteHitPhoto(hitId, photoUrl){
   if(!confirm('Удалить это фото?'))return;
   try{
-    // Убираем photo_url из хита (сам хит сохраняем — точка засчитана)
+    // Убираем photo_url из хита
     await sb(`checkpoint_hits?id=eq.${hitId}`,{method:'PATCH',body:{photo_url:null},prefer:'return=minimal'});
-    // Удаляем файл из Storage
+    // Удаляем файл из Storage через правильный API
     try{
       const path=photoUrl.split('/checkpoint-photos/')[1];
-      if(path)await fetch(`${SUPABASE_URL}/storage/v1/object/checkpoint-photos/${path}`,{method:'DELETE',headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+sessionStorage.getItem('sb_token')}});
-    }catch(e){}
-    // Скрываем карточку без перезагрузки
+      if(path){
+        await fetch(`${SUPABASE_URL}/storage/v1/object/checkpoint-photos`,{
+          method:'DELETE',
+          headers:{
+            'apikey':SUPABASE_KEY,
+            'Authorization':'Bearer '+sessionStorage.getItem('sb_token'),
+            'Content-Type':'application/json'
+          },
+          body:JSON.stringify({prefixes:[decodeURIComponent(path)]})
+        });
+      }
+    }catch(e){console.warn('Storage delete error:',e);}
     const card=document.getElementById('photo-card-'+hitId);
     if(card)card.style.display='none';
     showToast('Фото удалено');
-  }catch(e){showToast('Ошибка удаления');}
+  }catch(e){showToast('Ошибка удаления: '+(e?.message||JSON.stringify(e)));}
 }
 
 async function openEditCheckpointById(btn){

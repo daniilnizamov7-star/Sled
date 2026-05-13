@@ -1173,6 +1173,17 @@ async function deleteHitPhoto(hitId, photoUrl){
   }catch(e){showToast('Ошибка удаления');}
 }
 
+async function openEditCheckpointById(btn){
+  const id=btn.dataset.cpid;
+  const questId=btn.dataset.questid;
+  try{
+    const cps=await sb(`checkpoints?id=eq.${id}&select=*`);
+    if(!cps.length)return showToast('Точка не найдена');
+    const cp=cps[0];
+    openEditCheckpoint(cp.id,cp.name,cp.hint,cp.learning_text,cp.post_fact,cp.task_type,cp.task_text,cp.task_tip,cp.task_answer,questId);
+  }catch(e){showToast('Ошибка загрузки точки');}
+}
+
 function openEditCheckpoint(id,name,hint,learning,postFact,taskType,taskText,taskTip,taskAnswer,questId){
   document.getElementById('editCpId').value=id;
   document.getElementById('editCpQuestId').value=questId;
@@ -2216,7 +2227,10 @@ async function loadCheckpointsList2(questId){
         +'</div></div>'
         +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
         +'<button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="generateQRAndDownload(\''+APP_URL+'?cp='+cp.token+'\',\''+esc(cp.name)+'\')">📥 QR</button>'
-        +'<button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="openEditCheckpoint(\''+cp.id+'\',\''+esc(cp.name)+'\',\''+esc(cp.hint)+'\',\''+esc(cp.learning_text)+'\',\''+esc(cp.post_fact)+'\',\''+esc(cp.task_type)+'\',\''+esc(cp.task_text)+'\',\''+esc(cp.task_tip)+'\',\''+esc(cp.task_answer)+'\',\''+questId+'\')">✏️ Изменить</button>'
+        +'<button class="btn btn-secondary btn-sm" style="font-size:11px" '
+        +'data-cpid="'+cp.id+'" '
+        +'data-questid="'+questId+'" '
+        +'onclick="openEditCheckpointById(this)">✏️ Изменить</button>'
         +'<button class="btn btn-red btn-sm" style="font-size:11px;padding:4px 8px" onclick="deleteCheckpoint(\''+cp.id+'\',\''+esc(cp.name)+'\',\''+questId+'\')">✕</button>'
         +'</div>'
         +'</div>';

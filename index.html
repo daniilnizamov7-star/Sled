@@ -2161,6 +2161,7 @@ async function loadAdminQuestList(){
           <button class="btn btn-secondary btn-sm" onclick="toggleSection('cp-${q.id}');loadCheckpointsList2('${q.id}')">🗺️ Точки (${q.checkpoint_count||0})</button>
           <button class="btn btn-secondary btn-sm" onclick="toggleSection('sp-${q.id}');loadSponsorAdmin2('${q.id}')">🏆 Спонсоры</button>
           <button class="btn btn-secondary btn-sm" onclick="showQuestPhotos('${q.id}','${q.title.replace(/'/g,"\\'")}')">📸 Фото</button>
+          <button class="btn btn-secondary btn-sm" onclick="exportQuestDoc('${q.id}')">📄 Экспорт</button>
         </div>
         <div id="cp-${q.id}" style="display:none;margin-top:10px">
           <div id="cpList-${q.id}" style="margin-bottom:8px"></div>
@@ -2193,6 +2194,127 @@ async function loadAdminQuestList(){
     }
     list.innerHTML=html;
   }catch(e){list.innerHTML='<div class="empty"><div class="empty-text">Ошибка загрузки</div></div>';}
+}
+
+async function exportQuestDoc(questId){
+  showToast('Собираем данные квеста...');
+  try{
+    const [quest,cps,sponsors]=await Promise.all([
+      sb(`quests?id=eq.${questId}&select=*`),
+      sb(`checkpoints?quest_id=eq.${questId}&order=order_num.asc&select=*`),
+      sb(`quest_sponsors?quest_id=eq.${questId}&order=place.asc&select=*`).catch(()=>[])
+    ]);
+    if(!quest.length)return showToast('Квест не найден');
+    const q=quest[0];
+    const typeMap={solo:'Личный',team:'Командный',corp:'Корпоративный'};
+    const statusMap={active:'Активен',ended:'Завершён',archived:'Архив'};
+    const taskTypeMap={text:'Текстовый ответ',photo:'Фото',qr:'QR-код',open:'Открытый'};
+
+    const cpsHtml=cps.map((cp,i)=>{
+      const hasTask=cp.task_type||cp.task_text;
+      const hasLearning=cp.learning_text||cp.post_fact;
+      return `
+      <div style="page-break-inside:avoid;margin-bottom:28px;border:1px solid #ddd;border-radius:8px;overflow:hidden">
+        <div style="background:#1a2e1a;color:#4ade80;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:700;font-size:15px">Точка ${cp.order_num}. ${cp.name}</span>
+          <span style="font-size:11px;opacity:.8">токен: ${cp.token||'—'}</span>
+        </div>
+        <div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div><span style="font-size:10px;text-transform:uppercase;color:#888;font-weight:600">Подсказка для поиска</span><div style="margin-top:4px;font-size:13px">${cp.hint||'—'}</div></div>
+          <div><span style="font-size:10px;text-transform:uppercase;color:#888;font-weight:600">Координаты</span><div style="margin-top:4px;font-size:13px">${cp.lat&&cp.lng?`${(+cp.lat).toFixed(6)}, ${(+cp.lng).toFixed(6)}`:'—'}</div></div>
+          <div><span style="font-size:10px;text-transform:uppercase;color:#888;font-weight:600">Радиус зоны</span><div style="margin-top:4px;font-size:13px">${cp.radius_meters||20} м</div></div>
+          <div><span style="font-size:10px;text-transform:uppercase;color:#888;font-weight:600">Баллов за точку</span><div style="margin-top:4px;font-size:13px">+${PTS.CP}</div></div>
+        </div>
+        ${hasTask?`
+        <div style="background:#f0fdf4;border-top:1px solid #ddd;padding:12px 16px">
+          <div style="font-size:10px;text-transform:uppercase;color:#888;font-weight:600;margin-bottom:8px">Задание</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div><span style="font-size:10px;color:#888">Тип</span><div style="font-size:13px;margin-top:2px">${taskTypeMap[cp.task_type]||cp.task_type||'—'}</div></div>
+            <div><span style="font-size:10px;color:#888">Правильный ответ</span><div style="font-size:13px;margin-top:2px;font-weight:600;color:#16a34a">${cp.task_answer||'—'}</div></div>
+            <div style="grid-column:1/-1"><span style="font-size:10px;color:#888">Текст задания</span><div style="font-size:13px;margin-top:2px">${cp.task_text||'—'}</div></div>
+            ${cp.task_tip?`<div style="grid-column:1/-1"><span style="font-size:10px;color:#888">Подсказка к заданию</span><div style="font-size:13px;margin-top:2px;color:#ca8a04">${cp.task_tip}</div></div>`:''}
+          </div>
+        </div>`:''}
+        ${hasLearning?`
+        <div style="background:#fffbeb;border-top:1px solid #ddd;padding:12px 16px">
+          <div style="font-size:10px;text-transform:uppercase;color:#888;font-weight:600;margin-bottom:8px">📚 Обучающий блок</div>
+          ${cp.learning_text?`<div style="margin-bottom:8px"><span style="font-size:10px;color:#888">Текст обучения</span><div style="font-size:13px;margin-top:2px">${cp.learning_text}</div></div>`:''}
+          ${cp.post_fact?`<div><span style="font-size:10px;color:#888">Интересный факт</span><div style="font-size:13px;margin-top:2px;font-style:italic">${cp.post_fact}</div></div>`:''}
+        </div>`:''}
+      </div>`;
+    }).join('');
+
+    const sponsorsHtml=sponsors.length?`
+      <div style="margin-top:24px">
+        <h3 style="font-size:14px;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:12px">Спонсоры и призы</h3>
+        ${sponsors.map((s,i)=>`
+          <div style="border:1px solid #ddd;border-radius:6px;padding:10px 14px;margin-bottom:8px;display:flex;gap:12px;align-items:center">
+            <div style="background:#1a2e1a;color:#4ade80;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">${i+1}</div>
+            <div><div style="font-weight:600;font-size:13px">${s.sponsor_name||'—'}</div><div style="font-size:12px;color:#666">${s.prize_description||'—'}</div></div>
+          </div>`).join('')}
+      </div>`:'';
+
+    const printDate=new Date().toLocaleDateString('ru',{day:'2-digit',month:'long',year:'numeric'});
+    const startDate=q.start_date?new Date(q.start_date).toLocaleDateString('ru',{day:'2-digit',month:'long',year:'numeric'}):'—';
+    const endDate=q.end_date?new Date(q.end_date).toLocaleDateString('ru',{day:'2-digit',month:'long',year:'numeric'}):'—';
+
+    const doc=`<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Квест: ${q.title}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;background:#fff;padding:24px;max-width:900px;margin:0 auto}
+  @media print{
+    body{padding:0}
+    .no-print{display:none!important}
+    @page{margin:20mm 15mm;size:A4}
+  }
+  h1{font-size:22px;font-weight:800;color:#1a2e1a;margin-bottom:4px}
+  h2{font-size:16px;font-weight:700;color:#1a2e1a;margin:20px 0 12px;padding-bottom:6px;border-bottom:2px solid #4ade80}
+  .meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0 24px}
+  .meta-card{background:#f8f8f8;border:1px solid #eee;border-radius:8px;padding:12px}
+  .meta-label{font-size:10px;text-transform:uppercase;color:#888;font-weight:600;margin-bottom:4px}
+  .meta-value{font-size:14px;font-weight:700;color:#1a1a1a}
+  .btn-print{background:#4ade80;color:#0a150b;border:none;padding:10px 24px;font-size:14px;font-weight:700;border-radius:8px;cursor:pointer;margin-bottom:20px}
+  .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+  .badge-active{background:#dcfce7;color:#16a34a}
+  .badge-ended{background:#fef9c3;color:#a16207}
+  .badge-archived{background:#f3f4f6;color:#6b7280}
+  .footer{margin-top:32px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#888;display:flex;justify-content:space-between}
+</style>
+</head>
+<body>
+<button class="btn-print no-print" onclick="window.print()">🖨 Распечатать</button>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+  <h1>📍 ${q.title}</h1>
+  <span class="badge badge-${q.status}">${statusMap[q.status]||q.status}</span>
+</div>
+<div style="font-size:13px;color:#555;margin-bottom:16px">${q.description||''}</div>
+<div class="meta-grid">
+  <div class="meta-card"><div class="meta-label">Тип квеста</div><div class="meta-value">${typeMap[q.quest_type]||q.quest_type||'—'}</div></div>
+  <div class="meta-card"><div class="meta-label">Точек</div><div class="meta-value">${cps.length}</div></div>
+  <div class="meta-card"><div class="meta-label">Дата окончания</div><div class="meta-value">${endDate}</div></div>
+  <div class="meta-card"><div class="meta-label">Бонус скорости</div><div class="meta-value">${q.with_speed_bonus?'Да':'Нет'}</div></div>
+  <div class="meta-card"><div class="meta-label">Обучающий режим</div><div class="meta-value">${q.with_learning?'Да':'Нет'}</div></div>
+  <div class="meta-card"><div class="meta-label">Приз</div><div class="meta-value" style="font-size:12px">${q.prize_description||'—'}</div></div>
+</div>
+<h2>Маршрутные точки (${cps.length})</h2>
+${cpsHtml||'<div style="color:#888;padding:16px">Точки не добавлены</div>'}
+${sponsorsHtml}
+<div class="footer">
+  <span>СЛЕДОПЫТ · sledopyt.vercel.app</span>
+  <span>Сгенерировано: ${printDate}</span>
+</div>
+</body>
+</html>`;
+
+    const win=window.open('','_blank');
+    if(!win)return showToast('Разрешите всплывающие окна в браузере');
+    win.document.write(doc);
+    win.document.close();
+  }catch(e){showToast('Ошибка: '+(e?.message||JSON.stringify(e)));}
 }
 
 async function createQuest(){
@@ -2895,9 +3017,10 @@ async function getMySeasonPoints(sid){
     var qs=await sb("quests?season_id=eq."+sid+"&select=id");
     if(!qs.length)return 0;
     var ids=qs.map(function(q){return q.id;}).join(",");
-    var h2=await sb("checkpoint_hits?user_id=eq."+currentUser.id+"&quest_id=in.("+ids+")&select=points");
+    // checkpoint_hits не имеет колонки points — считаем фиксированно PTS.CP за каждый хит
+    var h2=await sb("checkpoint_hits?user_id=eq."+currentUser.id+"&quest_id=in.("+ids+")&select=id");
     var c2=await sb("quest_completions?user_id=eq."+currentUser.id+"&quest_id=in.("+ids+")&select=bonus_points");
-    return h2.reduce(function(s,x){return s+(x.points||10);},0)
+    return h2.length*PTS.CP
       +c2.reduce(function(s,x){return s+(x.bonus_points||0);},0);
   }catch(e){return 0;}
 }
@@ -3041,7 +3164,8 @@ async function loadSeasonLeader(tabEl){
     var quests=await sb('quests?season_id=eq.'+season.id+'&select=id');
     if(!quests.length){list.innerHTML='<div class="empty"><div class="empty-text">Квесты сезона ещё не назначены</div></div>';return;}
     var qIds=quests.map(function(q){return q.id;}).join(',');
-    var hits=await sb('checkpoint_hits?quest_id=in.('+qIds+')&select=user_id,points');
+    // checkpoint_hits не имеет колонки points — считаем PTS.CP за каждый хит
+    var hits=await sb('checkpoint_hits?quest_id=in.('+qIds+')&select=user_id');
     var comps=await sb('quest_completions?quest_id=in.('+qIds+')&select=user_id,bonus_points');
     var totals={};
     hits.forEach(function(h){totals[h.user_id]=(totals[h.user_id]||0)+PTS.CP;});
@@ -3139,10 +3263,12 @@ function subscribeRealtime(){
         // Изменение баллов своего профиля — обновить отображение
         if(payload.type==="UPDATE"&&table.indexOf("sledopyt_profiles")>=0&&currentUser&&record.id===currentUser.id){
           if(record.points!==undefined){
+            var oldPts=currentProfile?currentProfile.points:0;
+            var diff=record.points-oldPts;
             if(currentProfile)currentProfile.points=record.points;
             var sp=document.getElementById("statPoints");if(sp)sp.textContent=record.points;
             var pp=document.getElementById("pStatP");if(pp)pp.textContent=record.points;
-            showToast("🌟 +" + PTS.PHOTO_BONUS + " баллов — фото одобрено!");
+            if(diff>0)showToast("🌟 +" + diff + " баллов — фото одобрено!");
           }
         }
       }catch(er){}

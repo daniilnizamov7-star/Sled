@@ -322,10 +322,12 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     <div class="detail-tab active" onclick="switchDetailTab('route',this)">🗺️ Маршрут</div>
     <div class="detail-tab" onclick="switchDetailTab('rating',this)">🏆 Рейтинг</div>
     <div class="detail-tab" onclick="switchDetailTab('team',this)">🤝 Команда</div>
+    <div class="detail-tab" onclick="switchDetailTab('gallery',this)">📸 Галерея</div>
   </div>
   <div id="detailRoute"></div>
   <div id="detailRating" style="display:none"></div>
   <div id="detailTeam" style="display:none"></div>
+  <div id="detailGallery" style="display:none"></div>
 </div>
 
 <div id="verifyScreen" class="screen">
@@ -354,7 +356,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <div class="selfie-placeholder">
         <div style="font-size:48px">📸</div>
         <div id="selfiePrompt">Сделай фото</div>
-        <div style="font-size:11px;color:var(--text3)">Необязательно · +5 баллов за фото</div>
+        <div style="font-size:11px;color:var(--text3)">Необязательно · +5 баллов после одобрения</div>
       </div>
     </div>
     <input type="file" id="selfieInput" accept="image/*" capture="environment" style="display:none" onchange="handleSelfie(event)">
@@ -1045,9 +1047,71 @@ function switchDetailTab(tab,el){
   document.getElementById('detailRoute').style.display=tab==='route'?'block':'none';
   document.getElementById('detailRating').style.display=tab==='rating'?'block':'none';
   document.getElementById('detailTeam').style.display=tab==='team'?'block':'none';
+  document.getElementById('detailGallery').style.display=tab==='gallery'?'block':'none';
   if(tab==='route')loadCheckpoints(currentQuestId);
   if(tab==='rating')loadQuestRating(currentQuestId);
   if(tab==='team')loadTeamSection(currentQuestId);
+  if(tab==='gallery')loadQuestGallery(currentQuestId);
+}
+
+async function loadQuestGallery(questId){
+  const el=document.getElementById('detailGallery');
+  el.innerHTML='<div class="loader"><div class="spinner"></div></div>';
+  try{
+    // Показываем featured + approved фото
+    const hits=await sb(`checkpoint_hits?quest_id=eq.${questId}&photo_url=not.is.null&photo_status=in.(featured,approved)&order=photo_status.asc,hit_at.desc&select=id,user_id,checkpoint_id,photo_url,hit_at,photo_status`);
+    if(!hits.length){
+      el.innerHTML=`<div style="padding:32px 20px;text-align:center;color:var(--text3)">
+        <div style="font-size:40px;margin-bottom:12px">📷</div>
+        <div style="font-size:14px">Фото пока нет</div>
+        <div style="font-size:12px;margin-top:6px">Одобренные фото участников появятся здесь</div>
+      </div>`;
+      return;
+    }
+    const userIds=[...new Set(hits.map(h=>h.user_id))].join(',');
+    const cpIds=[...new Set(hits.map(h=>h.checkpoint_id))].join(',');
+    const [profiles,checkpoints]=await Promise.all([
+      sb(`sledopyt_profiles?id=in.(${userIds})&select=id,username`).catch(()=>[]),
+      sb(`checkpoints?id=in.(${cpIds})&select=id,name`).catch(()=>[])
+    ]);
+    const pm={};profiles.forEach(p=>pm[p.id]=p.username);
+    const cm={};checkpoints.forEach(c=>cm[c.id]=c.name);
+    const featured=hits.filter(h=>h.photo_status==='featured');
+    const approved=hits.filter(h=>h.photo_status==='approved');
+    let html='<div style="padding:16px">';
+    if(featured.length){
+      html+=`<div style="font-size:11px;font-weight:700;color:var(--amber);letter-spacing:.5px;margin-bottom:10px">🌟 ЛУЧШИЕ ФОТО</div>`;
+      html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">`;
+      html+=featured.map(h=>{
+        const time=new Date(h.hit_at).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        return `<div style="background:var(--bg3);border:2px solid var(--amber-dim);border-radius:10px;overflow:hidden">
+          <img src="${h.photo_url}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:pointer" loading="lazy" onclick="window.open('${h.photo_url.replace(/'/g,'%27')}','_blank')" onerror="this.parentElement.style.display='none'">
+          <div style="padding:6px 8px">
+            <div style="font-size:11px;font-weight:600;color:var(--amber)">${pm[h.user_id]||'Участник'}</div>
+            <div style="font-size:10px;color:var(--text3)">${cm[h.checkpoint_id]||'Точка'} · ${time}</div>
+          </div>
+        </div>`;
+      }).join('');
+      html+='</div>';
+    }
+    if(approved.length){
+      html+=`<div style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:.5px;margin-bottom:10px">✅ ОДОБРЕННЫЕ ФОТО</div>`;
+      html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`;
+      html+=approved.map(h=>{
+        const time=new Date(h.hit_at).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+          <img src="${h.photo_url}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:pointer" loading="lazy" onclick="window.open('${h.photo_url.replace(/'/g,'%27')}','_blank')" onerror="this.parentElement.style.display='none'">
+          <div style="padding:6px 8px">
+            <div style="font-size:11px;font-weight:600;color:var(--text)">${pm[h.user_id]||'Участник'}</div>
+            <div style="font-size:10px;color:var(--text3)">${cm[h.checkpoint_id]||'Точка'} · ${time}</div>
+          </div>
+        </div>`;
+      }).join('');
+      html+='</div>';
+    }
+    html+='</div>';
+    el.innerHTML=html;
+  }catch(e){el.innerHTML=`<div style="padding:20px;color:var(--red);font-size:13px">Ошибка загрузки галереи</div>`;}
 }
 
 async function loadCheckpoints(questId){
@@ -1288,26 +1352,39 @@ async function moderatePhoto(hitId, status, userId){
   try{
     const prev=await sb(`checkpoint_hits?id=eq.${hitId}&select=photo_status`);
     const prevStatus=prev[0]?.photo_status||'pending';
+
+    // Не делаем ничего если статус не изменился
+    if(prevStatus===status)return showToast('Статус уже установлен');
+
     await sb(`checkpoint_hits?id=eq.${hitId}`,{method:'PATCH',body:{photo_status:status},prefer:'return=minimal'});
-    // Начисляем +5 при одобрении если раньше не было
-    if((status==='approved'||status==='featured')&&prevStatus!=='approved'&&prevStatus!=='featured'){
+
+    // Состояния с баллами: approved, featured
+    // Состояния без баллов: pending, rejected
+    const wasRewarded=prevStatus==='approved'||prevStatus==='featured';
+    const willReward=status==='approved'||status==='featured';
+
+    if(willReward&&!wasRewarded){
+      // pending/rejected → approved/featured: начисляем +5
       const prof=await sb(`sledopyt_profiles?id=eq.${userId}&select=points`);
       if(prof.length){
         await sb(`sledopyt_profiles?id=eq.${userId}`,{method:'PATCH',body:{points:(prof[0].points||0)+PTS.PHOTO_BONUS},prefer:'return=minimal'});
       }
-      showToast(status==='featured'?'🌟 Фото в галерею +'+PTS.PHOTO_BONUS+' баллов':'✅ Одобрено +'+PTS.PHOTO_BONUS+' баллов');
-    } else if(status==='rejected'){
-      // Отнимаем баллы если раньше было одобрено
-      if(prevStatus==='approved'||prevStatus==='featured'){
-        const prof=await sb(`sledopyt_profiles?id=eq.${userId}&select=points`);
-        if(prof.length){
-          await sb(`sledopyt_profiles?id=eq.${userId}`,{method:'PATCH',body:{points:Math.max(0,(prof[0].points||0)-PTS.PHOTO_BONUS)},prefer:'return=minimal'});
-        }
+      showToast(status==='featured'?'🌟 В галерею +'+PTS.PHOTO_BONUS+' баллов':'✅ Одобрено +'+PTS.PHOTO_BONUS+' баллов');
+    } else if(!willReward&&wasRewarded){
+      // approved/featured → rejected: отнимаем -5
+      const prof=await sb(`sledopyt_profiles?id=eq.${userId}&select=points`);
+      if(prof.length){
+        await sb(`sledopyt_profiles?id=eq.${userId}`,{method:'PATCH',body:{points:Math.max(0,(prof[0].points||0)-PTS.PHOTO_BONUS)},prefer:'return=minimal'});
       }
-      showToast('❌ Фото отклонено');
+      showToast('❌ Фото отклонено −'+PTS.PHOTO_BONUS+' баллов');
+    } else if(wasRewarded&&willReward){
+      // approved ↔ featured: баллы не меняем
+      showToast(status==='featured'?'🌟 Добавлено в галерею':'✅ Одобрено');
     } else {
-      showToast('Статус обновлён');
+      // pending → rejected или rejected → pending
+      showToast(status==='rejected'?'❌ Фото отклонено':'⏳ Возвращено на проверку');
     }
+
     // Обновляем карточку без перезагрузки
     const card=document.getElementById('photo-card-'+hitId);
     if(card){
@@ -1315,7 +1392,8 @@ async function moderatePhoto(hitId, status, userId){
       if(badge){
         badge.outerHTML=status==='approved'?'<span style="background:rgba(74,222,128,.2);color:var(--green);font-size:10px;padding:2px 6px;border-radius:10px">✅ Одобрено</span>':
           status==='featured'?'<span style="background:rgba(251,191,36,.2);color:var(--amber);font-size:10px;padding:2px 6px;border-radius:10px">🌟 В галерею</span>':
-          '<span style="background:rgba(248,113,113,.2);color:var(--red);font-size:10px;padding:2px 6px;border-radius:10px">❌ Отклонено</span>';
+          status==='rejected'?'<span style="background:rgba(248,113,113,.2);color:var(--red);font-size:10px;padding:2px 6px;border-radius:10px">❌ Отклонено</span>':
+          '<span style="background:var(--bg3);color:var(--text3);font-size:10px;padding:2px 6px;border-radius:10px">⏳ Ожидает</span>';
       }
     }
   }catch(e){showToast('Ошибка: '+(e?.message||JSON.stringify(e)));}
@@ -1682,7 +1760,8 @@ async function submitCheckpoint(){
     if(selfieBlob){
       const path=`selfies/${currentUser.id}/${currentCheckpointData.id}_${Date.now()}.jpg`;
       photoUrl=await uploadPhoto('checkpoint-photos',path,selfieBlob);
-      photoBonusPts=PTS.PHOTO_BONUS;
+      // Баллы за фото НЕ начисляем сразу — только после одобрения модератором
+      photoBonusPts=0;
     }
     const caption=document.getElementById('captionInput').value.trim()||null;
     // Проверка ответа — начисляем доп. баллы за правильный
@@ -1724,7 +1803,7 @@ async function submitCheckpoint(){
     const msg=await checkQuestCompletion(currentCheckpointData.quest_id);
     let ptsMsg=`+${PTS.CP}`;
     if(answerPts)ptsMsg+=` +${answerPts} за ответ`;
-    if(photoBonusPts)ptsMsg+=` +${photoBonusPts} за фото`;
+    if(photoUrl)ptsMsg+=` (фото +${PTS.PHOTO_BONUS} после одобрения)`;
     document.getElementById('successSub').textContent=msg||(ptsMsg+' баллов!');
     var _fin=msg&&(msg.indexOf('\u0444\u0438\u043d\u0438\u0448')>=0||msg.indexOf('\u0437\u0430\u0432')>=0);
     if(_fin){launchConfetti();playHitSound('complete');var _ph=document.getElementById('successPrizeHint');var _pt=document.getElementById('successPrizeText');if(_ph){_ph.style.display='block';if(_pt&&currentQuestData&&currentQuestData.prize_description)_pt.textContent=currentQuestData.prize_description;}}

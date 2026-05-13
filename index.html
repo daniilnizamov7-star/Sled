@@ -446,7 +446,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
         <input type="checkbox" id="qSpeedBonus" checked style="width:18px;height:18px;accent-color:var(--amber);flex-shrink:0">
         <label for="qSpeedBonus" style="font-size:13px;color:var(--text2);cursor:pointer">⚡ Бонус за скорость (+${PTS.FIRST} тому кто первым завершит)</label>
       </div>
-      <div class="form-group"><label class="form-label">Код доступа <span style="color:var(--text3);font-weight:400">(для корпоративных — необязательно)</span></label><input class="form-input" id="qAccessCode" placeholder="ARNEST2026" style="text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase();document.getElementById('qGroupsBlock').style.display=this.value.trim()?'block':'none'"></div>
+      <div class="form-group"><label class="form-label">Код доступа <span style="color:var(--text3);font-weight:400">(для корпоративных — необязательно)</span></label><input class="form-input" id="qAccessCode" placeholder="QWE123" style="text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase();document.getElementById('qGroupsBlock').style.display=this.value.trim()?'block':'none'"></div>
       <div class="form-group" id="qGroupsBlock" style="display:none">
         <label class="form-label">Группы участников <span style="color:var(--text3);font-weight:400">(через запятую)</span></label>
         <input class="form-input" id="qGroups" placeholder="Смена 1, Смена 2, Смена 3, Смена 4, Смена 5">
@@ -609,7 +609,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">Введи код доступа от организатора чтобы попасть в корпоративный квест</div>
       <div class="form-group">
         <label class="form-label">Код доступа</label>
-        <input class="form-input" id="corpCodeInput" placeholder="ARNEST2026" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;text-align:center" oninput="this.value=this.value.toUpperCase()">
+        <input class="form-input" id="corpCodeInput" placeholder="QWE123" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;text-align:center" oninput="this.value=this.value.toUpperCase()">
       </div>
       <button class="btn btn-amber" onclick="joinCorporateQuest()" style="margin-bottom:10px">Войти в корпоратив</button>
     </div>
@@ -1327,7 +1327,7 @@ function showCorporateModal(){
     <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">Введи код доступа от организатора чтобы попасть в корпоративный квест</div>
     <div class="form-group">
       <label class="form-label">Код доступа</label>
-      <input class="form-input" id="corpCodeInput" placeholder="ARNEST2026" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;text-align:center" oninput="this.value=this.value.toUpperCase()">
+      <input class="form-input" id="corpCodeInput" placeholder="QWE123" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;text-align:center" oninput="this.value=this.value.toUpperCase()">
     </div>
     <button class="btn btn-amber" onclick="joinCorporateQuest()" style="margin-bottom:10px">Войти в корпоратив</button>
   `;
@@ -1834,7 +1834,9 @@ function hideCreateQuestForm(){
 }
 async function loadAdminQuests(){
   if(!currentProfile?.is_admin)return;
-  const sel=document.getElementById('cpQuestId'),saved=sel.value;
+  const sel=document.getElementById('cpQuestId');
+  if(!sel)return;
+  const saved=sel.value;
   try{const q=await sb(`quests?select=*&order=created_at.desc`);sel.innerHTML='<option value="">Выберите квест...</option>'+q.map(x=>`<option value="${x.id}">${x.title}</option>`).join('');if(saved)sel.value=saved;const spEl=document.getElementById('spQuestId');if(spEl&&spEl.options.length<=1)spEl.innerHTML=sel.innerHTML;}catch(e){}
 }
 async function loadAdminQuestList(){
@@ -2571,28 +2573,17 @@ async function loadSeasonAdmin(){
 async function deleteSeason(id, title){
   if(!confirm('Удалить сезон "'+title+'"?\nКвесты останутся, но будут откреплены от сезона.'))return;
   try{
-    // Шаг 1: откреплям квесты
-    try{await sb('quests?season_id=eq.'+id,{method:'PATCH',body:{season_id:null},prefer:'return=minimal'});}
-    catch(e1){console.warn('quests unlink:',e1);}
-    // Шаг 2: чистим связанные таблицы
-    try{await sb('season_leaders?season_id=eq.'+id,{method:'DELETE'});}catch(e2){}
-    try{await sb('checkpoint_hits?quest_id=in.(select id from quests where season_id=eq.'+id+')',{method:'DELETE'});}catch(e3){}
-    // Шаг 3: удаляем сезон
+    // Откреплям квесты от сезона
+    await sb('quests?season_id=eq.'+id,{method:'PATCH',body:{season_id:null},prefer:'return=minimal'}).catch(()=>{});
+    // Удаляем сезон напрямую
     const res=await fetch(`${SUPABASE_URL}/rest/v1/seasons?id=eq.${id}`,{
       method:'DELETE',
       headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+(sessionStorage.getItem('sb_token')||SUPABASE_KEY),'Content-Type':'application/json'}
     });
     if(!res.ok){
-      const err=await res.json();
-      const msg=JSON.stringify(err);
-      console.error('deleteSeason error:',msg);
-      if(msg.includes('23503')||msg.includes('foreign')){
-        // Показываем таблицу которая мешает
-        const detail=err.details||err.message||msg;
-        showToast('FK ошибка: '+detail.slice(0,100));
-      } else {
-        showToast('Ошибка: '+msg.slice(0,100));
-      }
+      const err=await res.json().catch(()=>({}));
+      const msg=err.details||err.message||err.hint||JSON.stringify(err);
+      showToast('Ошибка: '+msg.slice(0,120));
       return;
     }
     showToast('🗑️ Сезон удалён');

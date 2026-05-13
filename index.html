@@ -383,6 +383,17 @@ select.form-input option{background:var(--bg2);color:var(--text)}
   </div>
 </div>
 
+<div id="galleryScreen" class="screen">
+  <div class="topbar">
+    <div><div class="topbar-title">📸 Галерея</div><div class="topbar-sub" id="gallerySubtitle">Лучшие фото всех квестов</div></div>
+  </div>
+  <div class="leader-tabs" id="galleryTabs">
+    <div class="leader-tab active" onclick="loadGallery('featured',this)">🌟 Лучшие</div>
+    <div class="leader-tab" onclick="loadGallery('approved',this)">✅ Все фото</div>
+  </div>
+  <div id="galleryContent"><div class="loader"><div class="spinner"></div></div></div>
+</div>
+
 <div id="leaderScreen" class="screen">
   <div class="topbar"><div><div class="topbar-title">Лидеры</div><div class="topbar-sub">Общий рейтинг</div></div><div id="rtDot" title="Обновление" style="width:8px;height:8px;border-radius:50%;background:var(--green);opacity:0;transition:opacity .5s;flex-shrink:0"></div></div>
   <div class="leader-tabs">
@@ -518,6 +529,9 @@ select.form-input option{background:var(--bg2);color:var(--text)}
   </button>
   <button class="nav-btn" onclick="showScan()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Скан
+  </button>
+  <button class="nav-btn" onclick="goTab('galleryScreen',this)" id="tabGallery">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Галерея
   </button>
   <button class="nav-btn" onclick="goTab('profileScreen',this)" id="tabProfile">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Профиль
@@ -811,6 +825,7 @@ function goBack(){if(screenHistory.length>1){screenHistory.pop();showScreenDirec
 function goTab(id,btn){
   goScreen(id);document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));btn?.classList.add('active');
   if(id==='leaderScreen')loadLeader('solo');if(id==='homeScreen'){loadQuests();loadUserStats();}
+  if(id==='galleryScreen')loadGallery('featured',document.querySelector('#galleryTabs .leader-tab'));
 }
 function showMain(){
   document.getElementById('bottomNav').style.display='flex';
@@ -1975,6 +1990,86 @@ function doScan(video){
 function stopScan(){if(scanInterval){if(typeof scanInterval.stop==='function')scanInterval.stop();else clearInterval(scanInterval);scanInterval=null;}if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;}goBack();}
 function handleQRResult(url){try{const token=new URL(url).searchParams.get('cp');if(token){playHitSound('hit');currentCheckpointToken=token;openCheckpointByToken(token);}else showToast('Неверный QR-код');}catch(e){showToast('Неверный формат QR');}}
 
+let _galleryOffset=0,_galleryType='featured';
+async function loadGallery(type,tabEl,append=false){
+  if(tabEl){document.querySelectorAll('#galleryTabs .leader-tab').forEach(t=>t.classList.remove('active'));tabEl.classList.add('active');}
+  if(!append){_galleryOffset=0;_galleryType=type;}
+  const el=document.getElementById('galleryContent');
+  if(!append)el.innerHTML='<div class="loader"><div class="spinner"></div></div>';
+  const PAGE=20;
+  try{
+    const filter=type==='featured'?'photo_status=eq.featured':'photo_status=in.(featured,approved)';
+    const hits=await sb(`checkpoint_hits?${filter}&photo_url=not.is.null&order=hit_at.desc&limit=${PAGE}&offset=${_galleryOffset}&select=id,user_id,checkpoint_id,photo_url,hit_at,photo_status,quest_id`);
+    if(!hits.length&&!append){
+      el.innerHTML=`<div style="padding:48px 20px;text-align:center;color:var(--text3)">
+        <div style="font-size:48px;margin-bottom:16px">📷</div>
+        <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">${type==='featured'?'Лучших фото пока нет':'Фото пока нет'}</div>
+        <div style="font-size:13px">${type==='featured'?'Организатор отмечает лучшие фото звёздочкой 🌟':'Фото появятся после одобрения организатором'}</div>
+      </div>`;
+      return;
+    }
+    if(!hits.length&&append){
+      el.querySelector('.load-more-gallery')?.remove();
+      return;
+    }
+    const userIds=[...new Set(hits.map(h=>h.user_id))].join(',');
+    const questIds=[...new Set(hits.map(h=>h.quest_id).filter(Boolean))].join(',');
+    const cpIds=[...new Set(hits.map(h=>h.checkpoint_id))].join(',');
+    const [profiles,quests,checkpoints]=await Promise.all([
+      sb(`sledopyt_profiles?id=in.(${userIds})&select=id,username`).catch(()=>[]),
+      questIds?sb(`quests?id=in.(${questIds})&select=id,title`).catch(()=>[]):[],
+      sb(`checkpoints?id=in.(${cpIds})&select=id,name`).catch(()=>[])
+    ]);
+    const pm={};profiles.forEach(p=>pm[p.id]=p.username);
+    const qm={};quests.forEach(q=>qm[q.id]=q.title);
+    const cm={};checkpoints.forEach(c=>cm[c.id]=c.name);
+
+    if(!append)el.innerHTML='';
+    else el.querySelector('.load-more-gallery')?.remove();
+
+    const grid=document.createElement('div');
+    grid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:2px';
+    grid.innerHTML=hits.map(h=>{
+      const username=pm[h.user_id]||'Следопыт';
+      const questTitle=qm[h.quest_id]||'Квест';
+      const cpName=cm[h.checkpoint_id]||'Точка';
+      const time=new Date(h.hit_at).toLocaleDateString('ru',{day:'2-digit',month:'2-digit'});
+      const isFeatured=h.photo_status==='featured';
+      return `<div style="position:relative;aspect-ratio:1;overflow:hidden;cursor:pointer;background:var(--bg3)" onclick="openGalleryPhoto('${h.photo_url.replace(/'/g,'%27')}','${username}','${questTitle}','${cpName}','${time}')">
+        <img src="${h.photo_url}" style="width:100%;height:100%;object-fit:cover;display:block" loading="lazy" onerror="this.parentElement.style.display='none'">
+        ${isFeatured?'<div style="position:absolute;top:4px;right:4px;font-size:14px;text-shadow:0 1px 3px rgba(0,0,0,.8)">🌟</div>':''}
+        <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:6px 6px 5px;font-size:10px;color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${username}</div>
+      </div>`;
+    }).join('');
+    el.appendChild(grid);
+
+    if(hits.length===PAGE){
+      _galleryOffset+=PAGE;
+      const loadMore=document.createElement('div');
+      loadMore.className='load-more-gallery';
+      loadMore.style.cssText='text-align:center;padding:16px';
+      loadMore.innerHTML=`<button class="btn btn-secondary" onclick="loadGallery('${type}',null,true)" style="font-size:13px">Загрузить ещё</button>`;
+      el.appendChild(loadMore);
+    }
+  }catch(e){
+    el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--red);font-size:13px">Ошибка загрузки галереи</div>`;
+  }
+}
+
+function openGalleryPhoto(url,username,quest,cp,time){
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center';
+  ov.onclick=()=>ov.remove();
+  ov.innerHTML=`
+    <img src="${url}" style="max-width:100%;max-height:80vh;object-fit:contain;border-radius:8px">
+    <div style="margin-top:12px;text-align:center;padding:0 20px">
+      <div style="font-size:14px;font-weight:700;color:#fff">${username}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:4px">${quest} · ${cp} · ${time}</div>
+    </div>
+    <div style="position:absolute;top:16px;right:16px;font-size:24px;color:#fff;cursor:pointer">✕</div>`;
+  document.body.appendChild(ov);
+}
+
 let _leaderOffset=0;
 async function loadLeader(type,tabEl,append=false){
   if(tabEl){document.querySelectorAll('.leader-tab').forEach(t=>t.classList.remove('active'));tabEl.classList.add('active');}
@@ -3009,8 +3104,49 @@ function subscribeRealtime(){
   try{
     var url=SUPABASE_URL.replace("https://","wss://")+"/realtime/v1/websocket?apikey="+SUPABASE_KEY+"&vsn=1.0.0";
     _rtWS=new WebSocket(url);
-    _rtWS.onopen=function(){_rtRetry=0;_rtWS.send(JSON.stringify({topic:"realtime:public:checkpoint_hits",event:"phx_join",payload:{config:{postgres_changes:[{event:"INSERT",schema:"public",table:"checkpoint_hits"}]}},ref:"rt1"}));};
-    _rtWS.onmessage=function(ev){try{var m=JSON.parse(ev.data);if(m&&(m.event==="postgres_changes"||(m.payload&&m.payload.type==="INSERT"))){var ls=document.getElementById("leaderScreen");if(ls&&ls.classList.contains("active")){var at=document.querySelector(".leader-tab.active");loadLeader(at&&at.textContent.indexOf("\u041a\u043e\u043c\u0430\u043d\u0434")>=0?"team":"solo");}var d=document.getElementById("rtDot");if(d){d.style.opacity="1";setTimeout(function(){d.style.opacity="0";},1500);}}}catch(er){}};
+    _rtWS.onopen=function(){
+      _rtRetry=0;
+      // Подписка на новые хиты (INSERT)
+      _rtWS.send(JSON.stringify({topic:"realtime:public:checkpoint_hits",event:"phx_join",payload:{config:{postgres_changes:[{event:"INSERT",schema:"public",table:"checkpoint_hits"}]}},ref:"rt1"}));
+      // Подписка на изменение статуса фото (UPDATE)
+      _rtWS.send(JSON.stringify({topic:"realtime:public:checkpoint_hits:updates",event:"phx_join",payload:{config:{postgres_changes:[{event:"UPDATE",schema:"public",table:"checkpoint_hits"}]}},ref:"rt2"}));
+      // Подписка на изменение баллов профиля (UPDATE)
+      _rtWS.send(JSON.stringify({topic:"realtime:public:sledopyt_profiles",event:"phx_join",payload:{config:{postgres_changes:[{event:"UPDATE",schema:"public",table:"sledopyt_profiles",filter:"id=eq."+((currentUser&&currentUser.id)||"")}]}},ref:"rt3"}));
+    };
+    _rtWS.onmessage=function(ev){
+      try{
+        var m=JSON.parse(ev.data);
+        var payload=m.payload||{};
+        var record=payload.record||{};
+        var table=(payload.data&&payload.data.table)||m.topic||"";
+
+        // Новый хит — обновить лидерборд
+        if(payload.type==="INSERT"||m.event==="postgres_changes"){
+          var ls=document.getElementById("leaderScreen");
+          if(ls&&ls.classList.contains("active")){var at=document.querySelector(".leader-tab.active");loadLeader(at&&at.textContent.indexOf("\u041a\u043e\u043c\u0430\u043d\u0434")>=0?"team":"solo");}
+          var d=document.getElementById("rtDot");
+          if(d){d.style.opacity="1";setTimeout(function(){d.style.opacity="0";},1500);}
+        }
+
+        // Изменение статуса фото — обновить галерею если открыта
+        if(payload.type==="UPDATE"&&table.indexOf("checkpoint_hits")>=0){
+          var gs=document.getElementById("galleryScreen");
+          if(gs&&gs.classList.contains("active")){
+            loadGallery(_galleryType,null,false);
+          }
+        }
+
+        // Изменение баллов своего профиля — обновить отображение
+        if(payload.type==="UPDATE"&&table.indexOf("sledopyt_profiles")>=0&&currentUser&&record.id===currentUser.id){
+          if(record.points!==undefined){
+            if(currentProfile)currentProfile.points=record.points;
+            var sp=document.getElementById("statPoints");if(sp)sp.textContent=record.points;
+            var pp=document.getElementById("pStatP");if(pp)pp.textContent=record.points;
+            showToast("🌟 +" + PTS.PHOTO_BONUS + " баллов — фото одобрено!");
+          }
+        }
+      }catch(er){}
+    };
     _rtWS.onclose=function(){_rtRetry++;if(_rtRetry<6)setTimeout(subscribeRealtime,2000*_rtRetry);};
     _rtWS.onerror=function(){};
   }catch(e){}

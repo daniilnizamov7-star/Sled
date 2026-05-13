@@ -714,9 +714,18 @@ async function uploadPhoto(bucket,path,blob){
 }
 
 let _splashDone=false;
+let _splashMinTime=false;
+
+// Минимум 3 секунды показываем сплэш
+setTimeout(()=>{_splashMinTime=true;},3000);
 
 function hideSplash(andShow){
   if(_splashDone)return;
+  if(!_splashMinTime){
+    // Ещё не прошло минимальное время — ждём
+    setTimeout(()=>hideSplash(andShow),200);
+    return;
+  }
   _splashDone=true;
   const splash=document.getElementById('splash');
   const video=document.getElementById('splashVideo');
@@ -729,16 +738,16 @@ function hideSplash(andShow){
   },500);
 }
 
-// Страховка — максимум 6 секунд
+// Страховка — максимум 8 секунд
 let _splashTimer=setTimeout(()=>{
-  hideSplash(()=>{goScreen('authScreen');});
-},6000);
+  _splashMinTime=true;
+  hideSplash(_pendingShow||null);
+},8000);
 
 function onSplashVideoEnd(){
-  // Видео закончилось — ждём ещё немного если данные ещё грузятся (макс 2 сек)
   setTimeout(()=>{
     if(!_splashDone)hideSplash(_pendingShow||null);
-  },500);
+  },300);
 }
 
 let _pendingShow=null;

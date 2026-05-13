@@ -35,7 +35,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--text3);cursor:pointer;font-family:'Golos Text',sans-serif;font-size:10px;padding:6px 0;transition:color .2s}
 .nav-btn svg{width:22px;height:22px}
 .nav-btn.active{color:var(--green)}
-#splash{background:var(--bg);align-items:center;justify-content:center;position:fixed;inset:0;z-index:100;animation:fadeOut .4s ease 2.2s forwards}
+#splash{background:#000;align-items:center;justify-content:center;position:fixed;inset:0;z-index:100}
+#splashVideo{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+#splashSkip{position:absolute;bottom:40px;right:24px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:13px;padding:8px 16px;border-radius:20px;cursor:pointer;z-index:1;backdrop-filter:blur(4px)}
 .splash-logo{font-family:'Arial Black',Arial,sans-serif;font-size:42px;font-weight:800;color:var(--green);letter-spacing:-2px;animation:logoIn .6s cubic-bezier(.34,1.56,.64,1) .2s both}
 .splash-tagline{font-size:13px;color:var(--text3);margin-top:8px;animation:logoIn .6s cubic-bezier(.34,1.56,.64,1) .4s both}
 #authScreen{align-items:center;justify-content:center;padding:32px 24px;background:radial-gradient(ellipse 80% 60% at 50% 100%,var(--bg3),var(--bg))}
@@ -220,8 +222,12 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 <div id="updateBanner" class="update-banner" onclick="location.reload()">Обновление доступно — нажмите</div>
 
 <div id="splash" class="screen active">
-  <div class="splash-logo">СЛЕДОПЫТ</div>
-  <div class="splash-tagline">Исследуй. Находи. Побеждай.</div>
+  <video id="splashVideo" autoplay muted playsinline webkit-playsinline
+    src="https://yiqipulgofoschkccaxr.supabase.co/storage/v1/object/public/sledopyt-assets/kling_20260513_VIDEO_Image1The__3514_0.mp4"
+    onended="onSplashVideoEnd()"
+    onerror="onSplashVideoEnd()">
+  </video>
+  <button id="splashSkip" onclick="_videoEnded=true;hideSplash()">Пропустить →</button>
 </div>
 
 <div id="authScreen" class="screen">
@@ -707,15 +713,42 @@ async function uploadPhoto(bucket,path,blob){
   return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
 }
 
+let _appReady=false,_videoEnded=false;
+
+function hideSplash(){
+  if(!_appReady||!_videoEnded)return; // ждём и видео и загрузку
+  const splash=document.getElementById('splash');
+  splash.style.transition='opacity .5s ease';
+  splash.style.opacity='0';
+  setTimeout(()=>{splash.style.display='none';},500);
+}
+
+function onSplashVideoEnd(){
+  _videoEnded=true;
+  hideSplash();
+}
+
+// Страховка — если видео не загрузилось, через 6 сек принудительно
+setTimeout(()=>{_videoEnded=true;hideSplash();},6000);
+
 window.addEventListener('load',async()=>{
   const cpToken=new URLSearchParams(window.location.search).get('cp')||sessionStorage.getItem('sb_pending_cp');
   if(cpToken){currentCheckpointToken=cpToken;sessionStorage.setItem('sb_pending_cp',cpToken);}
   const token=sessionStorage.getItem('sb_token'),uid=sessionStorage.getItem('sb_uid');
-  setTimeout(async()=>{
-    document.getElementById('splash').style.display='none';
-    if(token&&uid){currentUser={id:uid};await loadProfile();subscribeRealtime();if(currentCheckpointToken)await openCheckpointByToken(currentCheckpointToken);else showMain();}
-    else goScreen('authScreen');
-  },2400);
+  if(token&&uid){currentUser={id:uid};await loadProfile();subscribeRealtime();}
+  _appReady=true;
+  hideSplash();
+  // Показываем нужный экран после скрытия сплэша
+  const splash=document.getElementById('splash');
+  const checkAndShow=()=>{
+    if(splash.style.display==='none'||parseFloat(splash.style.opacity||'1')===0){
+      if(token&&uid){if(currentCheckpointToken)openCheckpointByToken(currentCheckpointToken);else showMain();}
+      else goScreen('authScreen');
+    } else {
+      setTimeout(checkAndShow,100);
+    }
+  };
+  setTimeout(checkAndShow,100);
 });
 window.addEventListener('popstate',()=>{const _ov=document.getElementById('successOverlay');if(_ov&&_ov.classList.contains('show')){_ov.classList.remove('show');return;}if(screenHistory.length>1){screenHistory.pop();showScreenDirect(screenHistory[screenHistory.length-1]);}});
 

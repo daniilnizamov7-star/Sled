@@ -1768,16 +1768,29 @@ async function openCheckpointByToken(token){
     document.getElementById('verifyQuestName').textContent='Квест: '+(cp.quests?.title||'');
     const taskCard=document.getElementById('taskCard');
     const captionBlock=document.getElementById('captionBlock');
-    if(cp.task_type&&cp.task_type!==''){
+    const selfieArea=document.getElementById('selfieArea');
+    const hasTask=cp.task_type&&cp.task_type!=='';
+    if(hasTask){
       document.getElementById('taskText').textContent=cp.task_text||'Выполни задание и сфотографируй';
       document.getElementById('taskTip').textContent=cp.task_tip||'';
       taskCard.style.display='block';
       captionBlock.style.display=(cp.task_type==='riddle'||cp.task_type==='sign'||cp.task_type==='count'||cp.task_type==='open'||cp.task_type==='photo_answer')?'block':'none';
+      // Фото показываем для фото-заданий
+      const isFotoTask=cp.task_type==='selfie'||cp.task_type==='find'||cp.task_type==='action'||cp.task_type==='photo_answer';
+      selfieArea.style.display=isFotoTask?'block':'none';
+      selfieArea.innerHTML=`<div class="selfie-placeholder"><div style="font-size:48px">📸</div><div id="selfiePrompt">${isFotoTask?'Сделай фото (обязательно)':'Фото (необязательно)'}</div><div style="font-size:11px;color:var(--text3)">${isFotoTask?'Нажми чтобы открыть камеру':'Нажми чтобы открыть камеру'}</div></div>`;
     }else{
-      taskCard.style.display='none';captionBlock.style.display='none';
+      // Без задания — только кнопка подтвердить, фото убираем
+      taskCard.style.display='none';
+      captionBlock.style.display='none';
+      selfieArea.style.display='none';
     }
-    document.getElementById('selfieArea').innerHTML=`<div class="selfie-placeholder"><div style="font-size:48px">📸</div><div id="selfiePrompt">Фото (+${PTS.PHOTO_BONUS} бонус)</div><div style="font-size:11px;color:var(--text3)">Необязательно · нажми чтобы открыть камеру</div></div>`;
-    selfieBlob=null;const btn=document.getElementById('submitBtn');btn.disabled=true;btn.style.opacity='.5';btn.textContent='Подтвердить точку';
+    selfieBlob=null;
+    const btn=document.getElementById('submitBtn');
+    // Без задания — кнопка сразу активна
+    if(!hasTask){btn.disabled=false;btn.style.opacity='1';}
+    else{btn.disabled=true;btn.style.opacity='.5';}
+    btn.textContent='Подтвердить точку';
     document.getElementById('captionInput').value='';
     var ah=document.getElementById('answerHint');
     if(ah)ah.style.display=(cp.task_type==='riddle'||cp.task_type==='sign'||cp.task_type==='count')?'block':'none';
@@ -2002,17 +2015,17 @@ async function compassSubmitTask(){
   const cp=_compassTarget?.cp;
   if(!cp)return;
   const answer=document.getElementById('compassTaskAnswer').value.trim();
-  if(!answer&&cp.task_type!=='open'&&cp.task_type!=='photo_answer')return showToast('Введи ответ');
+  const taskType=cp.task_type;
+  const isAutoCheck=taskType==='sign'||taskType==='count';
+  const isManual=taskType==='riddle'||taskType==='open'||taskType==='photo_answer';
+  if(!answer&&!isOpen)return showToast('Введи ответ');
   const btn=document.querySelector('#compassTaskBlock button');
   if(btn){btn.disabled=true;btn.textContent='Проверяем...';}
-  // Проверяем ответ если есть правильный (открытый вопрос не проверяем)
-  const isOpen=cp.task_type==='open'||cp.task_type==='photo_answer';
-  if(cp.task_answer&&!isOpen){
-    const isExact=cp.task_type==='count'||cp.task_type==='sign';
+  // Автопроверка только для sign и count
+  if(isAutoCheck&&cp.task_answer){
     const userAns=answer.toLowerCase().replace(/\s+/g,'');
     const rightAns=cp.task_answer.trim().toLowerCase().replace(/\s+/g,'');
-    const ok=isExact?(userAns===rightAns):(userAns.includes(rightAns)||rightAns.includes(userAns));
-    if(!ok){
+    if(userAns!==rightAns){
       if(btn){btn.disabled=false;btn.textContent='Отправить ответ';}
       showToast('❌ Неверно, попробуй ещё раз');
       return;
@@ -2021,7 +2034,9 @@ async function compassSubmitTask(){
   try{
     const existing=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=eq.${cp.id}&select=id`);
     if(existing.length){showToast('✅ Точка уже засчитана');await compassNext();return;}
-    await sb('checkpoint_hits',{method:'POST',body:{user_id:currentUser.id,checkpoint_id:cp.id,quest_id:cp.quest_id,caption:answer,photo_url:null,photo_status:null,lat:userGeo?.latitude||null,lng:userGeo?.longitude||null,hit_at:new Date().toISOString()},prefer:'return=minimal'});
+    // Для загадок сохраняем pending чтобы попало к модератору
+    const photoStatus=isManual?'pending':null;
+    await sb('checkpoint_hits',{method:'POST',body:{user_id:currentUser.id,checkpoint_id:cp.id,quest_id:cp.quest_id,caption:answer,photo_url:null,photo_status:photoStatus,lat:userGeo?.latitude||null,lng:userGeo?.longitude||null,hit_at:new Date().toISOString()},prefer:'return=minimal'});
     // started_at
     try{
       const prevHits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${cp.quest_id}&select=id`);
@@ -2031,9 +2046,10 @@ async function compassSubmitTask(){
       }
     }catch(e){}
     const countGlobal=currentQuestData?.count_in_global!==false;
-    const totalPts=PTS.CP+PTS.ANSWER;
+    // Баллы за ответ: autocheck → сразу, manual → после проверки организатором
+    const earnedPts=isAutoCheck?PTS.CP+PTS.ANSWER:PTS.CP;
     const newHits=(currentProfile?.checkpoints_hit||0)+1;
-    const newPts=(currentProfile?.points||0)+(countGlobal?totalPts:0);
+    const newPts=(currentProfile?.points||0)+(countGlobal?earnedPts:0);
     await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{points:newPts,checkpoints_hit:newHits},prefer:'return=minimal'});
     currentProfile.points=newPts;currentProfile.checkpoints_hit=newHits;
     const finishMsg=await checkQuestCompletion(cp.quest_id);
@@ -2045,7 +2061,7 @@ async function compassSubmitTask(){
       loadCheckpoints(currentQuestId);
       return;
     }
-    showToast('✅ Верно! +'+totalPts+' баллов');
+    showToast(isManual?'✅ Ответ принят! +'+PTS.CP+' баллов (ещё +'+PTS.ANSWER+' после проверки)':'✅ Верно! +'+earnedPts+' баллов');
     await compassNext();
   }catch(e){
     if(btn){btn.disabled=false;btn.textContent='Отправить ответ';}
@@ -2154,8 +2170,10 @@ async function handleSelfie(e){
 }
 function checkSubmitReady(){
   const cp=currentCheckpointData;if(!cp)return;
-  // Фото теперь необязательное везде — кнопка всегда активна после загрузки точки
   const btn=document.getElementById('submitBtn');
+  const isFotoTask=cp.task_type==='selfie'||cp.task_type==='find'||cp.task_type==='action'||cp.task_type==='photo_answer';
+  // Для фото-заданий — кнопка активна только после загрузки фото
+  if(isFotoTask&&!selfieBlob){btn.disabled=true;btn.style.opacity='.5';return;}
   btn.disabled=false;btn.style.opacity='1';
 }
 async function compressImage(file,maxSize,quality){
@@ -2218,38 +2236,39 @@ async function submitCheckpoint(){
       photoBonusPts=0;
     }
     const caption=document.getElementById('captionInput').value.trim()||null;
-    // Проверка ответа — начисляем доп. баллы за правильный
+    const taskType=currentCheckpointData.task_type;
     const correctAnswer=currentCheckpointData.task_answer;
-    const isRiddle=currentCheckpointData.task_type==='riddle'||currentCheckpointData.task_type==='sign'||currentCheckpointData.task_type==='count';
-    const isOpen=currentCheckpointData.task_type==='open'||currentCheckpointData.task_type==='photo_answer';
+    // Типы с автопроверкой: sign и count (точный ответ)
+    const isAutoCheck=taskType==='sign'||taskType==='count';
+    // Типы через модератора: riddle, open, photo_answer
+    const isManual=taskType==='riddle'||taskType==='open'||taskType==='photo_answer';
     let answerCorrect=false;
-    if(isRiddle&&correctAnswer&&caption){
+    if(isAutoCheck&&correctAnswer){
+      if(!caption){
+        _submitting=false;btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';
+        showToast('Введи ответ');return;
+      }
       const userAns=caption.toLowerCase().replace(/\s+/g,'');
       const rightAns=correctAnswer.toLowerCase().replace(/\s+/g,'');
-      // count и sign — точное совпадение, riddle — частичное
-      const isExact=currentCheckpointData.task_type==='count'||currentCheckpointData.task_type==='sign';
-      if(isExact?userAns!==rightAns:(!userAns.includes(rightAns)&&!rightAns.includes(userAns))){
-        _submitting=false;
-        btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';
-        showToast('❌ Неверный ответ! Попробуй ещё раз.');
-        return;
+      if(userAns!==rightAns){
+        _submitting=false;btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';
+        showToast('❌ Неверный ответ! Попробуй ещё раз.');return;
       }
       answerCorrect=true;
-    } else if(isRiddle&&correctAnswer&&!caption){
-      _submitting=false;
-      btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';
-      showToast('Введи ответ');
-      return;
-    } else if(isOpen&&!caption&&!selfieBlob){
-      // Открытый вопрос — нужен хотя бы текст или фото
-      _submitting=false;
-      btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';
-      showToast('Напиши ответ или сделай фото');
-      return;
+    } else if(isManual){
+      if(!caption&&!selfieBlob){
+        _submitting=false;btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';
+        showToast(taskType==='riddle'?'Напиши ответ на загадку':'Напиши ответ или сделай фото');return;
+      }
+      // Баллы за загадку начислит модератор — не начисляем сейчас
+      answerCorrect=false;
     }
     const answerPts=answerCorrect?PTS.ANSWER:0;
+    // Для ручных заданий — сохраняем photo_status=pending чтобы попало к модератору
+    const needsModeration=isManual||(!!photoUrl);
+    const photoStatus=needsModeration?'pending':null;
     const totalCpPts=PTS.CP+answerPts+photoBonusPts;
-    await sb('checkpoint_hits',{method:'POST',body:{user_id:currentUser.id,checkpoint_id:currentCheckpointData.id,quest_id:currentCheckpointData.quest_id,photo_url:photoUrl,photo_status:photoUrl?'pending':null,caption,lat:userGeo?.latitude||null,lng:userGeo?.longitude||null,hit_at:new Date().toISOString()},prefer:'return=minimal'});
+    await sb('checkpoint_hits',{method:'POST',body:{user_id:currentUser.id,checkpoint_id:currentCheckpointData.id,quest_id:currentCheckpointData.quest_id,photo_url:photoUrl,photo_status:photoStatus,caption,lat:userGeo?.latitude||null,lng:userGeo?.longitude||null,hit_at:new Date().toISOString()},prefer:'return=minimal'});
     // Фиксируем started_at при первом хите по квесту
     try{
       const prevHits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${currentCheckpointData.quest_id}&select=id`);
@@ -2268,7 +2287,8 @@ async function submitCheckpoint(){
     const msg=await checkQuestCompletion(currentCheckpointData.quest_id);
     let ptsMsg=`+${PTS.CP}`;
     if(answerPts)ptsMsg+=` +${answerPts} за ответ`;
-    if(photoUrl)ptsMsg+=` (фото +${PTS.PHOTO_BONUS} после одобрения)`;
+    if(isManual&&caption)ptsMsg+=` (ответ +${PTS.ANSWER} после проверки организатором)`;
+    else if(photoUrl)ptsMsg+=` (фото +${PTS.PHOTO_BONUS} после одобрения)`;
     document.getElementById('successSub').textContent=msg||(ptsMsg+' баллов!');
     var _fin=msg&&(msg.indexOf('\u0444\u0438\u043d\u0438\u0448')>=0||msg.indexOf('\u0437\u0430\u0432')>=0);
     if(_fin){launchConfetti();playHitSound('complete');var _ph=document.getElementById('successPrizeHint');var _pt=document.getElementById('successPrizeText');if(_ph){_ph.style.display='block';if(_pt&&currentQuestData&&currentQuestData.prize_description)_pt.textContent=currentQuestData.prize_description;}}

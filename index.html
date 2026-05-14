@@ -658,6 +658,19 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     <button class="btn btn-secondary" onclick="closeModal('editQuestModal')">Отмена</button>
   </div>
 </div>
+<div class="modal-overlay" id="comingSoonModal">
+  <div class="modal" style="text-align:center;padding:28px 20px">
+    <div style="font-size:48px;margin-bottom:12px">🚧</div>
+    <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:8px" id="comingSoonTitle">Квест в разработке</div>
+    <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px">Этот квест скоро появится. Зарегистрируйся — ты будешь в числе первых участников!</div>
+    <div id="comingSoonQuests" style="margin-bottom:16px"></div>
+    <button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="closeModal('comingSoonModal');if(!currentUser)goScreen('authScreen');else showMain()">
+      👀 Смотреть другие квесты
+    </button>
+    <button class="btn btn-secondary" style="width:100%" onclick="closeModal('comingSoonModal')">Закрыть</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="teamModal">
   <div class="modal"><div class="modal-title">🤝 Моя команда</div><div id="teamModalContent"></div><button class="btn btn-secondary" style="margin-top:12px" onclick="closeModal('teamModal')">Закрыть</button></div>
 </div>
@@ -1596,9 +1609,9 @@ async function joinCorporateQuest(){
   const code=document.getElementById('corpCodeInput').value.trim().toUpperCase();
   if(!code)return showToast('Введи код доступа');
   try{
-    const quests=await sb(`quests?access_code=eq.${code}&status=eq.active`);
-    if(!quests.length)return showToast('Квест не найден или завершён');
-    const quest=quests[0];
+    const quests=await sb(`quests?access_code=eq.${code}&select=*`);
+    const quest=quests.find(q=>q.status==='active'||q.status==='draft'&&q.is_demo);
+    if(!quest)return showToast('Квест не найден или завершён');
     // Если есть группы — показываем выбор
     const groups=(()=>{try{return quest.groups&&quest.groups!==''?JSON.parse(quest.groups):null;}catch(e){return null;}})();
     if(groups&&groups.length){
@@ -1680,20 +1693,9 @@ async function openCheckpointByToken(token){
     if(!cps.length){showToast('Точка не найдена');if(currentUser)showMain();else goScreen('authScreen');return;}
     const cp=cps[0];
     const quest=cp.quests;
-    // Квест завершён или в архиве
+    // Квест в черновике — показываем экран "скоро"
     if(quest?.status==='draft'&&!quest?.is_demo){
-      if(!currentUser){
-        // Не залогинен — показываем экран авторизации с уведомлением
-        sessionStorage.setItem('sb_ended_quest_title',quest?.title||'Квест');
-        goScreen('authScreen');
-        setTimeout(()=>{
-          showToast('⏰ Квест "'+( quest?.title||'Квест')+'" завершён. Регистрируйся — следи за новыми!');
-        },500);
-      } else {
-        // Залогинен — показываем информационный тост и главную
-        showToast('⏰ Квест "'+( quest?.title||'Квест')+'" уже завершён. Следи за новыми квестами!');
-        showMain();
-      }
+      showComingSoonScreen(quest?.title||'Квест');
       return;
     }
     // Если квест найден — сохраняем его чтобы потом открыть карточку
@@ -1773,6 +1775,26 @@ function hideLearning(){
   if(lc)lc.style.display='none';
   if(tb)tb.style.visibility='visible';
   checkSubmitReady();
+}
+
+async function showComingSoonScreen(questTitle){
+  document.getElementById('comingSoonTitle').textContent='«'+questTitle+'» — скоро!';
+  // Показываем другие активные квесты
+  const el=document.getElementById('comingSoonQuests');
+  try{
+    const others=await sb(`quests?status=eq.active&select=id,title,checkpoint_count,end_date&order=created_at.desc&limit=3`);
+    if(others.length){
+      el.innerHTML='<div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.5px;margin-bottom:10px">ДРУГИЕ КВЕСТЫ</div>'+
+        others.map(q=>`
+          <div onclick="closeModal('comingSoonModal');openQuest(${JSON.stringify(q).replace(/"/g,'&quot;')})" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;text-align:left;cursor:pointer">
+            <div style="font-size:14px;font-weight:600;color:var(--text)">${q.title}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:3px">📍 ${q.checkpoint_count||'?'} точек · до ${formatDate(q.end_date)}</div>
+          </div>`).join('');
+    } else {
+      el.innerHTML='';
+    }
+  }catch(e){el.innerHTML='';}
+  document.getElementById('comingSoonModal').classList.add('show');
 }
 
 function showCompassModal(){

@@ -461,6 +461,10 @@ select.form-input option{background:var(--bg2);color:var(--text)}
         <input type="checkbox" id="qSpeedBonus" checked style="width:18px;height:18px;accent-color:var(--amber);flex-shrink:0">
         <label for="qSpeedBonus" style="font-size:13px;color:var(--text2);cursor:pointer">⚡ Бонус за скорость (+${PTS.FIRST} тому кто первым завершит)</label>
       </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px">
+        <input type="checkbox" id="qCountGlobal" checked style="width:18px;height:18px;accent-color:var(--green);flex-shrink:0">
+        <label for="qCountGlobal" style="font-size:13px;color:var(--text2);cursor:pointer">🌍 Учитывать баллы в общем рейтинге <span style="font-size:11px;color:var(--text3)">(снять для корпоративных)</span></label>
+      </div>
       <div class="form-group"><label class="form-label">Код доступа <span style="color:var(--text3);font-weight:400">(для корпоративных — необязательно)</span></label><input class="form-input" id="qAccessCode" placeholder="QWE123" style="text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase();document.getElementById('qGroupsBlock').style.display=this.value.trim()?'block':'none'"></div>
       <div class="form-group" id="qGroupsBlock" style="display:none">
         <label class="form-label">Группы участников <span style="color:var(--text3);font-weight:400">(через запятую)</span></label>
@@ -580,6 +584,10 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <input class="form-input" id="editQuestPrize" type="text"></div>
     <div class="form-group"><label class="form-label">Дата окончания</label>
       <input class="form-input" id="editQuestDate" type="date"></div>
+    <div class="form-group" style="display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="editQuestGlobal" style="width:18px;height:18px;accent-color:var(--green);flex-shrink:0">
+      <label for="editQuestGlobal" style="font-size:13px;color:var(--text2);cursor:pointer">🌍 Учитывать баллы в общем рейтинге <span style="font-size:11px;color:var(--text3)">(снять для корпоративных)</span></label>
+    </div>
     <button class="btn btn-primary" onclick="saveEditQuest()" style="margin-bottom:10px">Сохранить</button>
     <button class="btn btn-secondary" onclick="closeModal('editQuestModal')">Отмена</button>
   </div>
@@ -1816,7 +1824,9 @@ async function submitCheckpoint(){
         }
       }
     }catch(e){}
-    const newPts=(currentProfile?.points||0)+totalCpPts,newHits=(currentProfile?.checkpoints_hit||0)+1;
+    const countGlobal=currentQuestData?.count_in_global!==false;
+    const newHits=(currentProfile?.checkpoints_hit||0)+1;
+    const newPts=(currentProfile?.points||0)+(countGlobal?totalCpPts:0);
     await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{points:newPts,checkpoints_hit:newHits},prefer:'return=minimal'});
     currentProfile.points=newPts;currentProfile.checkpoints_hit=newHits;
     const msg=await checkQuestCompletion(currentCheckpointData.quest_id);
@@ -1871,7 +1881,8 @@ async function checkQuestCompletion(questId){
       } else {
         await sb('quest_completions',{method:'POST',body:{user_id:currentUser.id,quest_id:questId,started_at:startedAt,finished_at:finishedAt,is_first:isFirst,bonus_points:bonus},prefer:'return=minimal'});
       }
-      const newPts=(currentProfile?.points||0)+bonus,newQ=(currentProfile?.quests_completed||0)+1;
+      const questCountGlobal=currentQuestData?.count_in_global!==false;
+      const newPts=(currentProfile?.points||0)+(questCountGlobal?bonus:0),newQ=(currentProfile?.quests_completed||0)+1;
       await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{quests_completed:newQ,points:newPts},prefer:'return=minimal'});
       currentProfile.points=newPts;currentProfile.quests_completed=newQ;
       const medals=['🥇','🥈','🥉'];
@@ -2146,13 +2157,13 @@ async function loadAdminQuestList(){
       return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;opacity:${isArchived?'0.6':'1'}">
         <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
           <div style="flex:1">
-            <div style="font-weight:600;color:var(--text);margin-bottom:2px">${q.title}</div>
+            <div style="font-weight:600;color:var(--text);margin-bottom:2px">${q.title} ${q.count_in_global===false?'<span style="background:rgba(99,102,241,.15);color:#818cf8;font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600">🏢 Корп</span>':'<span style="background:rgba(74,222,128,.1);color:var(--green);font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600">🌍 Общий</span>'}</div>
             <div style="font-size:12px;color:var(--text3)">${q.quest_type} · до ${formatDate(q.end_date)}</div>
             ${q.prize_description?`<div style="font-size:12px;color:var(--amber);margin-top:3px">🏆 ${q.prize_description}</div>`:''}
           </div>
           <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0;margin-left:10px">
             ${!isArchived?`<button class="btn btn-sm ${isActive?'btn-red':'btn-primary'}" onclick="toggleQuestStatus('${q.id}','${q.status}')">${isActive?'Завершить':'Активировать'}</button>`:''}
-            ${!isArchived?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="openEditQuest('${q.id}','${q.title}','${(q.description||'').replace(/'/g,"\\'")  }','${(q.prize_description||'').replace(/'/g,"\\'")  }','${q.end_date}')">✏️ Изменить</button>`:''}
+            ${!isArchived?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="openEditQuest('${q.id}','${q.title}','${(q.description||'').replace(/'/g,"\\'")}','${(q.prize_description||'').replace(/'/g,"\\'")}','${q.end_date}',${q.count_in_global!==false})">✏️ Изменить</button>`:''}
             ${!isArchived?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="archiveQuest('${q.id}','${q.title.replace(/'/g,"\\'")}')">📦 В архив</button>`:''}
             ${isArchived?`<button class="btn btn-sm btn-primary" style="font-size:11px" onclick="unarchiveQuest('${q.id}')">↩ Вернуть</button><button class="btn btn-sm btn-red" style="font-size:11px" onclick="deleteQuest('${q.id}','${q.title.replace(/'/g,"\\'")}')">🗑 Удалить</button>`:''}
           </div>
@@ -2319,13 +2330,17 @@ ${sponsorsHtml}
 }
 
 async function createQuest(){
-  const title=document.getElementById('qTitle').value.trim(),desc=document.getElementById('qDesc').value.trim(),type=document.getElementById('qType').value,days=parseInt(document.getElementById('qDays').value)||7,prize=document.getElementById('qPrize').value.trim(),withLearning=document.getElementById('qLearning').checked,withSpeedBonus=document.getElementById('qSpeedBonus').checked,accessCode=document.getElementById('qAccessCode').value.trim()||null;
+  const title=document.getElementById('qTitle').value.trim(),desc=document.getElementById('qDesc').value.trim(),type=document.getElementById('qType').value,days=parseInt(document.getElementById('qDays').value)||7,prize=document.getElementById('qPrize').value.trim(),withLearning=document.getElementById('qLearning').checked,withSpeedBonus=document.getElementById('qSpeedBonus').checked,accessCode=document.getElementById('qAccessCode').value.trim()||null,countGlobal=document.getElementById('qCountGlobal').checked;
   const groupsRaw=document.getElementById('qGroups').value.trim();
   const groups=accessCode&&groupsRaw?groupsRaw.split(',').map(g=>g.trim()).filter(Boolean):null;
   if(!title)return showToast('Введи название');
   const end=new Date();end.setDate(end.getDate()+days);
-  try{await sb('quests',{method:'POST',body:{title,description:desc,quest_type:type,status:'active',end_date:end.toISOString(),prize_description:prize,with_learning:withLearning,with_speed_bonus:withSpeedBonus,access_code:accessCode,groups:groups?JSON.stringify(groups):null,created_by:currentUser.id,checkpoint_count:0},prefer:'return=minimal'});showToast('Квест создан!');document.getElementById('qTitle').value='';document.getElementById('qDesc').value='';document.getElementById('qLearning').checked=false;document.getElementById('qSpeedBonus').checked=true;document.getElementById('qAccessCode').value='';document.getElementById('qGroups').value='';document.getElementById('qGroupsBlock').style.display='none';hideCreateQuestForm();initAdminScreen();}
-  catch(e){showToast('Ошибка: '+JSON.stringify(e));}
+  try{
+    await sb('quests',{method:'POST',body:{title,description:desc,quest_type:type,status:'active',end_date:end.toISOString(),prize_description:prize,with_learning:withLearning,with_speed_bonus:withSpeedBonus,access_code:accessCode,groups:groups?JSON.stringify(groups):null,created_by:currentUser.id,checkpoint_count:0,count_in_global:countGlobal},prefer:'return=minimal'});
+    showToast('Квест создан!');
+    document.getElementById('qTitle').value='';document.getElementById('qDesc').value='';document.getElementById('qLearning').checked=false;document.getElementById('qSpeedBonus').checked=true;document.getElementById('qCountGlobal').checked=true;document.getElementById('qAccessCode').value='';document.getElementById('qGroups').value='';document.getElementById('qGroupsBlock').style.display='none';
+    hideCreateQuestForm();initAdminScreen();
+  }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
 }
 async function createCheckpoint(){
   const questId=document.getElementById('cpQuestId').value,name=document.getElementById('cpName').value.trim(),hint=document.getElementById('cpHint').value.trim(),lat=parseFloat(document.getElementById('cpLat').value),lng=parseFloat(document.getElementById('cpLng').value),radius=parseInt(document.getElementById('cpRadius').value)||150;
@@ -2358,25 +2373,21 @@ async function toggleQuestStatus(id,status){
   // При завершении квеста — начисляем бонус быстрейшему
   if(s==='ended'){
     try{
-      const questData=await sb(`quests?id=eq.${id}&select=with_speed_bonus`);
+      const questData=await sb(`quests?id=eq.${id}&select=with_speed_bonus,count_in_global`);
       const speedEnabled=questData[0]?.with_speed_bonus!==false;
+      const countGlobal=questData[0]?.count_in_global!==false;
       if(speedEnabled){
-        // Берём всех кто финишировал — у кого есть started_at и finished_at
         const comps=await sb(`quest_completions?quest_id=eq.${id}&finished_at=not.is.null&started_at=not.is.null&select=id,user_id,started_at,finished_at,bonus_points`);
         if(comps.length>0){
-          // Считаем время прохождения для каждого
-          const withTime=comps.map(c=>({
-            ...c,
-            duration:new Date(c.finished_at)-new Date(c.started_at)
-          })).sort((a,b)=>a.duration-b.duration);
+          const withTime=comps.map(c=>({...c,duration:new Date(c.finished_at)-new Date(c.started_at)})).sort((a,b)=>a.duration-b.duration);
           const fastest=withTime[0];
-          // Начисляем +15 быстрейшему
           await sb(`quest_completions?id=eq.${fastest.id}`,{method:'PATCH',body:{bonus_points:(fastest.bonus_points||0)+15},prefer:'return=minimal'});
-          await sb(`sledopyt_profiles?id=eq.${fastest.user_id}`,{method:'PATCH',body:{points:undefined},prefer:'return=minimal'});
-          // Обновляем баллы профиля
-          const prof=await sb(`sledopyt_profiles?id=eq.${fastest.user_id}&select=points`);
-          if(prof.length){
-            await sb(`sledopyt_profiles?id=eq.${fastest.user_id}`,{method:'PATCH',body:{points:(prof[0].points||0)+15},prefer:'return=minimal'});
+          // Обновляем баллы профиля только если квест учитывается в общем рейтинге
+          if(countGlobal){
+            const prof=await sb(`sledopyt_profiles?id=eq.${fastest.user_id}&select=points`);
+            if(prof.length){
+              await sb(`sledopyt_profiles?id=eq.${fastest.user_id}`,{method:'PATCH',body:{points:(prof[0].points||0)+15},prefer:'return=minimal'});
+            }
           }
           showToast('✅ Квест завершён · +15 бонус скорости начислен быстрейшему');
         } else {
@@ -2425,41 +2436,14 @@ async function deleteQuest(id,title){
     showToast('❌ Ошибка: '+JSON.stringify(e));
   }
 }
-async function hardDeleteQuest(id,title){
-  if(!confirm(`УДАЛИТЬ НАВСЕГДА "${title}"?\nВосстановить невозможно!`))return;
-  if(!confirm(`Ещё раз: удалить все данные квеста "${title}"?`))return;
-  try{
-    // 1. Удаляем hits по quest_id
-    await sb(`checkpoint_hits?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
-    // 2. Дополнительно удаляем hits по checkpoint_id (страховка от FK)
-    const cps=await sb(`checkpoints?quest_id=eq.${id}&select=id`);
-    for(const cp of cps){
-      await sb(`checkpoint_hits?checkpoint_id=eq.${cp.id}`,{method:'DELETE',prefer:'return=minimal'});
-    }
-    // 3. Завершения квеста
-    await sb(`quest_completions?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
-    // 4. Команды
-    const teams=await sb(`teams?quest_id=eq.${id}&select=id`);
-    for(const t of teams){await sb(`team_members?team_id=eq.${t.id}`,{method:'DELETE',prefer:'return=minimal'});}
-    await sb(`teams?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
-    // 5. Спонсоры
-    await sb(`quest_sponsors?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
-    // 6. Точки
-    await sb(`checkpoints?quest_id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
-    // 7. Квест
-    await sb(`quests?id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
-    showToast('✅ Квест удалён навсегда');
-    loadAdminQuestList();loadAdminQuests();
-  }catch(e){showToast('❌ Ошибка: '+JSON.stringify(e));}
-}
 
-function openEditQuest(id,title,desc,prize,endDate){
+function openEditQuest(id,title,desc,prize,endDate,countGlobal){
   document.getElementById("editQuestId").value=id;
   document.getElementById("editQuestTitle").value=title;
   document.getElementById("editQuestDesc").value=desc;
   document.getElementById("editQuestPrize").value=prize;
-  // format date to yyyy-mm-dd for input[type=date]
   document.getElementById("editQuestDate").value=endDate?endDate.split("T")[0]:"";
+  document.getElementById("editQuestGlobal").checked=countGlobal!==false;
   document.getElementById("editQuestModal").classList.add("show");
 }
 async function saveEditQuest(){
@@ -2468,11 +2452,13 @@ async function saveEditQuest(){
   const desc=document.getElementById("editQuestDesc").value.trim();
   const prize=document.getElementById("editQuestPrize").value.trim();
   const date=document.getElementById("editQuestDate").value;
+  const countGlobal=document.getElementById("editQuestGlobal").checked;
   if(!title)return showToast("Введи название");
   try{
     await sb(`quests?id=eq.${id}`,{method:"PATCH",body:{
       title,description:desc,prize_description:prize,
-      end_date:date?new Date(date).toISOString():undefined
+      end_date:date?new Date(date).toISOString():undefined,
+      count_in_global:countGlobal
     },prefer:"return=minimal"});
     showToast("✅ Квест обновлён");
     closeModal("editQuestModal");
@@ -2530,7 +2516,7 @@ function doQRDownload(text,name){
 
 async function showHistoryModal(){
   const content=document.getElementById('historyModalContent');content.innerHTML='<div class="loader"><div class="spinner"></div></div>';document.getElementById('historyModal').classList.add('show');
-  try{const hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&select=*,checkpoints(name),quests(title)&order=hit_at.desc&limit=30`);content.innerHTML=hits.length?hits.map(h=>`<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center"><div style="font-size:24px">📍</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${h.checkpoints?.name||'—'}</div><div style="font-size:11px;color:var(--text3)">${h.quests?.title||''} · ${formatDate(h.hit_at)}</div></div><div style="color:var(--green);font-family:'Arial Black',Arial,sans-serif;font-size:13px">+10</div></div>`).join(''):'<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">Ещё нет пройденных точек</div></div>';}catch(e){content.innerHTML='<div class="empty"><div class="empty-text">Ошибка</div></div>';}
+  try{const hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&select=*,checkpoints(name),quests(title)&order=hit_at.desc&limit=30`);content.innerHTML=hits.length?hits.map(h=>`<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center"><div style="font-size:24px">📍</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${h.checkpoints?.name||'—'}</div><div style="font-size:11px;color:var(--text3)">${h.quests?.title||''} · ${formatDate(h.hit_at)}</div></div><div style="color:var(--green);font-family:'Arial Black',Arial,sans-serif;font-size:13px">+${PTS.CP}</div></div>`).join(''):'<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">Ещё нет пройденных точек</div></div>';}catch(e){content.innerHTML='<div class="empty"><div class="empty-text">Ошибка</div></div>';}
 }
 
 function getDistance(lat1,lon1,lat2,lon2){const R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}

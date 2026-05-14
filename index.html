@@ -263,8 +263,9 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <div class="form-group"><label class="form-label">Город</label><input class="form-input" id="regCity" type="text" placeholder="Челябинск"></div>
       <div class="form-group" style="display:flex;align-items:flex-start;gap:10px">
         <input type="checkbox" id="regConsent" style="margin-top:3px;width:18px;height:18px;flex-shrink:0;accent-color:var(--green)">
-        <label for="regConsent" style="font-size:12px;color:var(--text3);line-height:1.5;cursor:pointer">
-          Я соглашаюсь на хранение номера телефона и игрового имени для связи с победителями квеста. Номер не публикуется и не передаётся третьим лицам. Соответствует <span style="color:var(--green)">152-ФЗ</span>
+        <label for="regConsent" style="font-size:12px;color:var(--text3);line-height:1.6;cursor:pointer">
+          Регистрируясь, я даю согласие на обработку персональных данных: игровое имя, номер телефона, геолокация в момент сканирования точек, фотографии (если загружаю). Данные используются исключительно для проведения квестов и связи с победителями, не передаются третьим лицам.<br>
+          <a href="https://sledopyt.vercel.app/privacy.html" target="_blank" style="color:var(--green);text-decoration:underline">Политика конфиденциальности</a> · <span style="color:var(--green)">152-ФЗ</span>
         </label>
       </div>
       <button class="btn btn-primary" onclick="doRegister()">Создать аккаунт</button>

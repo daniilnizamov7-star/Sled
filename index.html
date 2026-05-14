@@ -372,6 +372,67 @@ select.form-input option{background:var(--bg2);color:var(--text)}
   </div>
 </div>
 
+<div id="compassScreen" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="stopCompass();goBack()">← Назад</button>
+    <div class="topbar-right"><div id="compassGeoStatus" class="geo-badge">📍 Определяем...</div></div>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 20px;min-height:calc(100vh - 60px);gap:20px">
+    <div style="font-size:14px;font-weight:700;color:var(--text3);letter-spacing:.5px;text-transform:uppercase" id="compassQuestName">Квест</div>
+    <div style="font-size:18px;font-weight:800;color:var(--text);text-align:center" id="compassCpName">Точка 1</div>
+    <!-- Стрелка компаса -->
+    <div style="position:relative;width:220px;height:220px">
+      <div style="position:absolute;inset:0;border-radius:50%;border:2px solid var(--border);background:var(--bg3)"></div>
+      <div style="position:absolute;inset:10px;border-radius:50%;border:1px solid var(--border)"></div>
+      <!-- Метки сторон -->
+      <div style="position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:var(--text3)">С</div>
+      <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:var(--text3)">Ю</div>
+      <div style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:var(--text3)">З</div>
+      <div style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:var(--text3)">В</div>
+      <!-- Стрелка -->
+      <div id="compassArrow" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transition:transform .15s ease-out">
+        <svg width="60" height="100" viewBox="0 0 60 100">
+          <polygon points="30,4 44,56 30,48 16,56" fill="#4ade80"/>
+          <polygon points="30,96 44,44 30,52 16,44" fill="var(--border)"/>
+        </svg>
+      </div>
+      <!-- Центральная точка -->
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+        <div style="width:12px;height:12px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)"></div>
+      </div>
+    </div>
+    <!-- Расстояние -->
+    <div style="text-align:center">
+      <div id="compassDist" style="font-size:48px;font-weight:900;color:var(--green);font-family:'Arial Black',Arial,sans-serif;line-height:1">—</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:4px">метров до точки</div>
+    </div>
+    <!-- Зона прибытия -->
+    <div id="compassArrived" style="display:none;background:rgba(74,222,128,.15);border:1px solid var(--green);border-radius:12px;padding:16px 24px;text-align:center;width:100%">
+      <div style="font-size:24px;margin-bottom:8px">✅</div>
+      <div style="font-size:16px;font-weight:700;color:var(--green);margin-bottom:4px">Ты на месте!</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:12px" id="compassArrivedHint">Найди метку и отсканируй QR-код</div>
+      <!-- Задание прямо здесь (без QR) -->
+      <div id="compassTaskBlock" style="display:none;text-align:left;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px">
+        <div style="font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.5px;margin-bottom:6px">📋 ЗАДАНИЕ</div>
+        <div id="compassTaskText" style="font-size:14px;color:var(--text);line-height:1.5;margin-bottom:8px"></div>
+        <div id="compassTaskTip" style="font-size:12px;color:var(--amber);display:none;margin-bottom:8px"></div>
+        <textarea id="compassTaskAnswer" class="caption-area" placeholder="Напиши ответ..." style="margin-bottom:8px"></textarea>
+        <button class="btn btn-primary" style="width:100%" onclick="compassSubmitTask()">Отправить ответ</button>
+      </div>
+      <button class="btn btn-primary" onclick="compassOpenScan()" id="compassScanBtn">📷 Сканировать QR</button>
+    </div>
+    <!-- Подсказка -->
+    <div id="compassHintBlock" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 16px;width:100%;display:none">
+      <div style="font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.5px;margin-bottom:6px">ПОДСКАЗКА</div>
+      <div id="compassHintText" style="font-size:13px;color:var(--text2);line-height:1.5"></div>
+    </div>
+    <!-- iOS разрешение -->
+    <button id="compassPermBtn" style="display:none" class="btn btn-secondary" onclick="requestCompassPermission()">🧭 Разрешить компас</button>
+    <!-- Прогресс -->
+    <div style="font-size:12px;color:var(--text3)" id="compassProgress"></div>
+  </div>
+</div>
+
 <div id="scanScreen" class="screen">
   <div class="scan-container">
     <video id="scanVideo" class="scan-video" playsinline autoplay muted></video>
@@ -464,6 +525,10 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <div class="form-group" style="display:flex;align-items:center;gap:10px">
         <input type="checkbox" id="qCountGlobal" checked style="width:18px;height:18px;accent-color:var(--green);flex-shrink:0">
         <label for="qCountGlobal" style="font-size:13px;color:var(--text2);cursor:pointer">🌍 Учитывать баллы в общем рейтинге <span style="font-size:11px;color:var(--text3)">(снять для корпоративных)</span></label>
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px">
+        <input type="checkbox" id="qCompass" style="width:18px;height:18px;accent-color:#60a5fa;flex-shrink:0">
+        <label for="qCompass" style="font-size:13px;color:var(--text2);cursor:pointer">🧭 Компас-навигация <span style="font-size:11px;color:var(--text3)">(стрелка вместо подсказки, QR не нужен)</span></label>
       </div>
       <div class="form-group"><label class="form-label">Код доступа <span style="color:var(--text3);font-weight:400">(для корпоративных — необязательно)</span></label><input class="form-input" id="qAccessCode" placeholder="QWE123" style="text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase();document.getElementById('qGroupsBlock').style.display=this.value.trim()?'block':'none'"></div>
       <div class="form-group" id="qGroupsBlock" style="display:none">
@@ -587,6 +652,10 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     <div class="form-group" style="display:flex;align-items:center;gap:10px">
       <input type="checkbox" id="editQuestGlobal" style="width:18px;height:18px;accent-color:var(--green);flex-shrink:0">
       <label for="editQuestGlobal" style="font-size:13px;color:var(--text2);cursor:pointer">🌍 Учитывать баллы в общем рейтинге <span style="font-size:11px;color:var(--text3)">(снять для корпоративных)</span></label>
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="editQuestCompass" style="width:18px;height:18px;accent-color:#60a5fa;flex-shrink:0">
+      <label for="editQuestCompass" style="font-size:13px;color:var(--text2);cursor:pointer">🧭 Компас-навигация <span style="font-size:11px;color:var(--text3)">(стрелка вместо подсказки)</span></label>
     </div>
     <button class="btn btn-primary" onclick="saveEditQuest()" style="margin-bottom:10px">Сохранить</button>
     <button class="btn btn-secondary" onclick="closeModal('editQuestModal')">Отмена</button>
@@ -1011,8 +1080,8 @@ async function loadQuests(){
         ?`<span class="quest-badge" style="background:rgba(251,191,36,.15);color:var(--amber);border:1px solid var(--amber-dim);margin-left:6px">🔥 ${seasonMap[q.season_id]}</span>`
         :'';
       const el=document.createElement('div');el.className=`quest-card ${q.quest_type==='team'?'team':''}`;el.style.animationDelay=`${i*.08}s`;
-      el.innerHTML=`<div><span class="quest-badge ${q.quest_type==='team'?'badge-team':q.quest_type==='both'?'badge-team':'badge-solo'}">${q.quest_type==='team'?'🤝 Командный':q.quest_type==='both'?'⚡ Любой':'🏃 Личный'}</span><span class="quest-badge badge-active" style="margin-left:6px">● Активен</span>${seasonBadge}</div>
-      <div class="quest-title">${q.title}</div><div class="quest-desc">${q.description||''}</div>
+      el.innerHTML=`<div><span class="quest-badge ${q.quest_type==='team'?'badge-team':q.quest_type==='both'?'badge-team':'badge-solo'}">${q.quest_type==='team'?'🤝 Командный':q.quest_type==='both'?'⚡ Любой':'🏃 Личный'}</span><span class="quest-badge badge-active" style="margin-left:6px">● Активен</span>${q.navigation_mode==='compass'?'<span class="quest-badge" style="margin-left:6px;background:rgba(96,165,250,.15);color:#60a5fa">🧭 Компас</span>':''}${seasonBadge}</div>
+      <div class="quest-title">${q.title}</div>${q.description?`<div class="quest-desc" style="font-size:11px;color:var(--text3);font-style:italic">📖 Нажми чтобы узнать подробности</div>`:''}
       <div class="quest-meta"><div class="quest-meta-item">📍 ${q.checkpoint_count||'?'} точек</div><div class="quest-meta-item">🏆 ${q.prize_description||'Приз'}</div><div class="quest-meta-item">📅 До ${formatDate(q.end_date)}</div></div>
       ${spHtml}`;
       el.onclick=()=>openQuest(q);list.appendChild(el);
@@ -1037,6 +1106,11 @@ async function loadQuests(){
 
 async function openQuest(quest){currentQuestData=quest;
   currentQuestId=quest.id;
+  // Если компас-режим — запускаем навигацию
+  if(quest.navigation_mode==='compass'){
+    await startCompassQuest(quest);
+    return;
+  }
   // Проверяем группу участника если корпоратив
   let groupBadge='';
   if(quest.access_code&&currentUser){
@@ -1701,6 +1775,259 @@ function hideLearning(){
   checkSubmitReady();
 }
 
+// ══ КОМПАС-НАВИГАЦИЯ ══
+let _compassWatch=null,_compassOrientation=null,_compassTarget=null,_compassCps=[],_compassIdx=0,_compassArrived=false;
+
+async function startCompassQuest(quest){
+  currentQuestData=quest;
+  currentQuestId=quest.id;
+  // Загружаем точки
+  const cps=await sb(`checkpoints?quest_id=eq.${quest.id}&order=order_num.asc&select=*`);
+  if(!cps.length)return showToast('В квесте нет точек');
+  // Определяем первую непройденную
+  let hits=[];
+  try{hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${quest.id}&select=checkpoint_id`);}catch(e){}
+  const hitIds=new Set(hits.map(h=>h.checkpoint_id));
+  const nextIdx=cps.findIndex(cp=>!hitIds.has(cp.id));
+  if(nextIdx===-1){
+    showToast('🏁 Все точки уже пройдены!');
+    openQuest(quest);
+    return;
+  }
+  _compassCps=cps;
+  _compassIdx=nextIdx;
+  _compassArrived=false;
+  goScreen('compassScreen');
+  document.getElementById('compassQuestName').textContent=quest.title;
+  compassLoadCheckpoint(nextIdx,hitIds.size,cps.length);
+  compassStartGeo();
+  compassStartOrientation();
+}
+
+function compassLoadCheckpoint(idx,doneCount,totalCount){
+  _compassArrived=false;
+  const cp=_compassCps[idx];
+  _compassTarget={lat:parseFloat(cp.lat),lng:parseFloat(cp.lng),radius:cp.radius_meters||20,cp};
+  document.getElementById('compassCpName').textContent=`Точка ${cp.order_num}. ${cp.name||''}`;
+  document.getElementById('compassProgress').textContent=`${doneCount} из ${totalCount} точек пройдено`;
+  // Подсказка — показываем только когда близко
+  const hintEl=document.getElementById('compassHintBlock');
+  const hintText=document.getElementById('compassHintText');
+  if(cp.hint){hintText.textContent=cp.hint;}
+  hintEl.style.display='none';
+  document.getElementById('compassArrived').style.display='none';
+  document.getElementById('compassArrow').style.opacity='1';
+  document.getElementById('compassDist').style.color='var(--green)';
+  // iOS разрешение
+  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+    document.getElementById('compassPermBtn').style.display='block';
+  }
+}
+
+function compassStartGeo(){
+  if(!navigator.geolocation)return;
+  _compassWatch=navigator.geolocation.watchPosition(pos=>{
+    userGeo=pos.coords;
+    if(!_compassTarget)return;
+    const dist=Math.round(getDistance(pos.coords.latitude,pos.coords.longitude,_compassTarget.lat,_compassTarget.lng));
+    const distEl=document.getElementById('compassDist');
+    const geoEl=document.getElementById('compassGeoStatus');
+    if(distEl)distEl.textContent=dist;
+    if(geoEl){geoEl.textContent=dist<=_compassTarget.radius?'✅ На месте':'📍 '+dist+'м';geoEl.className='geo-badge'+(dist<=_compassTarget.radius?'':' error');}
+    // Показываем подсказку когда < 30м
+    const hintEl=document.getElementById('compassHintBlock');
+    if(dist<30&&_compassTarget.cp.hint&&hintEl)hintEl.style.display='block';
+    // Прибыли в зону
+    if(dist<=_compassTarget.radius&&!_compassArrived){
+      _compassArrived=true;
+      const arrivedEl=document.getElementById('compassArrived');
+      const cp=_compassTarget.cp;
+      if(arrivedEl){
+        arrivedEl.style.display='block';
+        const hasTask=cp.task_text||cp.task_type;
+        const noQr=cp.need_qr===false; // need_qr=false означает "без QR"
+        if(!hasTask){
+          // Режим 1: нет задания — автозачёт
+          document.getElementById('compassScanBtn').style.display='none';
+          document.getElementById('compassTaskBlock').style.display='none';
+          document.getElementById('compassArrivedHint').textContent='Точка засчитывается автоматически...';
+          compassAutoHit();
+        } else if(hasTask&&noQr){
+          // Режим 2: есть задание, QR не нужен — показываем задание прямо здесь
+          document.getElementById('compassScanBtn').style.display='none';
+          document.getElementById('compassArrivedHint').textContent='Выполни задание чтобы засчитать точку';
+          const taskBlock=document.getElementById('compassTaskBlock');
+          document.getElementById('compassTaskText').textContent=cp.task_text||'';
+          const tipEl=document.getElementById('compassTaskTip');
+          if(cp.task_tip){tipEl.textContent='💡 '+cp.task_tip;tipEl.style.display='block';}
+          else{tipEl.style.display='none';}
+          document.getElementById('compassTaskAnswer').value='';
+          taskBlock.style.display='block';
+        } else {
+          // Режим 3: есть QR — сканируем
+          document.getElementById('compassScanBtn').style.display='block';
+          document.getElementById('compassTaskBlock').style.display='none';
+          document.getElementById('compassArrivedHint').textContent=cp.hint||'Найди QR-код и отсканируй';
+        }
+      }
+      playHitSound('hit');
+    }
+  },()=>{
+    const geoEl=document.getElementById('compassGeoStatus');
+    if(geoEl){geoEl.textContent='GPS недоступен';geoEl.className='geo-badge error';}
+  },{enableHighAccuracy:true,maximumAge:2000,timeout:10000});
+}
+
+function compassStartOrientation(){
+  const handler=function(e){
+    _compassOrientation=e;
+    compassUpdateArrow();
+  };
+  // Samsung и большинство Android — deviceorientationabsolute
+  if('ondeviceorientationabsolute' in window){
+    window.addEventListener('deviceorientationabsolute',handler,true);
+  } else {
+    window.addEventListener('deviceorientation',handler,true);
+  }
+  window._compassOrientHandler=handler;
+}
+
+function compassUpdateArrow(){
+  if(!_compassOrientation||!userGeo||!_compassTarget)return;
+  // Угол на цель (bearing)
+  const lat1=userGeo.latitude*Math.PI/180,lat2=_compassTarget.lat*Math.PI/180;
+  const dLng=(_compassTarget.lng-userGeo.longitude)*Math.PI/180;
+  const y=Math.sin(dLng)*Math.cos(lat2);
+  const x=Math.cos(lat1)*Math.sin(lat2)-Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLng);
+  const bearing=(Math.atan2(y,x)*180/Math.PI+360)%360;
+  // Угол компаса (куда смотрит телефон)
+  const heading=_compassOrientation.webkitCompassHeading||// iOS
+    (_compassOrientation.absolute&&_compassOrientation.alpha!=null?(360-_compassOrientation.alpha):null)||
+    (_compassOrientation.alpha!=null?(360-_compassOrientation.alpha):0);
+  const rotation=(bearing-heading+360)%360;
+  const arrow=document.getElementById('compassArrow');
+  if(arrow)arrow.style.transform=`rotate(${rotation}deg)`;
+}
+
+async function requestCompassPermission(){
+  try{
+    const r=await DeviceOrientationEvent.requestPermission();
+    if(r==='granted'){
+      document.getElementById('compassPermBtn').style.display='none';
+      compassStartOrientation();
+    }
+  }catch(e){showToast('Не удалось получить разрешение');}
+}
+
+async function compassSubmitTask(){
+  const cp=_compassTarget?.cp;
+  if(!cp)return;
+  const answer=document.getElementById('compassTaskAnswer').value.trim();
+  if(!answer)return showToast('Введи ответ');
+  // Проверяем ответ если есть правильный
+  if(cp.task_answer){
+    const correct=cp.task_answer.trim().toLowerCase();
+    const isRiddle=cp.task_type==='riddle'||cp.task_type==='sign';
+    if(isRiddle){
+      // Частичное совпадение
+      if(!answer.toLowerCase().includes(correct)&&!correct.includes(answer.toLowerCase())){
+        showToast('❌ Неверно, попробуй ещё раз');return;
+      }
+    } else {
+      if(answer.toLowerCase()!==correct){
+        showToast('❌ Неверно, попробуй ещё раз');return;
+      }
+    }
+  }
+  // Ответ верный — засчитываем точку с бонусом за ответ
+  try{
+    const existing=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=eq.${cp.id}&select=id`);
+    if(existing.length){showToast('✅ Точка уже засчитана');await compassNext();return;}
+    await sb('checkpoint_hits',{method:'POST',body:{user_id:currentUser.id,checkpoint_id:cp.id,quest_id:cp.quest_id,caption:answer,photo_url:null,photo_status:null,lat:userGeo?.latitude||null,lng:userGeo?.longitude||null,hit_at:new Date().toISOString()},prefer:'return=minimal'});
+    const countGlobal=currentQuestData?.count_in_global!==false;
+    const totalPts=PTS.CP+PTS.ANSWER;
+    const newHits=(currentProfile?.checkpoints_hit||0)+1;
+    const newPts=(currentProfile?.points||0)+(countGlobal?totalPts:0);
+    await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{points:newPts,checkpoints_hit:newHits},prefer:'return=minimal'});
+    currentProfile.points=newPts;currentProfile.checkpoints_hit=newHits;
+    // Проверяем финиш
+    const allCps=await sb(`checkpoints?quest_id=eq.${cp.quest_id}&select=id`);
+    const allHits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${cp.quest_id}&select=id`);
+    if(allHits.length>=allCps.length){
+      stopCompass();
+      showToast('🏁 Квест завершён! +'+totalPts+' баллов');
+      await checkQuestCompletion(cp.quest_id);
+      setTimeout(()=>openQuest(currentQuestData),1500);
+      return;
+    }
+    showToast('✅ Верно! +'+totalPts+' баллов');
+    await compassNext();
+  }catch(e){showToast('Ошибка: '+(e?.message||JSON.stringify(e)));}
+}
+
+async function compassAutoHit(){
+  // Автозачёт без QR — напрямую засчитываем точку
+  const cp=_compassTarget.cp;
+  try{
+    const existing=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=eq.${cp.id}&select=id`);
+    if(existing.length){showToast('✅ Точка уже засчитана');compassNext();return;}
+    await sb('checkpoint_hits',{method:'POST',body:{user_id:currentUser.id,checkpoint_id:cp.id,quest_id:cp.quest_id,photo_url:null,photo_status:null,lat:userGeo?.latitude||null,lng:userGeo?.longitude||null,hit_at:new Date().toISOString()},prefer:'return=minimal'});
+    const countGlobal=currentQuestData?.count_in_global!==false;
+    const newHits=(currentProfile?.checkpoints_hit||0)+1;
+    const newPts=(currentProfile?.points||0)+(countGlobal?PTS.CP:0);
+    await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{points:newPts,checkpoints_hit:newHits},prefer:'return=minimal'});
+    currentProfile.points=newPts;currentProfile.checkpoints_hit=newHits;
+    // Проверяем финиш
+    const allCps=await sb(`checkpoints?quest_id=eq.${cp.quest_id}&select=id`);
+    const allHits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${cp.quest_id}&select=id`);
+    if(allHits.length>=allCps.length){
+      stopCompass();
+      showToast('🏁 Квест завершён! +'+PTS.CP+' баллов');
+      const msg=await checkQuestCompletion(cp.quest_id);
+      setTimeout(()=>openQuest(currentQuestData),1500);
+      return;
+    }
+    showToast('+'+PTS.CP+' баллов!');
+    await compassNext();
+  }catch(e){showToast('Ошибка: '+(e?.message||JSON.stringify(e)));}
+}
+
+async function compassNext(){
+  // Переходим к следующей непройденной точке
+  const hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${_compassTarget.cp.quest_id}&select=checkpoint_id`).catch(()=>[]);
+  const hitIds=new Set(hits.map(h=>h.checkpoint_id));
+  const nextIdx=_compassCps.findIndex(cp=>!hitIds.has(cp.id));
+  if(nextIdx===-1){
+    stopCompass();
+    showToast('🏁 Все точки пройдены!');
+    setTimeout(()=>openQuest(currentQuestData),1000);
+    return;
+  }
+  _compassIdx=nextIdx;
+  _compassArrived=false;
+  compassLoadCheckpoint(nextIdx,hitIds.size,_compassCps.length);
+}
+
+function compassOpenScan(){
+  // Открываем QR-сканер — при успехе вернёт на verifyScreen
+  stopCompassGeo();
+  showScan();
+}
+
+function stopCompassGeo(){
+  if(_compassWatch){navigator.geolocation.clearWatch(_compassWatch);_compassWatch=null;}
+}
+
+function stopCompass(){
+  stopCompassGeo();
+  if(window._compassOrientHandler){
+    window.removeEventListener('deviceorientationabsolute',window._compassOrientHandler,true);
+    window.removeEventListener('deviceorientation',window._compassOrientHandler,true);
+    window._compassOrientHandler=null;
+  }
+  _compassTarget=null;_compassCps=[];_compassOrientation=null;
+}
+
 function startGeoCheck(cp){
   const badge=document.getElementById('geoStatus');
   if(!navigator.geolocation){badge.textContent='GPS недоступен';badge.className='geo-badge error';return;}
@@ -2157,13 +2484,13 @@ async function loadAdminQuestList(){
       return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;opacity:${isArchived?'0.6':'1'}">
         <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
           <div style="flex:1">
-            <div style="font-weight:600;color:var(--text);margin-bottom:2px">${q.title} ${q.count_in_global===false?'<span style="background:rgba(99,102,241,.15);color:#818cf8;font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600">🏢 Корп</span>':'<span style="background:rgba(74,222,128,.1);color:var(--green);font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600">🌍 Общий</span>'}</div>
+            <div style="font-weight:600;color:var(--text);margin-bottom:2px">${q.title} ${q.count_in_global===false?'<span style="background:rgba(99,102,241,.15);color:#818cf8;font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600">🏢 Корп</span>':'<span style="background:rgba(74,222,128,.1);color:var(--green);font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600">🌍 Общий</span>'}${q.navigation_mode==='compass'?' <span style="background:rgba(96,165,250,.15);color:#60a5fa;font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600">🧭 Компас</span>':''}</div>
             <div style="font-size:12px;color:var(--text3)">${q.quest_type} · до ${formatDate(q.end_date)}</div>
             ${q.prize_description?`<div style="font-size:12px;color:var(--amber);margin-top:3px">🏆 ${q.prize_description}</div>`:''}
           </div>
           <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0;margin-left:10px">
             ${!isArchived?`<button class="btn btn-sm ${isActive?'btn-red':'btn-primary'}" onclick="toggleQuestStatus('${q.id}','${q.status}')">${isActive?'Завершить':'Активировать'}</button>`:''}
-            ${!isArchived?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="openEditQuest('${q.id}','${q.title}','${(q.description||'').replace(/'/g,"\\'")}','${(q.prize_description||'').replace(/'/g,"\\'")}','${q.end_date}',${q.count_in_global!==false})">✏️ Изменить</button>`:''}
+            ${!isArchived?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="openEditQuest('${q.id}','${q.title}','${(q.description||'').replace(/'/g,"\\'")}','${(q.prize_description||'').replace(/'/g,"\\'")}','${q.end_date}',${q.count_in_global!==false},'${q.navigation_mode||'text'}')">✏️ Изменить</button>`:''}
             ${!isArchived?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="archiveQuest('${q.id}','${q.title.replace(/'/g,"\\'")}')">📦 В архив</button>`:''}
             ${isArchived?`<button class="btn btn-sm btn-primary" style="font-size:11px" onclick="unarchiveQuest('${q.id}')">↩ Вернуть</button><button class="btn btn-sm btn-red" style="font-size:11px" onclick="deleteQuest('${q.id}','${q.title.replace(/'/g,"\\'")}')">🗑 Удалить</button>`:''}
           </div>
@@ -2330,15 +2657,15 @@ ${sponsorsHtml}
 }
 
 async function createQuest(){
-  const title=document.getElementById('qTitle').value.trim(),desc=document.getElementById('qDesc').value.trim(),type=document.getElementById('qType').value,days=parseInt(document.getElementById('qDays').value)||7,prize=document.getElementById('qPrize').value.trim(),withLearning=document.getElementById('qLearning').checked,withSpeedBonus=document.getElementById('qSpeedBonus').checked,accessCode=document.getElementById('qAccessCode').value.trim()||null,countGlobal=document.getElementById('qCountGlobal').checked;
+  const title=document.getElementById('qTitle').value.trim(),desc=document.getElementById('qDesc').value.trim(),type=document.getElementById('qType').value,days=parseInt(document.getElementById('qDays').value)||7,prize=document.getElementById('qPrize').value.trim(),withLearning=document.getElementById('qLearning').checked,withSpeedBonus=document.getElementById('qSpeedBonus').checked,accessCode=document.getElementById('qAccessCode').value.trim()||null,countGlobal=document.getElementById('qCountGlobal').checked,compassMode=document.getElementById('qCompass').checked;
   const groupsRaw=document.getElementById('qGroups').value.trim();
   const groups=accessCode&&groupsRaw?groupsRaw.split(',').map(g=>g.trim()).filter(Boolean):null;
   if(!title)return showToast('Введи название');
   const end=new Date();end.setDate(end.getDate()+days);
   try{
-    await sb('quests',{method:'POST',body:{title,description:desc,quest_type:type,status:'active',end_date:end.toISOString(),prize_description:prize,with_learning:withLearning,with_speed_bonus:withSpeedBonus,access_code:accessCode,groups:groups?JSON.stringify(groups):null,created_by:currentUser.id,checkpoint_count:0,count_in_global:countGlobal},prefer:'return=minimal'});
+    await sb('quests',{method:'POST',body:{title,description:desc,quest_type:type,status:'active',end_date:end.toISOString(),prize_description:prize,with_learning:withLearning,with_speed_bonus:withSpeedBonus,access_code:accessCode,groups:groups?JSON.stringify(groups):null,created_by:currentUser.id,checkpoint_count:0,count_in_global:countGlobal,navigation_mode:compassMode?'compass':'text'},prefer:'return=minimal'});
     showToast('Квест создан!');
-    document.getElementById('qTitle').value='';document.getElementById('qDesc').value='';document.getElementById('qLearning').checked=false;document.getElementById('qSpeedBonus').checked=true;document.getElementById('qCountGlobal').checked=true;document.getElementById('qAccessCode').value='';document.getElementById('qGroups').value='';document.getElementById('qGroupsBlock').style.display='none';
+    document.getElementById('qTitle').value='';document.getElementById('qDesc').value='';document.getElementById('qLearning').checked=false;document.getElementById('qSpeedBonus').checked=true;document.getElementById('qCountGlobal').checked=true;document.getElementById('qCompass').checked=false;document.getElementById('qAccessCode').value='';document.getElementById('qGroups').value='';document.getElementById('qGroupsBlock').style.display='none';
     hideCreateQuestForm();initAdminScreen();
   }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
 }
@@ -2437,13 +2764,14 @@ async function deleteQuest(id,title){
   }
 }
 
-function openEditQuest(id,title,desc,prize,endDate,countGlobal){
+function openEditQuest(id,title,desc,prize,endDate,countGlobal,navMode){
   document.getElementById("editQuestId").value=id;
   document.getElementById("editQuestTitle").value=title;
   document.getElementById("editQuestDesc").value=desc;
   document.getElementById("editQuestPrize").value=prize;
   document.getElementById("editQuestDate").value=endDate?endDate.split("T")[0]:"";
   document.getElementById("editQuestGlobal").checked=countGlobal!==false;
+  document.getElementById("editQuestCompass").checked=navMode==='compass';
   document.getElementById("editQuestModal").classList.add("show");
 }
 async function saveEditQuest(){
@@ -2453,12 +2781,14 @@ async function saveEditQuest(){
   const prize=document.getElementById("editQuestPrize").value.trim();
   const date=document.getElementById("editQuestDate").value;
   const countGlobal=document.getElementById("editQuestGlobal").checked;
+  const compassMode=document.getElementById("editQuestCompass").checked;
   if(!title)return showToast("Введи название");
   try{
     await sb(`quests?id=eq.${id}`,{method:"PATCH",body:{
       title,description:desc,prize_description:prize,
       end_date:date?new Date(date).toISOString():undefined,
-      count_in_global:countGlobal
+      count_in_global:countGlobal,
+      navigation_mode:compassMode?'compass':'text'
     },prefer:"return=minimal"});
     showToast("✅ Квест обновлён");
     closeModal("editQuestModal");
@@ -2653,6 +2983,12 @@ function buildAddCpForm(questId){
     <div id="cpAnswerField-${questId}" style="display:none">
       <input class="form-input" id="cpTaskAnswer-${questId}" placeholder="Правильный ответ" style="margin-bottom:8px">
     </div>
+    <div id="cpNoQrBlock-${questId}" style="display:none;margin-bottom:8px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);cursor:pointer">
+        <input type="checkbox" id="cpNoQr-${questId}" style="width:16px;height:16px;accent-color:#60a5fa">
+        🧭 Задание без QR — участник отвечает прямо на экране компаса
+      </label>
+    </div>
     <div style="display:flex;gap:8px;margin-bottom:8px">
       <input class="form-input" id="cpLat-${questId}" placeholder="Широта" style="flex:1">
       <input class="form-input" id="cpLng-${questId}" placeholder="Долгота" style="flex:1">
@@ -2681,8 +3017,10 @@ function toggleCpTask(questId){
   var type=document.getElementById('cpTaskType-'+questId)?.value;
   var f=document.getElementById('cpTaskFields-'+questId);
   var a=document.getElementById('cpAnswerField-'+questId);
+  var noQr=document.getElementById('cpNoQrBlock-'+questId);
   if(f)f.style.display=type?'block':'none';
   if(a)a.style.display=(type==='riddle'||type==='sign')?'block':'none';
+  if(noQr)noQr.style.display=type?'block':'none';
 }
 async function createCpForQuest(questId){
   var name=document.getElementById('cpName-'+questId)?.value.trim();
@@ -2696,21 +3034,23 @@ async function createCpForQuest(questId){
   var taskText=document.getElementById('cpTaskText-'+questId)?.value.trim();
   var taskTip=document.getElementById('cpTaskTip-'+questId)?.value.trim();
   var taskAnswer=document.getElementById('cpTaskAnswer-'+questId)?.value.trim();
+  var noQr=document.getElementById('cpNoQr-'+questId)?.checked||false;
   if(!name||isNaN(lat)||isNaN(lng))return showToast('Заполни название и координаты');
   if(taskType&&!taskText)return showToast('Введи текст задания');
   var token=generateToken();
   try{
     var existing=await sb(`checkpoints?quest_id=eq.${questId}&select=id`);
     var orderNum=existing.length+1;
-    await sb('checkpoints',{method:'POST',body:{quest_id:questId,name,hint,learning_text:learningText,post_fact:postFact,lat,lng,radius_meters:radius,token,order_num:orderNum,task_type:taskType||null,task_text:taskText||null,task_tip:taskTip||null,task_answer:taskAnswer||null},prefer:'return=minimal'});
+    await sb('checkpoints',{method:'POST',body:{quest_id:questId,name,hint,learning_text:learningText,post_fact:postFact,lat,lng,radius_meters:radius,token,order_num:orderNum,task_type:taskType||null,task_text:taskText||null,task_tip:taskTip||null,task_answer:taskAnswer||null,need_qr:!noQr},prefer:'return=minimal'});
     await sb(`quests?id=eq.${questId}`,{method:'PATCH',body:{checkpoint_count:orderNum},prefer:'return=minimal'});
     var url=APP_URL+'?cp='+token;
     var box=document.getElementById('cpQRBox-'+questId);
     var res=document.getElementById('cpQRResult-'+questId);
     var cap=document.getElementById('cpQRCaption-'+questId);
-    if(box&&res){box.innerHTML='';new QRCode(box,{text:url,width:160,height:160,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.H}); res.style.display='block';if(cap)cap.textContent='📍 '+name;}
-    showToast('Точка добавлена!');
+    if(box&&res){box.innerHTML='';new QRCode(box,{text:url,width:160,height:160,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.H}); res.style.display='block';if(cap)cap.textContent='📍 '+name+(noQr?' (без QR)':'');}
+    showToast('Точка добавлена!'+(noQr?' Задание без QR.':''));
     ['cpName','cpHint','cpLearning','cpPostFact','cpTaskText','cpTaskTip','cpTaskAnswer'].forEach(function(id){var el=document.getElementById(id+'-'+questId);if(el)el.value='';});
+    var noQrEl=document.getElementById('cpNoQr-'+questId);if(noQrEl)noQrEl.checked=false;
     loadCheckpointsList2(questId);
   }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
 }

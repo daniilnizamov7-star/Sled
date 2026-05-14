@@ -1566,9 +1566,10 @@ async function saveEditCheckpoint(){
   var learning=document.getElementById('editCpLearning').value.trim()||null;
   var postFact=document.getElementById('editCpPostFact').value.trim()||null;
   var taskType=document.getElementById('editCpTaskType').value||null;
-  var taskText=document.getElementById('editCpTaskText').value.trim()||null;
-  var taskTip=document.getElementById('editCpTaskTip').value.trim()||null;
-  var taskAnswer=document.getElementById('editCpTaskAnswer').value.trim()||null;
+  // Если тип не выбран — принудительно очищаем все поля задания
+  var taskText=taskType?document.getElementById('editCpTaskText').value.trim()||null:null;
+  var taskTip=taskType?document.getElementById('editCpTaskTip').value.trim()||null:null;
+  var taskAnswer=taskType?document.getElementById('editCpTaskAnswer').value.trim()||null:null;
   if(!name)return showToast('Введи название точки');
   try{
     await sb(`checkpoints?id=eq.${id}`,{method:'PATCH',body:{

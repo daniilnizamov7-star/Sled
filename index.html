@@ -1845,7 +1845,8 @@ function compassStartGeo(){
       if(arrivedEl){
         arrivedEl.style.display='block';
         const hasTask=cp.task_text||cp.task_type;
-        const noQr=cp.need_qr===false; // need_qr=false означает "без QR"
+        // need_qr=false → задание без QR. null/undefined/true → с QR (дефолт)
+        const noQr=cp.need_qr===false||cp.need_qr==='false';
         if(!hasTask){
           // Режим 1: нет задания — автозачёт
           document.getElementById('compassScanBtn').style.display='none';
@@ -1924,67 +1925,81 @@ async function compassSubmitTask(){
   if(!cp)return;
   const answer=document.getElementById('compassTaskAnswer').value.trim();
   if(!answer)return showToast('Введи ответ');
+  const btn=document.querySelector('#compassTaskBlock button');
+  if(btn){btn.disabled=true;btn.textContent='Проверяем...';}
   // Проверяем ответ если есть правильный
   if(cp.task_answer){
     const correct=cp.task_answer.trim().toLowerCase();
     const isRiddle=cp.task_type==='riddle'||cp.task_type==='sign';
-    if(isRiddle){
-      // Частичное совпадение
-      if(!answer.toLowerCase().includes(correct)&&!correct.includes(answer.toLowerCase())){
-        showToast('❌ Неверно, попробуй ещё раз');return;
-      }
-    } else {
-      if(answer.toLowerCase()!==correct){
-        showToast('❌ Неверно, попробуй ещё раз');return;
-      }
+    const userAns=answer.toLowerCase().replace(/\s+/g,'');
+    const rightAns=correct.replace(/\s+/g,'');
+    const ok=isRiddle?(userAns.includes(rightAns)||rightAns.includes(userAns)):(userAns===rightAns);
+    if(!ok){
+      if(btn){btn.disabled=false;btn.textContent='Отправить ответ';}
+      showToast('❌ Неверно, попробуй ещё раз');
+      return;
     }
   }
-  // Ответ верный — засчитываем точку с бонусом за ответ
   try{
     const existing=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=eq.${cp.id}&select=id`);
     if(existing.length){showToast('✅ Точка уже засчитана');await compassNext();return;}
     await sb('checkpoint_hits',{method:'POST',body:{user_id:currentUser.id,checkpoint_id:cp.id,quest_id:cp.quest_id,caption:answer,photo_url:null,photo_status:null,lat:userGeo?.latitude||null,lng:userGeo?.longitude||null,hit_at:new Date().toISOString()},prefer:'return=minimal'});
+    // started_at
+    try{
+      const prevHits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${cp.quest_id}&select=id`);
+      if(prevHits.length===1){
+        const existComp=await sb(`quest_completions?user_id=eq.${currentUser.id}&quest_id=eq.${cp.quest_id}&select=id`);
+        if(!existComp.length)await sb('quest_completions',{method:'POST',body:{user_id:currentUser.id,quest_id:cp.quest_id,started_at:new Date().toISOString(),finished_at:null,bonus_points:0,is_first:false},prefer:'return=minimal'});
+      }
+    }catch(e){}
     const countGlobal=currentQuestData?.count_in_global!==false;
     const totalPts=PTS.CP+PTS.ANSWER;
     const newHits=(currentProfile?.checkpoints_hit||0)+1;
     const newPts=(currentProfile?.points||0)+(countGlobal?totalPts:0);
     await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{points:newPts,checkpoints_hit:newHits},prefer:'return=minimal'});
     currentProfile.points=newPts;currentProfile.checkpoints_hit=newHits;
-    // Проверяем финиш
-    const allCps=await sb(`checkpoints?quest_id=eq.${cp.quest_id}&select=id`);
-    const allHits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${cp.quest_id}&select=id`);
-    if(allHits.length>=allCps.length){
+    const finishMsg=await checkQuestCompletion(cp.quest_id);
+    if(finishMsg){
       stopCompass();
-      showToast('🏁 Квест завершён! +'+totalPts+' баллов');
-      await checkQuestCompletion(cp.quest_id);
-      setTimeout(()=>openQuest(currentQuestData),1500);
+      launchConfetti();playHitSound('complete');
+      showToast('🏁 '+finishMsg);
+      setTimeout(()=>openQuest(currentQuestData),2000);
       return;
     }
     showToast('✅ Верно! +'+totalPts+' баллов');
     await compassNext();
-  }catch(e){showToast('Ошибка: '+(e?.message||JSON.stringify(e)));}
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent='Отправить ответ';}
+    showToast('Ошибка: '+(e?.message||JSON.stringify(e)));
+  }
 }
 
 async function compassAutoHit(){
-  // Автозачёт без QR — напрямую засчитываем точку
-  const cp=_compassTarget.cp;
+  const cp=_compassTarget?.cp;
+  if(!cp)return;
   try{
     const existing=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=eq.${cp.id}&select=id`);
-    if(existing.length){showToast('✅ Точка уже засчитана');compassNext();return;}
+    if(existing.length){await compassNext();return;}
     await sb('checkpoint_hits',{method:'POST',body:{user_id:currentUser.id,checkpoint_id:cp.id,quest_id:cp.quest_id,photo_url:null,photo_status:null,lat:userGeo?.latitude||null,lng:userGeo?.longitude||null,hit_at:new Date().toISOString()},prefer:'return=minimal'});
+    // started_at
+    try{
+      const prevHits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${cp.quest_id}&select=id`);
+      if(prevHits.length===1){
+        const existComp=await sb(`quest_completions?user_id=eq.${currentUser.id}&quest_id=eq.${cp.quest_id}&select=id`);
+        if(!existComp.length)await sb('quest_completions',{method:'POST',body:{user_id:currentUser.id,quest_id:cp.quest_id,started_at:new Date().toISOString(),finished_at:null,bonus_points:0,is_first:false},prefer:'return=minimal'});
+      }
+    }catch(e){}
     const countGlobal=currentQuestData?.count_in_global!==false;
     const newHits=(currentProfile?.checkpoints_hit||0)+1;
     const newPts=(currentProfile?.points||0)+(countGlobal?PTS.CP:0);
     await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{points:newPts,checkpoints_hit:newHits},prefer:'return=minimal'});
     currentProfile.points=newPts;currentProfile.checkpoints_hit=newHits;
-    // Проверяем финиш
-    const allCps=await sb(`checkpoints?quest_id=eq.${cp.quest_id}&select=id`);
-    const allHits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${cp.quest_id}&select=id`);
-    if(allHits.length>=allCps.length){
+    const finishMsg=await checkQuestCompletion(cp.quest_id);
+    if(finishMsg){
       stopCompass();
-      showToast('🏁 Квест завершён! +'+PTS.CP+' баллов');
-      const msg=await checkQuestCompletion(cp.quest_id);
-      setTimeout(()=>openQuest(currentQuestData),1500);
+      launchConfetti();playHitSound('complete');
+      showToast('🏁 '+finishMsg);
+      setTimeout(()=>openQuest(currentQuestData),2000);
       return;
     }
     showToast('+'+PTS.CP+' баллов!');

@@ -372,46 +372,42 @@ select.form-input option{background:var(--bg2);color:var(--text)}
   </div>
 </div>
 
-<div id="compassScreen" class="screen">
-  <div class="topbar">
-    <button class="back-btn" onclick="stopCompass();goBack()">← Назад</button>
+<div id="compassModal" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:200;overflow-y:auto">
+  <div class="topbar" style="position:sticky;top:0;z-index:10">
+    <button class="back-btn" onclick="hideCompassModal()">← Маршрут</button>
+    <div style="font-size:13px;font-weight:700;color:var(--text)" id="compassCpName">Точка 1</div>
     <div class="topbar-right"><div id="compassGeoStatus" class="geo-badge">📍 Определяем...</div></div>
   </div>
-  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 20px;min-height:calc(100vh - 60px);gap:20px">
-    <div style="font-size:14px;font-weight:700;color:var(--text3);letter-spacing:.5px;text-transform:uppercase" id="compassQuestName">Квест</div>
-    <div style="font-size:18px;font-weight:800;color:var(--text);text-align:center" id="compassCpName">Точка 1</div>
+  <div style="display:flex;flex-direction:column;align-items:center;padding:20px 20px 40px;gap:16px">
+    <div style="font-size:12px;color:var(--text3);letter-spacing:.5px;text-transform:uppercase" id="compassQuestName">Квест</div>
     <!-- Стрелка компаса -->
-    <div style="position:relative;width:220px;height:220px">
+    <div style="position:relative;width:200px;height:200px">
       <div style="position:absolute;inset:0;border-radius:50%;border:2px solid var(--border);background:var(--bg3)"></div>
       <div style="position:absolute;inset:10px;border-radius:50%;border:1px solid var(--border)"></div>
-      <!-- Метки сторон -->
       <div style="position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:var(--text3)">С</div>
       <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:var(--text3)">Ю</div>
       <div style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:var(--text3)">З</div>
       <div style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:var(--text3)">В</div>
-      <!-- Стрелка -->
       <div id="compassArrow" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transition:transform .15s ease-out">
         <svg width="60" height="100" viewBox="0 0 60 100">
           <polygon points="30,4 44,56 30,48 16,56" fill="#4ade80"/>
           <polygon points="30,96 44,44 30,52 16,44" fill="var(--border)"/>
         </svg>
       </div>
-      <!-- Центральная точка -->
       <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
         <div style="width:12px;height:12px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)"></div>
       </div>
     </div>
     <!-- Расстояние -->
     <div style="text-align:center">
-      <div id="compassDist" style="font-size:48px;font-weight:900;color:var(--green);font-family:'Arial Black',Arial,sans-serif;line-height:1">—</div>
+      <div id="compassDist" style="font-size:56px;font-weight:900;color:var(--green);font-family:'Arial Black',Arial,sans-serif;line-height:1">—</div>
       <div style="font-size:13px;color:var(--text3);margin-top:4px">метров до точки</div>
     </div>
     <!-- Зона прибытия -->
-    <div id="compassArrived" style="display:none;background:rgba(74,222,128,.15);border:1px solid var(--green);border-radius:12px;padding:16px 24px;text-align:center;width:100%">
+    <div id="compassArrived" style="display:none;background:rgba(74,222,128,.15);border:1px solid var(--green);border-radius:12px;padding:16px;text-align:center;width:100%">
       <div style="font-size:24px;margin-bottom:8px">✅</div>
       <div style="font-size:16px;font-weight:700;color:var(--green);margin-bottom:4px">Ты на месте!</div>
       <div style="font-size:13px;color:var(--text2);margin-bottom:12px" id="compassArrivedHint">Найди метку и отсканируй QR-код</div>
-      <!-- Задание прямо здесь (без QR) -->
       <div id="compassTaskBlock" style="display:none;text-align:left;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px">
         <div style="font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.5px;margin-bottom:6px">📋 ЗАДАНИЕ</div>
         <div id="compassTaskText" style="font-size:14px;color:var(--text);line-height:1.5;margin-bottom:8px"></div>
@@ -428,8 +424,9 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     </div>
     <!-- iOS разрешение -->
     <button id="compassPermBtn" style="display:none" class="btn btn-secondary" onclick="requestCompassPermission()">🧭 Разрешить компас</button>
-    <!-- Прогресс -->
+    <!-- Прогресс + кнопка закрыть -->
     <div style="font-size:12px;color:var(--text3)" id="compassProgress"></div>
+    <button class="btn btn-secondary" style="width:100%" onclick="hideCompassModal()">← Вернуться к маршруту</button>
   </div>
 </div>
 
@@ -1038,7 +1035,7 @@ async function loadQuests(){
   const list=document.getElementById('questsList');list.innerHTML='<div class="loader"><div class="spinner"></div></div>';
   try{
     const allQuests=await sb(`quests?select=*&order=created_at.desc&limit=20`);
-    const quests=allQuests.filter(q=>q.status!=='archived'&&!q.access_code&&(q.status==='active'||new Date(q.end_date)>new Date(Date.now()-7*24*60*60*1000)));
+    const quests=allQuests.filter(q=>q.status!=='archived'&&q.status!=='draft'&&!q.is_demo&&!q.access_code&&(q.status==='active'||new Date(q.end_date)>new Date(Date.now()-7*24*60*60*1000)));
     if(!quests.length){list.innerHTML='<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">Квесты скоро появятся</div></div>';return;}
     const active=quests.filter(q=>q.status==='active');
     const ended=quests.filter(q=>q.status==='ended');
@@ -1106,11 +1103,6 @@ async function loadQuests(){
 
 async function openQuest(quest){currentQuestData=quest;
   currentQuestId=quest.id;
-  // Если компас-режим — запускаем навигацию
-  if(quest.navigation_mode==='compass'){
-    await startCompassQuest(quest);
-    return;
-  }
   // Проверяем группу участника если корпоратив
   let groupBadge='';
   if(quest.access_code&&currentUser){
@@ -1240,16 +1232,23 @@ async function loadCheckpoints(questId){
       if(done){
         div.innerHTML=`<div class="cp-num">✓</div><div class="cp-info"><div class="cp-name">${cp.name}</div><div class="cp-hint">✅ Пройдено</div></div>`;
       } else if(isNext){
-        // Текущая точка — показываем подсказку
+        // Текущая точка — показываем подсказку и кнопку компаса
+        const isCompass=currentQuestData?.navigation_mode==='compass';
         div.innerHTML=`
           <div class="cp-num" style="border-color:var(--green);color:var(--green);background:rgba(74,222,128,.1)">${i+1}</div>
           <div class="cp-info">
             <div class="cp-name">${cp.name}</div>
-            <div class="cp-hint" style="color:var(--green2)">${cp.hint||'Найди QR-код и отсканируй'}</div>
+            ${isCompass
+              ? `<div class="cp-hint" style="color:var(--green2)">🧭 Нажми компас чтобы найти точку</div>`
+              : `<div class="cp-hint" style="color:var(--green2)">${cp.hint||'Найди QR-код и отсканируй'}</div>`
+            }
             ${hasTask?'<div class="cp-task-badge">📋 Есть задание</div>':''}
           </div>
-          <div style="color:var(--green);font-size:20px">→</div>`;
-        div.onclick=()=>showToast('📷 Найди точку и отсканируй QR-код');
+          ${isCompass
+            ? `<button onclick="event.stopPropagation();showCompassModal()" style="background:rgba(96,165,250,.15);border:1px solid #60a5fa;color:#60a5fa;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;white-space:nowrap">🧭</button>`
+            : `<div style="color:var(--green);font-size:20px">→</div>`
+          }`;
+        if(!isCompass)div.onclick=()=>showToast('📷 Найди точку и отсканируй QR-код');
       } else {
         // Закрытая точка — только номер и замок
         div.innerHTML=`
@@ -1682,7 +1681,7 @@ async function openCheckpointByToken(token){
     const cp=cps[0];
     const quest=cp.quests;
     // Квест завершён или в архиве
-    if(quest?.status!=='active'){
+    if(quest?.status==='draft'&&!quest?.is_demo){
       if(!currentUser){
         // Не залогинен — показываем экран авторизации с уведомлением
         sessionStorage.setItem('sb_ended_quest_title',quest?.title||'Квест');
@@ -1776,29 +1775,44 @@ function hideLearning(){
   checkSubmitReady();
 }
 
+function showCompassModal(){
+  const modal=document.getElementById('compassModal');
+  if(!modal)return;
+  modal.style.display='block';
+  document.body.style.overflow='hidden';
+  // Если компас ещё не запущен — запускаем
+  if(!_compassTarget&&currentQuestData){
+    startCompassQuest(currentQuestData);
+  }
+}
+
+function hideCompassModal(){
+  const modal=document.getElementById('compassModal');
+  if(modal)modal.style.display='none';
+  document.body.style.overflow='';
+  // Гео и ориентация продолжают работать в фоне — не останавливаем
+}
+
 // ══ КОМПАС-НАВИГАЦИЯ ══
 let _compassWatch=null,_compassOrientation=null,_compassTarget=null,_compassCps=[],_compassIdx=0,_compassArrived=false;
 
 async function startCompassQuest(quest){
   currentQuestData=quest;
   currentQuestId=quest.id;
-  // Загружаем точки
   const cps=await sb(`checkpoints?quest_id=eq.${quest.id}&order=order_num.asc&select=*`);
   if(!cps.length)return showToast('В квесте нет точек');
-  // Определяем первую непройденную
   let hits=[];
   try{hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${quest.id}&select=checkpoint_id`);}catch(e){}
   const hitIds=new Set(hits.map(h=>h.checkpoint_id));
   const nextIdx=cps.findIndex(cp=>!hitIds.has(cp.id));
   if(nextIdx===-1){
+    hideCompassModal();
     showToast('🏁 Все точки уже пройдены!');
-    openQuest(quest);
     return;
   }
   _compassCps=cps;
   _compassIdx=nextIdx;
   _compassArrived=false;
-  goScreen('compassScreen');
   document.getElementById('compassQuestName').textContent=quest.title;
   compassLoadCheckpoint(nextIdx,hitIds.size,cps.length);
   compassStartGeo();
@@ -1962,9 +1976,10 @@ async function compassSubmitTask(){
     const finishMsg=await checkQuestCompletion(cp.quest_id);
     if(finishMsg){
       stopCompass();
+      hideCompassModal();
       launchConfetti();playHitSound('complete');
       showToast('🏁 '+finishMsg);
-      setTimeout(()=>openQuest(currentQuestData),2000);
+      loadCheckpoints(currentQuestId);
       return;
     }
     showToast('✅ Верно! +'+totalPts+' баллов');
@@ -1998,9 +2013,10 @@ async function compassAutoHit(){
     const finishMsg=await checkQuestCompletion(cp.quest_id);
     if(finishMsg){
       stopCompass();
+      hideCompassModal();
       launchConfetti();playHitSound('complete');
       showToast('🏁 '+finishMsg);
-      setTimeout(()=>openQuest(currentQuestData),2000);
+      loadCheckpoints(currentQuestId);
       return;
     }
     showToast('+'+PTS.CP+' баллов!');
@@ -2015,17 +2031,21 @@ async function compassNext(){
   const nextIdx=_compassCps.findIndex(cp=>!hitIds.has(cp.id));
   if(nextIdx===-1){
     stopCompass();
+    hideCompassModal();
     showToast('🏁 Все точки пройдены!');
-    setTimeout(()=>openQuest(currentQuestData),1000);
+    // Обновляем маршрут
+    loadCheckpoints(currentQuestId);
     return;
   }
   _compassIdx=nextIdx;
   _compassArrived=false;
   compassLoadCheckpoint(nextIdx,hitIds.size,_compassCps.length);
+  // Обновляем маршрут в фоне
+  loadCheckpoints(currentQuestId);
 }
 
 function compassOpenScan(){
-  // Открываем QR-сканер — при успехе вернёт на verifyScreen
+  hideCompassModal();
   stopCompassGeo();
   showScan();
 }
@@ -2041,6 +2061,7 @@ function stopCompass(){
     window.removeEventListener('deviceorientation',window._compassOrientHandler,true);
     window._compassOrientHandler=null;
   }
+  hideCompassModal();
   _compassTarget=null;_compassCps=[];_compassOrientation=null;
 }
 
@@ -2492,22 +2513,30 @@ async function loadAdminQuestList(){
   const list=document.getElementById('adminQuestList');
   try{
     const quests=await sb(`quests?select=*&order=created_at.desc`);
-    const active=quests.filter(q=>q.status==='active'||q.status==='ended');
+    const drafts=quests.filter(q=>q.status==='draft'||q.is_demo===true);
+    const active=quests.filter(q=>(q.status==='active'||q.status==='ended')&&!q.is_demo);
     const archived=quests.filter(q=>q.status==='archived');
     function renderQuest(q){
       const isActive=q.status==='active';
       const isArchived=q.status==='archived';
+      const isDraft=q.status==='draft';
+      const isDemo=q.is_demo===true;
       return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;opacity:${isArchived?'0.6':'1'}">
         <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
           <div style="flex:1">
-            <div style="font-weight:600;color:var(--text);margin-bottom:2px">${q.title} ${q.count_in_global===false?'<span style="background:rgba(99,102,241,.15);color:#818cf8;font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600">🏢 Корп</span>':'<span style="background:rgba(74,222,128,.1);color:var(--green);font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600">🌍 Общий</span>'}${q.navigation_mode==='compass'?' <span style="background:rgba(96,165,250,.15);color:#60a5fa;font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600">🧭 Компас</span>':''}</div>
+            <div style="font-weight:600;color:var(--text);margin-bottom:4px">${q.title} ${isDraft?'<span style="background:rgba(251,191,36,.15);color:var(--amber);font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600">✏️ Черновик</span>':isDemo?'<span style="background:rgba(96,165,250,.15);color:#60a5fa;font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600">🧪 Демо</span>':''} ${q.count_in_global===false?'<span style="background:rgba(99,102,241,.15);color:#818cf8;font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600">🏢 Корп</span>':'<span style="background:rgba(74,222,128,.1);color:var(--green);font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600">🌍 Общий</span>'}${q.navigation_mode==='compass'?' <span style="background:rgba(96,165,250,.15);color:#60a5fa;font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600">🧭 Компас</span>':''}</div>
+            ${isDemo&&q.access_code?`<div style="font-size:12px;color:#60a5fa;margin-top:2px;font-weight:600">🔑 Код: ${q.access_code}</div>`:''}
             <div style="font-size:12px;color:var(--text3)">${q.quest_type} · до ${formatDate(q.end_date)}</div>
             ${q.prize_description?`<div style="font-size:12px;color:var(--amber);margin-top:3px">🏆 ${q.prize_description}</div>`:''}
           </div>
           <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0;margin-left:10px">
-            ${!isArchived?`<button class="btn btn-sm ${isActive?'btn-red':'btn-primary'}" onclick="toggleQuestStatus('${q.id}','${q.status}')">${isActive?'Завершить':'Активировать'}</button>`:''}
+            ${isDraft&&!isDemo?`<button class="btn btn-sm" style="background:#60a5fa;color:#fff;font-size:11px" onclick="startDemoMode('${q.id}')">🧪 Тест</button>`:''}
+            ${isDraft||isDemo?`<button class="btn btn-sm btn-primary" style="font-size:11px" onclick="publishQuest('${q.id}')">🚀 Опубликовать</button>`:''}
+            ${isDemo?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="copyDemoLink('${q.access_code}')">🔗 Ссылка</button>`:''}
+            ${isActive||(!isDraft&&!isDemo&&!isArchived)?`<button class="btn btn-sm ${isActive?'btn-red':'btn-primary'}" onclick="toggleQuestStatus('${q.id}','${q.status}')">${isActive?'Завершить':'Активировать'}</button>`:''}
             ${!isArchived?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="openEditQuest('${q.id}','${q.title}','${(q.description||'').replace(/'/g,"\\'")}','${(q.prize_description||'').replace(/'/g,"\\'")}','${q.end_date}',${q.count_in_global!==false},'${q.navigation_mode||'text'}')">✏️ Изменить</button>`:''}
-            ${!isArchived?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="archiveQuest('${q.id}','${q.title.replace(/'/g,"\\'")}')">📦 В архив</button>`:''}
+            ${!isArchived&&!isDraft&&!isDemo?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="archiveQuest('${q.id}','${q.title.replace(/'/g,"\\'")}')">📦 В архив</button>`:''}
+            ${isDraft||isDemo?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="deleteQuest('${q.id}','${q.title.replace(/'/g,"\\'")}')">🗑 Удалить</button>`:''}
             ${isArchived?`<button class="btn btn-sm btn-primary" style="font-size:11px" onclick="unarchiveQuest('${q.id}')">↩ Вернуть</button><button class="btn btn-sm btn-red" style="font-size:11px" onclick="deleteQuest('${q.id}','${q.title.replace(/'/g,"\\'")}')">🗑 Удалить</button>`:''}
           </div>
         </div>
@@ -2539,8 +2568,9 @@ async function loadAdminQuestList(){
       </div>`;
     }
     let html='';
+    if(drafts.length){html+='<div style="font-size:11px;color:var(--amber);font-weight:700;padding:4px 0 8px;letter-spacing:.5px">✏️ ЧЕРНОВИКИ И ТЕСТЫ</div>'+drafts.map(renderQuest).join('');}
     if(active.length){html+=active.map(renderQuest).join('');}
-    else{html+='<div class="empty" style="padding:16px 0"><div class="empty-text">Нет активных квестов</div></div>';}
+    if(!drafts.length&&!active.length){html+='<div class="empty" style="padding:16px 0"><div class="empty-text">Нет активных квестов</div></div>';}
     if(archived.length){
       html+=`<div style="margin-top:8px">
         <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.textContent=this.textContent.includes('▶')?'▼ Архив (${archived.length})':'▶ Архив (${archived.length})'" style="background:none;border:none;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;padding:8px 0;letter-spacing:.5px">▶ Архив (${archived.length})</button>
@@ -2672,6 +2702,42 @@ ${sponsorsHtml}
   }catch(e){showToast('Ошибка: '+(e?.message||JSON.stringify(e)));}
 }
 
+async function startDemoMode(id){
+  // Генерируем код вида DEMO-XXXX
+  const code='DEMO-'+Math.random().toString(36).substring(2,6).toUpperCase();
+  try{
+    await sb(`quests?id=eq.${id}`,{method:'PATCH',body:{is_demo:true,access_code:code,count_in_global:false},prefer:'return=minimal'});
+    showToast('🧪 Демо-режим активирован · Код: '+code);
+    loadAdminQuestList();
+  }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
+}
+
+async function publishQuest(id){
+  if(!confirm('Опубликовать квест? Он станет виден всем участникам.'))return;
+  try{
+    // Сбрасываем демо-флаг, убираем код если он был демо-кодом
+    const q=await sb(`quests?id=eq.${id}&select=access_code,is_demo`);
+    const wasDemo=q[0]?.is_demo;
+    const demoCode=q[0]?.access_code?.startsWith('DEMO-');
+    await sb(`quests?id=eq.${id}`,{method:'PATCH',body:{
+      status:'active',
+      is_demo:false,
+      // Убираем код доступа только если он был авто-сгенерированным демо-кодом
+      access_code:demoCode?null:undefined,
+      // Восстанавливаем глобальный рейтинг если был принудительно выключен
+      count_in_global:wasDemo?true:undefined
+    },prefer:'return=minimal'});
+    showToast('🚀 Квест опубликован!');
+    loadAdminQuestList();loadAdminQuests();
+  }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
+}
+
+function copyDemoLink(code){
+  if(!code)return showToast('Код не найден');
+  const link=window.location.origin+'?demo='+code;
+  navigator.clipboard.writeText(link).then(()=>showToast('🔗 Ссылка скопирована: '+link)).catch(()=>showToast('Код доступа: '+code));
+}
+
 async function createQuest(){
   const title=document.getElementById('qTitle').value.trim(),desc=document.getElementById('qDesc').value.trim(),type=document.getElementById('qType').value,days=parseInt(document.getElementById('qDays').value)||7,prize=document.getElementById('qPrize').value.trim(),withLearning=document.getElementById('qLearning').checked,withSpeedBonus=document.getElementById('qSpeedBonus').checked,accessCode=document.getElementById('qAccessCode').value.trim()||null,countGlobal=document.getElementById('qCountGlobal').checked,compassMode=document.getElementById('qCompass').checked;
   const groupsRaw=document.getElementById('qGroups').value.trim();
@@ -2679,8 +2745,8 @@ async function createQuest(){
   if(!title)return showToast('Введи название');
   const end=new Date();end.setDate(end.getDate()+days);
   try{
-    await sb('quests',{method:'POST',body:{title,description:desc,quest_type:type,status:'active',end_date:end.toISOString(),prize_description:prize,with_learning:withLearning,with_speed_bonus:withSpeedBonus,access_code:accessCode,groups:groups?JSON.stringify(groups):null,created_by:currentUser.id,checkpoint_count:0,count_in_global:countGlobal,navigation_mode:compassMode?'compass':'text'},prefer:'return=minimal'});
-    showToast('Квест создан!');
+    await sb('quests',{method:'POST',body:{title,description:desc,quest_type:type,status:'draft',end_date:end.toISOString(),prize_description:prize,with_learning:withLearning,with_speed_bonus:withSpeedBonus,access_code:accessCode,groups:groups?JSON.stringify(groups):null,created_by:currentUser.id,checkpoint_count:0,count_in_global:countGlobal,navigation_mode:compassMode?'compass':'text',is_demo:false},prefer:'return=minimal'});
+    showToast('✏️ Черновик создан — добавь точки и нажми «Тест» или «Опубликовать»');
     document.getElementById('qTitle').value='';document.getElementById('qDesc').value='';document.getElementById('qLearning').checked=false;document.getElementById('qSpeedBonus').checked=true;document.getElementById('qCountGlobal').checked=true;document.getElementById('qCompass').checked=false;document.getElementById('qAccessCode').value='';document.getElementById('qGroups').value='';document.getElementById('qGroupsBlock').style.display='none';
     hideCreateQuestForm();initAdminScreen();
   }catch(e){showToast('Ошибка: '+JSON.stringify(e));}

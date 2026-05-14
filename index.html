@@ -612,23 +612,31 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:20px">
       <div style="display:flex;gap:12px;align-items:flex-start">
         <div style="font-size:24px;flex-shrink:0">1️⃣</div>
-        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Найди QR-код</div><div style="font-size:12px;color:var(--text3)">Первая точка указана в описании квеста. Ищи наклейку.</div></div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Выбери квест</div><div style="font-size:12px;color:var(--text3)">Открой приложение и выбери активный квест. Читай описание — там всё о маршруте и призах.</div></div>
       </div>
       <div style="display:flex;gap:12px;align-items:flex-start">
         <div style="font-size:24px;flex-shrink:0">2️⃣</div>
-        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Отсканируй QR</div><div style="font-size:12px;color:var(--text3)">Через камеру или нажми кнопку «Скан» в приложении.</div></div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Иди к первой точке</div><div style="font-size:12px;color:var(--text3)">В обычном квесте ищи подсказку в маршруте. В компас-квесте нажми 🧭 — стрелка покажет направление и расстояние.</div></div>
       </div>
       <div style="display:flex;gap:12px;align-items:flex-start">
         <div style="font-size:24px;flex-shrink:0">3️⃣</div>
-        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Выполни задание</div><div style="font-size:12px;color:var(--text3)">Сфото, ответ на загадку или другое — зависит от точки.</div></div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Отсканируй QR или выполни задание</div><div style="font-size:12px;color:var(--text3)">На точке найди наклейку с QR и отсканируй через «Скан». В компас-квесте задание появится прямо на экране когда ты рядом.</div></div>
       </div>
       <div style="display:flex;gap:12px;align-items:flex-start">
         <div style="font-size:24px;flex-shrink:0">4️⃣</div>
-        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Подтверди точку</div><div style="font-size:12px;color:var(--text3)">Нажми «Подтвердить» когда ты на месте. GPS проверит что ты там.</div></div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Подтверди точку</div><div style="font-size:12px;color:var(--text3)">GPS проверяет что ты на месте. Выполни задание — фото, ответ на загадку, найди объект — зависит от точки.</div></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="font-size:24px;flex-shrink:0">5️⃣</div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Иди к следующей</div><div style="font-size:12px;color:var(--text3)">После каждой точки открывается следующая. Смотри прогресс в маршруте.</div></div>
       </div>
       <div style="display:flex;gap:12px;align-items:flex-start">
         <div style="font-size:24px;flex-shrink:0">🏆</div>
-        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Финишируй!</div><div style="font-size:12px;color:var(--text3)">После окончания квеста организатор свяжется с топ-3 из лидерборда. При ничьей — выше кто прошёл больше квестов.</div></div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Финиш!</div><div style="font-size:12px;color:var(--text3)">Прошёл все точки — ты в рейтинге. Топ-3 получают приз. При ничьей побеждает тот кто прошёл быстрее.</div></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="font-size:24px;flex-shrink:0">📸</div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Бонус за фото</div><div style="font-size:12px;color:var(--text3)">Фото на точке даёт +5 баллов после одобрения организатором. Лучшие фото попадают в галерею квеста.</div></div>
       </div>
     </div>
     <button class="btn btn-primary" onclick="closeModal('howToPlayModal')">Понятно, играть!</button>
@@ -689,7 +697,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 </div>
 <div class="modal-overlay" id="photosModal">
   <div class="modal" style="max-height:90vh;overflow-y:auto;width:100%;max-width:500px">
-    <div class="modal-title" id="photosModalTitle">📸 Фото участников</div>
+    <div class="modal-title" id="photosModalTitle">📋 Ответы участников</div>
     <div id="photosModalContent" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px"></div>
     <button class="btn btn-secondary" onclick="closeModal('photosModal')">Закрыть</button>
   </div>
@@ -705,12 +713,19 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     <div class="form-group"><label class="form-label">💡 Интересный факт</label><textarea class="form-input" id="editCpPostFact" placeholder="Появится после засчитывания точки..." style="min-height:80px;resize:vertical"></textarea></div>
     <div class="form-group"><label class="form-label">Тип задания</label>
       <select class="form-input" id="editCpTaskType" onchange="toggleEditCpTask()">
-        <option value="">Без задания</option>
-        <option value="selfie">📸 Селфи</option>
-        <option value="riddle">🧩 Загадка</option>
-        <option value="find">🔍 Найти объект</option>
-        <option value="action">🤻 Действие</option>
-        <option value="sign">🩺 Табличка</option>
+        <option value="">Без задания — автозачёт</option>
+        <optgroup label="📸 Фото-задания">
+          <option value="selfie">📸 Селфи — сфотографируйся сам</option>
+          <option value="find">🔍 Найди объект — сфотографируй что-то</option>
+          <option value="action">🤻 Действие — сделай и сфотографируй</option>
+          <option value="photo_answer">📷 Фото + ответ — сфотографируй и напиши</option>
+        </optgroup>
+        <optgroup label="✍️ Текстовые задания">
+          <option value="riddle">🧩 Загадка — угадай ответ</option>
+          <option value="sign">🔢 Табличка — введи что написано</option>
+          <option value="count">🔢 Посчитай — сосчитай и введи число</option>
+          <option value="open">💬 Открытый вопрос — любой ответ принимается</option>
+        </optgroup>
       </select>
     </div>
     <div id="editCpTaskFields">
@@ -1114,7 +1129,10 @@ async function loadQuests(){
   }catch(e){list.innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text" style="margin-bottom:12px">Ошибка загрузки</div><button class="btn btn-secondary btn-sm" onclick="loadQuests()">🔄 Повторить</button></div>';}
 }
 
-async function openQuest(quest){currentQuestData=quest;
+async function openQuest(quest){
+  // Останавливаем компас если был активен от другого квеста
+  if(_compassTarget&&_compassTarget.cp?.quest_id!==quest.id)stopCompass();
+  currentQuestData=quest;
   currentQuestId=quest.id;
   // Проверяем группу участника если корпоратив
   let groupBadge='';
@@ -1409,44 +1427,52 @@ async function joinTeamPrompt(questId){
   }catch(e){showToast('Ошибка');}
 }
 async function showQuestPhotos(questId, questTitle){
-  document.getElementById('photosModalTitle').textContent='📸 Фото — '+questTitle;
+  document.getElementById('photosModalTitle').textContent='📋 Ответы — '+questTitle;
   const content=document.getElementById('photosModalContent');
   content.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px"><div class="spinner"></div></div>';
   document.getElementById('photosModal').classList.add('show');
   try{
-    const hits=await sb(`checkpoint_hits?quest_id=eq.${questId}&photo_url=not.is.null&order=hit_at.desc&select=id,user_id,checkpoint_id,photo_url,hit_at,photo_status`);
+    // Загружаем все хиты у которых есть фото ИЛИ ответ
+    const hits=await sb(`checkpoint_hits?quest_id=eq.${questId}&or=(photo_url.not.is.null,caption.not.is.null)&order=hit_at.desc&select=id,user_id,checkpoint_id,photo_url,caption,hit_at,photo_status`);
     if(!hits.length){
-      content.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--text3)">Фото пока нет</div>';
+      content.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--text3)">Ответов пока нет</div>';
       return;
     }
     const userIds=[...new Set(hits.map(h=>h.user_id))].join(',');
     const cpIds=[...new Set(hits.map(h=>h.checkpoint_id))].join(',');
     const [profiles,checkpoints]=await Promise.all([
       sb(`sledopyt_profiles?id=in.(${userIds})&select=id,username`).catch(()=>[]),
-      sb(`checkpoints?id=in.(${cpIds})&select=id,name`).catch(()=>[])
+      sb(`checkpoints?id=in.(${cpIds})&select=id,name,task_type`).catch(()=>[])
     ]);
     const profileMap={};profiles.forEach(p=>profileMap[p.id]=p.username);
-    const cpMap={};checkpoints.forEach(c=>cpMap[c.id]=c.name);
+    const cpMap={};checkpoints.forEach(c=>cpMap[c.id]={name:c.name,task_type:c.task_type});
     content.innerHTML=hits.map(h=>{
       const time=new Date(h.hit_at).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
       const username=profileMap[h.user_id]||'Участник';
-      const cpName=cpMap[h.checkpoint_id]||'Точка';
-      const safeUrl=h.photo_url.replace(/'/g,'%27');
+      const cp=cpMap[h.checkpoint_id]||{name:'Точка'};
       const status=h.photo_status||'pending';
+      const hasPhoto=!!h.photo_url;
+      const hasCaption=!!h.caption;
+      const safeUrl=hasPhoto?h.photo_url.replace(/'/g,'%27'):'';
+      const isRiddleTask=cp.task_type==='riddle'||cp.task_type==='open'||cp.task_type==='photo_answer';
       return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden" id="photo-card-${h.id}" data-status="${status}">
-        <div style="position:relative">
-          <img src="${h.photo_url}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:pointer" loading="lazy" onclick="window.open('${safeUrl}','_blank')" onerror="this.parentElement.parentElement.style.display='none'">
-        </div>
+        ${hasPhoto?`<div style="position:relative">
+          <img src="${h.photo_url}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:pointer" loading="lazy" onclick="window.open('${safeUrl}','_blank')" onerror="this.style.display='none'">
+        </div>`:''}
         <div style="padding:8px">
           <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px">${username}</div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:6px">${cpName} · ${time}</div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:6px">${cp.name} · ${time}</div>
+          ${hasCaption?`<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;margin-bottom:6px;font-size:12px;color:var(--text2)">
+            <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:3px">✍️ ОТВЕТ</div>
+            ${h.caption.replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+          </div>`:''}
           <div id="photo-badge-${h.id}">${renderPhotoBadge(status)}</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:8px">
-            <button onclick="moderatePhoto('${h.id}','approved','${h.user_id}')" style="background:rgba(74,222,128,.15);border:1px solid var(--green-dim);color:var(--green);border-radius:6px;padding:4px;font-size:11px;cursor:pointer">✅</button>
+            <button onclick="moderatePhoto('${h.id}','approved','${h.user_id}')" style="background:rgba(74,222,128,.15);border:1px solid var(--green-dim);color:var(--green);border-radius:6px;padding:4px;font-size:11px;cursor:pointer">${isRiddleTask?'✅ Верно':'✅'}</button>
             <button onclick="moderatePhoto('${h.id}','featured','${h.user_id}')" style="background:rgba(251,191,36,.15);border:1px solid var(--amber-dim);color:var(--amber);border-radius:6px;padding:4px;font-size:11px;cursor:pointer">🌟</button>
-            <button onclick="moderatePhoto('${h.id}','rejected','${h.user_id}')" style="background:rgba(248,113,113,.15);border:1px solid var(--red);color:var(--red);border-radius:6px;padding:4px;font-size:11px;cursor:pointer">❌</button>
+            <button onclick="moderatePhoto('${h.id}','rejected','${h.user_id}')" style="background:rgba(248,113,113,.15);border:1px solid var(--red);color:var(--red);border-radius:6px;padding:4px;font-size:11px;cursor:pointer">${isRiddleTask?'❌ Нет':'❌'}</button>
           </div>
-          <button onclick="deleteHitPhoto('${h.id}','${safeUrl}')" style="width:100%;margin-top:4px;background:none;border:1px solid var(--border);color:var(--text3);border-radius:6px;padding:4px;font-size:11px;cursor:pointer">🗑 Удалить</button>
+          ${hasPhoto?`<button onclick="deleteHitPhoto('${h.id}','${safeUrl}')" style="width:100%;margin-top:4px;background:none;border:1px solid var(--border);color:var(--text3);border-radius:6px;padding:4px;font-size:11px;cursor:pointer">🗑 Удалить фото</button>`:''}
         </div>
       </div>`;
     }).join('');
@@ -1464,17 +1490,23 @@ function renderPhotoBadge(status){
 
 async function moderatePhoto(hitId, status, userId){
   try{
-    // Читаем текущий статус из DOM — надёжнее чем из Supabase (нет кэша)
     const card=document.getElementById('photo-card-'+hitId);
     const prevStatus=card?.dataset?.status||'pending';
-
     if(prevStatus===status)return showToast('Статус уже установлен');
-
-    // Блокируем кнопки пока идёт запрос
     const btns=card?.querySelectorAll('button');
     btns?.forEach(b=>b.disabled=true);
 
     await sb(`checkpoint_hits?id=eq.${hitId}`,{method:'PATCH',body:{photo_status:status},prefer:'return=minimal'});
+
+    // Определяем сколько баллов начислить — для загадок это PTS.ANSWER, для фото PTS.PHOTO_BONUS
+    // Читаем checkpoint_id из хита чтобы понять тип задания
+    const hitData=await sb(`checkpoint_hits?id=eq.${hitId}&select=checkpoint_id`).catch(()=>[]);
+    let bonus=PTS.PHOTO_BONUS;
+    if(hitData.length){
+      const cp=await sb(`checkpoints?id=eq.${hitData[0].checkpoint_id}&select=task_type`).catch(()=>[]);
+      const taskType=cp[0]?.task_type;
+      if(taskType==='riddle'||taskType==='open'||taskType==='photo_answer')bonus=PTS.ANSWER;
+    }
 
     const wasRewarded=prevStatus==='approved'||prevStatus==='featured';
     const willReward=status==='approved'||status==='featured';
@@ -1482,22 +1514,21 @@ async function moderatePhoto(hitId, status, userId){
     if(willReward&&!wasRewarded){
       const prof=await sb(`sledopyt_profiles?id=eq.${userId}&select=points`);
       if(prof.length){
-        await sb(`sledopyt_profiles?id=eq.${userId}`,{method:'PATCH',body:{points:(prof[0].points||0)+PTS.PHOTO_BONUS},prefer:'return=minimal'});
+        await sb(`sledopyt_profiles?id=eq.${userId}`,{method:'PATCH',body:{points:(prof[0].points||0)+bonus},prefer:'return=minimal'});
       }
-      showToast(status==='featured'?'🌟 В галерею +'+PTS.PHOTO_BONUS+' баллов':'✅ Одобрено +'+PTS.PHOTO_BONUS+' баллов');
+      showToast(status==='featured'?'🌟 В галерею +'+bonus+' баллов':'✅ Одобрено +'+bonus+' баллов');
     } else if(!willReward&&wasRewarded){
       const prof=await sb(`sledopyt_profiles?id=eq.${userId}&select=points`);
       if(prof.length){
-        await sb(`sledopyt_profiles?id=eq.${userId}`,{method:'PATCH',body:{points:Math.max(0,(prof[0].points||0)-PTS.PHOTO_BONUS)},prefer:'return=minimal'});
+        await sb(`sledopyt_profiles?id=eq.${userId}`,{method:'PATCH',body:{points:Math.max(0,(prof[0].points||0)-bonus)},prefer:'return=minimal'});
       }
-      showToast('❌ Фото отклонено −'+PTS.PHOTO_BONUS+' баллов');
+      showToast('❌ Отклонено −'+bonus+' баллов');
     } else if(wasRewarded&&willReward){
       showToast(status==='featured'?'🌟 Добавлено в галерею':'✅ Одобрено');
     } else {
-      showToast(status==='rejected'?'❌ Фото отклонено':'⏳ Возвращено на проверку');
+      showToast(status==='rejected'?'❌ Отклонено':'⏳ Возвращено на проверку');
     }
 
-    // Обновляем DOM-статус и badge
     if(card){
       card.dataset.status=status;
       const badge=document.getElementById('photo-badge-'+hitId);
@@ -1505,7 +1536,6 @@ async function moderatePhoto(hitId, status, userId){
     }
     btns?.forEach(b=>b.disabled=false);
   }catch(e){
-    // Разблокируем кнопки при ошибке
     const card=document.getElementById('photo-card-'+hitId);
     card?.querySelectorAll('button')?.forEach(b=>b.disabled=false);
     showToast('Ошибка: '+(e?.message||JSON.stringify(e)));
@@ -1567,8 +1597,9 @@ function toggleEditCpTask(){
   var type=document.getElementById('editCpTaskType').value;
   var fields=document.getElementById('editCpTaskFields');
   var answerGroup=document.getElementById('editCpAnswerGroup');
+  const needsAnswer=type==='riddle'||type==='sign'||type==='count';
   fields.style.display=type?'block':'none';
-  answerGroup.style.display=(type==='riddle'||type==='sign')?'block':'none';
+  answerGroup.style.display=needsAnswer?'block':'none';
 }
 async function saveEditCheckpoint(){
   var id=document.getElementById('editCpId').value;
@@ -1700,6 +1731,13 @@ async function openCheckpointByToken(token){
     }
     // Если квест найден — сохраняем его чтобы потом открыть карточку
     if(quest)currentQuestData=quest;
+    // Незалогиненный — отправляем на регистрацию, после входа вернётся к точке
+    if(!currentUser){
+      sessionStorage.setItem('sb_pending_cp',token);
+      goScreen('authScreen');
+      showToast('Зарегистрируйся чтобы пройти квест!');
+      return;
+    }
     const hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=eq.${cp.id}`);
     if(hits.length){
       showToast('Эта точка уже засчитана ✅');
@@ -1734,7 +1772,7 @@ async function openCheckpointByToken(token){
       document.getElementById('taskText').textContent=cp.task_text||'Выполни задание и сфотографируй';
       document.getElementById('taskTip').textContent=cp.task_tip||'';
       taskCard.style.display='block';
-      captionBlock.style.display=(cp.task_type==='riddle'||cp.task_type==='sign')?'block':'none';
+      captionBlock.style.display=(cp.task_type==='riddle'||cp.task_type==='sign'||cp.task_type==='count'||cp.task_type==='open'||cp.task_type==='photo_answer')?'block':'none';
     }else{
       taskCard.style.display='none';captionBlock.style.display='none';
     }
@@ -1742,7 +1780,7 @@ async function openCheckpointByToken(token){
     selfieBlob=null;const btn=document.getElementById('submitBtn');btn.disabled=true;btn.style.opacity='.5';btn.textContent='Подтвердить точку';
     document.getElementById('captionInput').value='';
     var ah=document.getElementById('answerHint');
-    if(ah)ah.style.display=(cp.task_type==='riddle'||cp.task_type==='sign')?'block':'none';
+    if(ah)ah.style.display=(cp.task_type==='riddle'||cp.task_type==='sign'||cp.task_type==='count')?'block':'none';
     // Проверяем — было ли уже фото на этой точке (1 фото на точку)
     try{
       const existingHitWithPhoto=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=eq.${cp.id}&photo_url=not.is.null&select=id`);
@@ -1802,9 +1840,12 @@ function showCompassModal(){
   if(!modal)return;
   modal.style.display='block';
   document.body.style.overflow='hidden';
-  // Если компас ещё не запущен — запускаем
+  // Запускаем только если ещё не запущен
   if(!_compassTarget&&currentQuestData){
     startCompassQuest(currentQuestData);
+  } else if(_compassTarget){
+    // Уже запущен — просто обновляем UI
+    compassUpdateArrow();
   }
 }
 
@@ -1961,16 +2002,16 @@ async function compassSubmitTask(){
   const cp=_compassTarget?.cp;
   if(!cp)return;
   const answer=document.getElementById('compassTaskAnswer').value.trim();
-  if(!answer)return showToast('Введи ответ');
+  if(!answer&&cp.task_type!=='open'&&cp.task_type!=='photo_answer')return showToast('Введи ответ');
   const btn=document.querySelector('#compassTaskBlock button');
   if(btn){btn.disabled=true;btn.textContent='Проверяем...';}
-  // Проверяем ответ если есть правильный
-  if(cp.task_answer){
-    const correct=cp.task_answer.trim().toLowerCase();
-    const isRiddle=cp.task_type==='riddle'||cp.task_type==='sign';
+  // Проверяем ответ если есть правильный (открытый вопрос не проверяем)
+  const isOpen=cp.task_type==='open'||cp.task_type==='photo_answer';
+  if(cp.task_answer&&!isOpen){
+    const isExact=cp.task_type==='count'||cp.task_type==='sign';
     const userAns=answer.toLowerCase().replace(/\s+/g,'');
-    const rightAns=correct.replace(/\s+/g,'');
-    const ok=isRiddle?(userAns.includes(rightAns)||rightAns.includes(userAns)):(userAns===rightAns);
+    const rightAns=cp.task_answer.trim().toLowerCase().replace(/\s+/g,'');
+    const ok=isExact?(userAns===rightAns):(userAns.includes(rightAns)||rightAns.includes(userAns));
     if(!ok){
       if(btn){btn.disabled=false;btn.textContent='Отправить ответ';}
       showToast('❌ Неверно, попробуй ещё раз');
@@ -2179,12 +2220,15 @@ async function submitCheckpoint(){
     const caption=document.getElementById('captionInput').value.trim()||null;
     // Проверка ответа — начисляем доп. баллы за правильный
     const correctAnswer=currentCheckpointData.task_answer;
-    const isRiddle=currentCheckpointData.task_type==='riddle'||currentCheckpointData.task_type==='sign';
+    const isRiddle=currentCheckpointData.task_type==='riddle'||currentCheckpointData.task_type==='sign'||currentCheckpointData.task_type==='count';
+    const isOpen=currentCheckpointData.task_type==='open'||currentCheckpointData.task_type==='photo_answer';
     let answerCorrect=false;
     if(isRiddle&&correctAnswer&&caption){
       const userAns=caption.toLowerCase().replace(/\s+/g,'');
       const rightAns=correctAnswer.toLowerCase().replace(/\s+/g,'');
-      if(userAns!==rightAns){
+      // count и sign — точное совпадение, riddle — частичное
+      const isExact=currentCheckpointData.task_type==='count'||currentCheckpointData.task_type==='sign';
+      if(isExact?userAns!==rightAns:(!userAns.includes(rightAns)&&!rightAns.includes(userAns))){
         _submitting=false;
         btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';
         showToast('❌ Неверный ответ! Попробуй ещё раз.');
@@ -2194,7 +2238,13 @@ async function submitCheckpoint(){
     } else if(isRiddle&&correctAnswer&&!caption){
       _submitting=false;
       btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';
-      showToast('Введи ответ на загадку');
+      showToast('Введи ответ');
+      return;
+    } else if(isOpen&&!caption&&!selfieBlob){
+      // Открытый вопрос — нужен хотя бы текст или фото
+      _submitting=false;
+      btn.disabled=false;btn.textContent='Подтвердить точку';btn.style.opacity='1';
+      showToast('Напиши ответ или сделай фото');
       return;
     }
     const answerPts=answerCorrect?PTS.ANSWER:0;
@@ -2508,9 +2558,8 @@ function toggleTaskFields(){
   const show=type!=='';
   document.getElementById('taskTextBlock').style.display=show?'block':'none';
   document.getElementById('taskTipBlock').style.display=show?'block':'none';
-  // Поле ответа только для загадок
-  const isRiddle=type==='riddle'||type==='sign';
-  document.getElementById('taskAnswerBlock').style.display=isRiddle?'block':'none';
+  const needsAnswer=type==='riddle'||type==='sign'||type==='count';
+  document.getElementById('taskAnswerBlock').style.display=needsAnswer?'block':'none';
 }
 function initAdminScreen(){
   loadAdminQuestList();
@@ -2566,7 +2615,7 @@ async function loadAdminQuestList(){
         <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-secondary btn-sm" onclick="toggleSection('cp-${q.id}');loadCheckpointsList2('${q.id}')">🗺️ Точки (${q.checkpoint_count||0})</button>
           <button class="btn btn-secondary btn-sm" onclick="toggleSection('sp-${q.id}');loadSponsorAdmin2('${q.id}')">🏆 Спонсоры</button>
-          <button class="btn btn-secondary btn-sm" onclick="showQuestPhotos('${q.id}','${q.title.replace(/'/g,"\\'")}')">📸 Фото</button>
+          <button class="btn btn-secondary btn-sm" onclick="showQuestPhotos('${q.id}','${q.title.replace(/'/g,"\\'")}')">📋 Ответы</button>
           <button class="btn btn-secondary btn-sm" onclick="exportQuestDoc('${q.id}')">📄 Экспорт</button>
         </div>
         <div id="cp-${q.id}" style="display:none;margin-top:10px">
@@ -2615,7 +2664,7 @@ async function exportQuestDoc(questId){
     const q=quest[0];
     const typeMap={solo:'Личный',team:'Командный',corp:'Корпоративный'};
     const statusMap={active:'Активен',ended:'Завершён',archived:'Архив'};
-    const taskTypeMap={text:'Текстовый ответ',photo:'Фото',qr:'QR-код',open:'Открытый'};
+    const taskTypeMap={selfie:'📸 Селфи',find:'🔍 Найти объект',action:'🤻 Действие',photo_answer:'📷 Фото + ответ',riddle:'🧩 Загадка',sign:'🔢 Табличка',count:'🔢 Посчитай',open:'💬 Открытый вопрос'};
 
     const cpsHtml=cps.map((cp,i)=>{
       const hasTask=cp.task_type||cp.task_text;
@@ -3073,12 +3122,19 @@ function buildAddCpForm(questId){
     <textarea class="form-input" id="cpLearning-${questId}" placeholder="📚 Текст обучения (необязательно) — появится перед заданием" style="margin-bottom:8px;min-height:70px;resize:vertical"></textarea>
     <textarea class="form-input" id="cpPostFact-${questId}" placeholder="💡 Интересный факт (необязательно) — появится после засчитывания точки" style="margin-bottom:8px;min-height:70px;resize:vertical"></textarea>
     <select class="form-input" id="cpTaskType-${questId}" onchange="toggleCpTask('${questId}')" style="margin-bottom:8px">
-      <option value="">Без задания — просто фото</option>
-      <option value="selfie">📸 Селфи</option>
-      <option value="riddle">🧩 Загадка (баллы за правильный ответ)</option>
-      <option value="find">🔍 Найти объект</option>
-      <option value="action">🤻 Действие</option>
-      <option value="sign">🩺 Табличка (баллы за правильный ответ)</option>
+      <option value="">Без задания — автозачёт по геолокации</option>
+      <optgroup label="📸 Фото-задания">
+        <option value="selfie">📸 Селфи — сфотографируйся сам</option>
+        <option value="find">🔍 Найди объект — сфотографируй что-то</option>
+        <option value="action">🤻 Действие — сделай и сфотографируй</option>
+        <option value="photo_answer">📷 Фото + ответ — сфотографируй и напиши</option>
+      </optgroup>
+      <optgroup label="✍️ Текстовые задания">
+        <option value="riddle">🧩 Загадка — угадай ответ (+${PTS.ANSWER} за правильный)</option>
+        <option value="sign">🔢 Табличка — введи что написано (+${PTS.ANSWER} за правильный)</option>
+        <option value="count">🔢 Посчитай — сосчитай и введи число (+${PTS.ANSWER} за правильный)</option>
+        <option value="open">💬 Открытый вопрос — любой ответ принимается</option>
+      </optgroup>
     </select>
     <div id="cpTaskFields-${questId}" style="display:none">
       <input class="form-input" id="cpTaskText-${questId}" placeholder="Текст задания" style="margin-bottom:8px">
@@ -3122,8 +3178,9 @@ function toggleCpTask(questId){
   var f=document.getElementById('cpTaskFields-'+questId);
   var a=document.getElementById('cpAnswerField-'+questId);
   var noQr=document.getElementById('cpNoQrBlock-'+questId);
+  const needsAnswer=type==='riddle'||type==='sign'||type==='count';
   if(f)f.style.display=type?'block':'none';
-  if(a)a.style.display=(type==='riddle'||type==='sign')?'block':'none';
+  if(a)a.style.display=needsAnswer?'block':'none';
   if(noQr)noQr.style.display=type?'block':'none';
 }
 async function createCpForQuest(questId){

@@ -476,6 +476,13 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     </div>
   </div>
   <div class="menu-list">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-family:'Arial Black',Arial,sans-serif;font-size:13px;font-weight:700;color:var(--text);letter-spacing:-.3px">🏅 Мои награды</div>
+        <div id="achCount" style="font-size:11px;color:var(--text3)"></div>
+      </div>
+      <div id="profileAchievements"><div style="text-align:center;padding:8px;color:var(--text3);font-size:13px">Загрузка...</div></div>
+    </div>
     <div class="menu-item" onclick="showTeamModal()"><div class="menu-icon">🤝</div><div class="menu-text">Моя команда</div><div>›</div></div>
     <div class="menu-item" onclick="showCorporateModal()"><div class="menu-icon">🏭</div><div class="menu-text">Корпоратив</div><div style="font-size:11px;color:var(--text3)">Войти по коду</div><div>›</div></div>
     <div class="menu-item" onclick="showHistoryModal()"><div class="menu-icon">📋</div><div class="menu-text">История</div><div>›</div></div>
@@ -757,9 +764,11 @@ select.form-input option{background:var(--bg2);color:var(--text)}
   <div class="modal"><div class="modal-title">📋 История</div><div id="historyModalContent"></div><button class="btn btn-secondary" style="margin-top:12px" onclick="closeModal('historyModal')">Закрыть</button></div>
 </div>
 <div class="success-overlay" id="successOverlay">
-  <div class="success-icon">🎯</div>
+  <div class="success-icon" id="successIcon">🎯</div>
   <div class="success-title" id="successTitle">Точка засчитана!</div>
   <div class="success-sub" id="successSub">+10 баллов</div>
+  <div id="successPlaceBadge" style="display:none;margin-top:12px;background:rgba(251,191,36,.12);border:1px solid var(--amber-dim);border-radius:20px;padding:6px 18px;font-size:13px;font-weight:700;color:var(--amber)"></div>
+  <div id="successTeamNote" style="display:none;margin-top:8px;font-size:12px;color:var(--text3);text-align:center;padding:0 32px"></div>
   <div id="successPostFact" style="display:none;margin-top:16px;background:rgba(74,222,128,.06);border:1px solid var(--green-dim);border-radius:12px;padding:16px;max-width:300px;text-align:left">
     <div style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:.5px;margin-bottom:8px">💡 ИНТЕРЕСНЫЙ ФАКТ</div>
     <div id="successPostFactText" style="font-size:14px;color:var(--text);line-height:1.6"></div>
@@ -780,6 +789,19 @@ const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const APP_URL='https://sledopyt.vercel.app';
 // ОЧКИ: +10 точка | +50 квест завершён | +25 бонус первому
 const PTS={CP:10,COMPLETE:50,FIRST:20,ANSWER:15,PHOTO_BONUS:5};
+const TEAM_COEF=0.7;
+const ACHIEVEMENT_DEFS={
+  first_ever:  {label:'Первый следопыт',icon:'🥇',desc:'Первый завершил квест в истории Следопыта',unique:true},
+  second_ever: {label:'Второй на тракте',icon:'🥈',desc:'Второй финишировал в истории',unique:true},
+  third_ever:  {label:'Бронзовый путник',icon:'🥉',desc:'Третий финишировал в истории',unique:true},
+  first_100:   {label:'Первая сотня',icon:'🎖️',desc:'Один из первых 100 следопытов',unique:true},
+  quest_first: {label:'Первопроходец',icon:'🏁',desc:'Первый завершил этот квест',unique:false},
+  speed_run:   {label:'Молния',icon:'⚡',desc:'Квест менее чем за 15 минут',unique:false},
+  all_photos:  {label:'Фотограф',icon:'📸',desc:'Все фото-точки пройдены',unique:false},
+  team_run:    {label:'Командный поход',icon:'🤝',desc:'Квест пройден командой',unique:false},
+  solo_run:    {label:'Волк-одиночка',icon:'🧭',desc:'Квест пройден соло',unique:false},
+  night_owl:   {label:'Ночной следопыт',icon:'🌙',desc:'Квест завершён после 20:00',unique:false},
+};
 let currentUser=null,currentProfile=null,screenHistory=[],currentQuestId=null;
 let currentCheckpointToken=null,currentCheckpointData=null,selfieBlob=null,userGeo=null;
 let scanStream=null,scanInterval=null;
@@ -1049,6 +1071,12 @@ function updateProfileUI(){
   document.getElementById('pStatP').textContent=points||0;
   document.getElementById('pStatC').textContent=checkpoints_hit||0;
   if(is_admin)document.getElementById('adminMenuItem').style.display='flex';
+  // Ачивки
+  const achContainer=document.getElementById('profileAchievements');
+  if(achContainer&&currentUser)loadProfileAchievements(achContainer).then(()=>{
+    const achCount=document.getElementById('achCount');
+    if(achCount)sb(`achievements?user_id=eq.${currentUser.id}&select=id`).then(r=>{achCount.textContent=r.length?r.length+' шт.':'';}).catch(()=>{});
+  });
 }
 function getEmoji(name){const e=['🐺','🦊','🐻','🦁','🐯','🦅','🐍','🦋','🐬','🦄'];let h=0;for(let c of(name||''))h=(h*31+c.charCodeAt(0))&0xffff;return e[h%e.length];}
 async function loadUserStats(){
@@ -2291,6 +2319,28 @@ async function submitCheckpoint(){
     else if(photoUrl)ptsMsg+=` (фото +${PTS.PHOTO_BONUS} после одобрения)`;
     document.getElementById('successSub').textContent=msg||(ptsMsg+' баллов!');
     var _fin=msg&&(msg.indexOf('\u0444\u0438\u043d\u0438\u0448')>=0||msg.indexOf('\u0437\u0430\u0432')>=0);
+    // Место при финише и командная пометка
+    const _placeBadge=document.getElementById('successPlaceBadge');
+    const _teamNote=document.getElementById('successTeamNote');
+    const _successIcon=document.getElementById('successIcon');
+    if(_fin&&msg){
+      const placeMatch=msg.match(/^(🥇|🥈|🥉|🎯)/);
+      if(_successIcon)_successIcon.textContent=placeMatch?placeMatch[0]:'🏁';
+      if(_placeBadge){
+        const placeLabels={'🥇':'1-е место','🥈':'2-е место','🥉':'3-е место'};
+        const lbl=placeMatch?placeLabels[placeMatch[0]]:'';
+        _placeBadge.textContent=lbl||'';
+        _placeBadge.style.display=lbl?'block':'none';
+      }
+      if(_teamNote&&msg.indexOf('×'+TEAM_COEF)>=0){
+        _teamNote.textContent='Командный режим: в личный рейтинг ×'+TEAM_COEF+', полные очки — в рейтинг команды';
+        _teamNote.style.display='block';
+      } else if(_teamNote){_teamNote.style.display='none';}
+    } else {
+      if(_successIcon)_successIcon.textContent='🎯';
+      if(_placeBadge)_placeBadge.style.display='none';
+      if(_teamNote)_teamNote.style.display='none';
+    }
     if(_fin){launchConfetti();playHitSound('complete');var _ph=document.getElementById('successPrizeHint');var _pt=document.getElementById('successPrizeText');if(_ph){_ph.style.display='block';if(_pt&&currentQuestData&&currentQuestData.prize_description)_pt.textContent=currentQuestData.prize_description;}}
     else{playHitSound('hit');var _ph2=document.getElementById('successPrizeHint');if(_ph2)_ph2.style.display='none';}
     // Показываем интересный факт если есть
@@ -2313,12 +2363,12 @@ async function checkQuestCompletion(questId){
   try{
     const[total,hits]=await Promise.all([sb(`checkpoints?quest_id=eq.${questId}&select=id`),sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&select=id`)]);
     if(hits.length<total.length)return null;
-    // Проверяем включён ли бонус за скорость
     const questInfo=currentQuestData?.id===questId?currentQuestData:null;
-    const speedEnabled=questInfo?.with_speed_bonus!==false; // по умолчанию включён
+    const speedEnabled=questInfo?.with_speed_bonus!==false;
     let place=1,speedBonus=0;
     try{
-      const completions=await sb(`quest_completions?quest_id=eq.${questId}&select=id&order=finished_at.asc`);
+      // BUG-4 fix: исключаем текущего пользователя из подсчёта места
+      const completions=await sb(`quest_completions?quest_id=eq.${questId}&user_id=neq.${currentUser.id}&finished_at=not.is.null&select=id&order=finished_at.asc`);
       place=completions.length+1;
       if(speedEnabled){
         if(place===1)speedBonus=PTS.FIRST+30;
@@ -2328,27 +2378,159 @@ async function checkQuestCompletion(questId){
       }
       const bonus=PTS.COMPLETE+speedBonus;
       const isFirst=place===1;
-      // Обновляем или создаём запись завершения
       const existComp=await sb(`quest_completions?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&select=id,started_at`);
       const startedAt=existComp[0]?.started_at||new Date().toISOString();
       const finishedAt=new Date().toISOString();
       if(existComp.length){
-        await sb(`quest_completions?user_id=eq.${currentUser.id}&quest_id=eq.${questId}`,{method:'PATCH',body:{finished_at:finishedAt,is_first:isFirst,bonus_points:bonus},prefer:'return=minimal'});
+        await sb(`quest_completions?user_id=eq.${currentUser.id}&quest_id=eq.${questId}`,{method:'PATCH',body:{finished_at:finishedAt,is_first:isFirst,bonus_points:bonus,place},prefer:'return=minimal'});
       } else {
-        await sb('quest_completions',{method:'POST',body:{user_id:currentUser.id,quest_id:questId,started_at:startedAt,finished_at:finishedAt,is_first:isFirst,bonus_points:bonus},prefer:'return=minimal'});
+        await sb('quest_completions',{method:'POST',body:{user_id:currentUser.id,quest_id:questId,started_at:startedAt,finished_at:finishedAt,is_first:isFirst,bonus_points:bonus,place},prefer:'return=minimal'});
       }
       const questCountGlobal=currentQuestData?.count_in_global!==false;
-      const newPts=(currentProfile?.points||0)+(questCountGlobal?bonus:0),newQ=(currentProfile?.quests_completed||0)+1;
+      const isDemo=currentQuestData?.is_demo===true;
+      // BUG-5 fix: фильтруем team_members по teams.quest_id
+      let isTeamMode=false;
+      let activeTeamId=null;
+      try{
+        const myTeams=await sb(`team_members?user_id=eq.${currentUser.id}&select=team_id,teams!inner(id,quest_id,points)`);
+        const forThisQuest=myTeams.filter(m=>m.teams?.quest_id===questId);
+        if(forThisQuest.length>0){isTeamMode=true;activeTeamId=forThisQuest[0].team_id;}
+      }catch(e4){}
+      const personalCoef=isTeamMode?TEAM_COEF:1;
+      const personalBonus=Math.round(bonus*personalCoef);
+      const newPts=(currentProfile?.points||0)+(questCountGlobal&&!isDemo?personalBonus:0),newQ=(currentProfile?.quests_completed||0)+1;
       await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{quests_completed:newQ,points:newPts},prefer:'return=minimal'});
+      // BUG-6 fix: командные очки через RPC increment вместо read-modify-write
+      if(isTeamMode&&activeTeamId&&questCountGlobal&&!isDemo){
+        try{
+          await sb('rpc/increment_team_points',{method:'POST',body:{p_team_id:activeTeamId,p_points:bonus}});
+        }catch(e3){
+          // Фолбэк если RPC не создан — обычный PATCH (менее надёжно)
+          const teamRow=await sb(`teams?id=eq.${activeTeamId}&select=points`).catch(()=>[]);
+          const teamPts=(teamRow[0]?.points||0)+bonus;
+          await sb(`teams?id=eq.${activeTeamId}`,{method:'PATCH',body:{points:teamPts},prefer:'return=minimal'}).catch(()=>{});
+        }
+      }
       currentProfile.points=newPts;currentProfile.quests_completed=newQ;
+      // Ачивки только для реальных (не демо) квестов
+      if(!isDemo&&questCountGlobal){
+        await grantAchievements(questId,place,isTeamMode,finishedAt);
+      }
       const medals=['🥇','🥈','🥉'];
       const medal=place<=3?medals[place-1]:'🎯';
-      let msg=`${medal} Финиш! +${PTS.COMPLETE} за квест`;
-      if(speedBonus>0)msg+=` +${speedBonus} бонус скорости`;
+      let msg=`${medal} Финиш! +${personalBonus} баллов`;
+      if(isDemo)msg='🧪 Демо завершено! Баллы не начислены';
+      else if(isTeamMode)msg+=` (×${TEAM_COEF} команда, +${bonus} в рейтинг команды)`;
+      if(speedBonus>0&&!isDemo)msg+=`, +${speedBonus} за скорость`;
       return msg;
     }catch(e2){return '🎉 Квест завершён!';}
   }catch(e){return '🎉 Квест завершён!';}
 }
+async function grantAchievements(questId,place,isTeamMode,finishedAt){
+  // BUG-1+2 fix: двойная защита от демо и корпоративных квестов
+  if(currentQuestData?.is_demo===true)return;
+  if(currentQuestData?.count_in_global===false)return;
+  try{
+    const toGrant=[];
+    // BUG-2 fix: считаем только реальные завершения (не демо, count_in_global=true)
+    const allComps=await sb('quest_completions?finished_at=not.is.null&select=id,quests!inner(is_demo,count_in_global)').catch(()=>[]);
+    const realComps=allComps.filter(c=>c.quests?.is_demo!==true&&c.quests?.count_in_global!==false);
+    const totalFinished=realComps.length;
+    // Глобальные уникальные места
+    if(totalFinished===1)toGrant.push({type:'first_ever',unique:true,qid:null});
+    else if(totalFinished===2)toGrant.push({type:'second_ever',unique:true,qid:null});
+    else if(totalFinished===3)toGrant.push({type:'third_ever',unique:true,qid:null});
+    if(totalFinished>=1&&totalFinished<=100)toGrant.push({type:'first_100',unique:true,qid:null});
+    // Первый на этом квесте
+    if(place===1)toGrant.push({type:'quest_first',unique:false,qid:questId});
+    // Командный / соло
+    toGrant.push({type:isTeamMode?'team_run':'solo_run',unique:false,qid:questId});
+    // Скорость < 15 мин (>=1 мин защита от тестовых мгновенных прохождений)
+    const comp=await sb(`quest_completions?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&select=started_at,finished_at`).catch(()=>[]);
+    if(comp[0]?.started_at&&comp[0]?.finished_at){
+      const mins=(new Date(comp[0].finished_at)-new Date(comp[0].started_at))/60000;
+      if(mins>=1&&mins<15)toGrant.push({type:'speed_run',unique:false,qid:questId});
+    }
+    // BUG-8 fix: фото только approved или без статуса (обычная точка)
+    const photoCps=await sb(`checkpoints?quest_id=eq.${questId}&task_type=in.(photo,photo_answer)&select=id`).catch(()=>[]);
+    if(photoCps.length>0){
+      const photoHits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&photo_status=in.(approved)&select=checkpoint_id`).catch(()=>[]);
+      const hitIds=new Set(photoHits.map(h=>h.checkpoint_id));
+      if(photoCps.every(c=>hitIds.has(c.id)))toGrant.push({type:'all_photos',unique:false,qid:questId});
+    }
+    // Ночной следопыт — после 20:00
+    const hr=new Date(finishedAt||Date.now()).getHours();
+    if(hr>=20||hr<4)toGrant.push({type:'night_owl',unique:false,qid:questId});
+    // BUG-7 fix: различаем конфликт дубля и реальную ошибку
+    const newOnes=[];
+    for(const a of toGrant){
+      try{
+        await sb('achievements',{method:'POST',body:{user_id:currentUser.id,achievement_type:a.type,quest_id:a.qid,is_unique:a.unique},prefer:'return=minimal'});
+        newOnes.push(a.type);
+      }catch(e){
+        const msg=String(e?.message||e);
+        if(!msg.includes('409')&&!msg.toLowerCase().includes('duplicate')&&!msg.includes('23505')){
+          console.warn('achievement insert unexpected error:',a.type,msg);
+        }
+      }
+    }
+    if(newOnes.length>0)setTimeout(()=>showAchievementModal(newOnes),1400);
+  }catch(e){console.warn('grantAchievements error',e);}
+}
+
+function showAchievementModal(types){
+  const items=types.map(t=>ACHIEVEMENT_DEFS[t]).filter(Boolean);
+  if(!items.length)return;
+  const existing=document.getElementById('achModal');
+  if(existing)existing.remove();
+  const el=document.createElement('div');
+  el.id='achModal';
+  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;animation:fadeIn .3s ease';
+  el.innerHTML=`
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:28px 24px;max-width:320px;width:90%;text-align:center;animation:logoIn .45s cubic-bezier(.34,1.56,.64,1);max-height:80vh;overflow-y:auto" onclick="event.stopPropagation()">
+      <div style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:20px">Получена награда!</div>
+      ${items.map((a,i)=>`
+        <div style="${i>0?'margin-top:20px;padding-top:20px;border-top:1px solid var(--border)':''}">
+          <div style="font-size:54px;line-height:1;animation:logoIn .5s cubic-bezier(.34,1.56,.64,1) ${i*.1}s both">${a.icon}</div>
+          <div style="font-family:'Arial Black',Arial,sans-serif;font-size:17px;font-weight:800;color:var(--text);margin:10px 0 4px;letter-spacing:-.3px">${a.label}</div>
+          <div style="font-size:13px;color:var(--text3);line-height:1.5">${a.desc}</div>
+          ${a.unique?'<div style="display:inline-block;margin-top:8px;background:rgba(251,191,36,.15);color:var(--amber);font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;letter-spacing:.5px">✦ Уникальная</div>':''}
+        </div>
+      `).join('')}
+      <button class="btn btn-primary btn-sm" style="margin-top:24px;padding:12px 40px" onclick="document.getElementById('achModal').remove()">Отлично!</button>
+    </div>`;
+  el.addEventListener('click',()=>el.remove());
+  document.body.appendChild(el);
+}
+
+async function loadProfileAchievements(container){
+  try{
+    const rows=await sb(`achievements?user_id=eq.${currentUser.id}&select=achievement_type,quest_id,earned_at,is_unique&order=earned_at.desc`);
+    if(!rows.length){
+      container.innerHTML='<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">Пока нет наград — пройди квест!</div>';
+      return;
+    }
+    const grouped={};
+    rows.forEach(r=>{
+      if(!grouped[r.achievement_type])grouped[r.achievement_type]=0;
+      grouped[r.achievement_type]++;
+    });
+    container.innerHTML=`
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:4px 0">
+        ${Object.entries(grouped).map(([type,count])=>{
+          const d=ACHIEVEMENT_DEFS[type];
+          if(!d)return '';
+          return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:12px 8px;text-align:center;position:relative">
+            ${d.unique?'<div style="position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--amber)"></div>':''}
+            <div style="font-size:32px;margin-bottom:6px">${d.icon}</div>
+            <div style="font-size:11px;font-weight:700;color:var(--text);line-height:1.3">${d.label}</div>
+            ${count>1?`<div style="margin-top:4px;font-size:10px;color:var(--green);font-weight:700">×${count}</div>`:''}
+          </div>`;
+        }).join('')}
+      </div>`;
+  }catch(e){container.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3);font-size:13px">Ошибка загрузки наград</div>';}
+}
+
 function afterSuccess(){
   document.getElementById('successOverlay').classList.remove('show');
   loadProfile();

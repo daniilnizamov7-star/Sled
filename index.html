@@ -749,7 +749,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <div style="display:flex;gap:8px;margin-bottom:8px">
         <div style="flex:1"><label class="form-label" style="font-size:11px">Широта</label><input class="form-input" id="editCpLat" placeholder="55.154321" inputmode="decimal"></div>
         <div style="flex:1"><label class="form-label" style="font-size:11px">Долгота</label><input class="form-input" id="editCpLng" placeholder="61.401234" inputmode="decimal"></div>
-        <div style="width:80px"><label class="form-label" style="font-size:11px">Радиус (м)</label><input class="form-input" id="editCpRadius" type="number" placeholder="100" min="10" max="500"></div>
+        <div style="width:80px"><label class="form-label" style="font-size:11px">Радиус (м)</label><input class="form-input" id="editCpRadius" type="number" placeholder="50" min="1" max="500"></div>
       </div>
       <button class="btn btn-secondary btn-sm" style="width:100%;font-size:12px" onclick="fillEditCpCoordsFromGPS()">📡 Взять мои текущие координаты</button>
       <div id="editCpGpsStatus" style="font-size:11px;color:var(--text3);margin-top:6px;text-align:center;min-height:16px"></div>
@@ -1112,13 +1112,11 @@ async function loadQuests(){
       const seasons=await sb(`seasons?id=in.(${seasonIds.join(',')})&select=id,title`).catch(()=>[]);
       seasons.forEach(s=>seasonMap[s.id]=s.title);
     }
-    // Грузим спонсоров для всех активных квестов
+    // BUG-4 fix: грузим всех спонсоров одним запросом
     const sponsorMap={};
-    for(const q of active){
-      try{
-        const sp=await sb(`quest_sponsors?quest_id=eq.${q.id}&order=place.asc&select=*`);
-        sponsorMap[q.id]=sp;
-      }catch(e){sponsorMap[q.id]=[];}
+    if(active.length){
+      const allSponsors=await sb(`quest_sponsors?quest_id=in.(${active.map(q=>q.id).join(',')})&order=place.asc&select=*`).catch(()=>[]);
+      allSponsors.forEach(s=>{if(!sponsorMap[s.quest_id])sponsorMap[s.quest_id]=[];sponsorMap[s.quest_id].push(s);});
     }
     active.forEach((q,i)=>{
       const sponsors=sponsorMap[q.id]||[];
@@ -1629,7 +1627,7 @@ function openEditCheckpoint(id,name,hint,learning,postFact,taskType,taskText,tas
   document.getElementById('editCpTaskAnswer').value=taskAnswer||'';
   document.getElementById('editCpLat').value=lat||'';
   document.getElementById('editCpLng').value=lng||'';
-  document.getElementById('editCpRadius').value=radius||100;
+  document.getElementById('editCpRadius').value=radius||50;
   document.getElementById('editCpGpsStatus').textContent='';
   document.getElementById('editCpGpsStatus').style.color='var(--text3)';
   toggleEditCpTask();
@@ -1670,7 +1668,7 @@ async function saveEditCheckpoint(){
   if(lat!==null){body.lat=lat;body.lng=lng;}
   if(radiusRaw!==''){
     var radius=parseInt(radiusRaw);
-    if(isNaN(radius)||radius<10||radius>500)return showToast('Радиус от 10 до 500 метров');
+    if(isNaN(radius)||radius<1||radius>500)return showToast('Радиус от 1 до 500 метров');
     body.radius_meters=radius;
   }
   try{
@@ -2101,8 +2099,8 @@ async function compassSubmitTask(){
   if(!cp)return;
   const answer=document.getElementById('compassTaskAnswer').value.trim();
   const taskType=cp.task_type;
-  const isAutoCheck=taskType==='sign'||taskType==='count';
-  const isManual=taskType==='riddle'||taskType==='open'||taskType==='photo_answer';
+  const isAutoCheck=taskType==='sign'||taskType==='count'||taskType==='riddle';
+  const isManual=taskType==='open'||taskType==='photo_answer';
   if(!answer&&!isOpen)return showToast('Введи ответ');
   const btn=document.querySelector('#compassTaskBlock button');
   if(btn){btn.disabled=true;btn.textContent='Проверяем...';}
@@ -2289,7 +2287,11 @@ async function submitCheckpoint(){
   if(!currentCheckpointData||_submitting)return;
   _submitting=true;
   const btn=document.getElementById('submitBtn');btn.disabled=true;btn.textContent='Сохраняем...';
+  // BUG-1 fix: если у точки нет координат — geo-проверку пропускаем
+  var cpHasCoords=currentCheckpointData.lat!=null&&currentCheckpointData.lng!=null&&
+                  !isNaN(parseFloat(currentCheckpointData.lat))&&!isNaN(parseFloat(currentCheckpointData.lng));
   var geoOk=await new Promise(function(resolve){
+    if(!cpHasCoords){resolve(true);return;} // нет координат — разрешаем без GPS
     if(!navigator.geolocation){resolve(true);return;}
     navigator.geolocation.getCurrentPosition(function(pos){
       userGeo=pos.coords;
@@ -2323,10 +2325,10 @@ async function submitCheckpoint(){
     const caption=document.getElementById('captionInput').value.trim()||null;
     const taskType=currentCheckpointData.task_type;
     const correctAnswer=currentCheckpointData.task_answer;
-    // Типы с автопроверкой: sign и count (точный ответ)
-    const isAutoCheck=taskType==='sign'||taskType==='count';
-    // Типы через модератора: riddle, open, photo_answer
-    const isManual=taskType==='riddle'||taskType==='open'||taskType==='photo_answer';
+    // Типы с автопроверкой: sign, count, riddle (точный ответ)
+    const isAutoCheck=taskType==='sign'||taskType==='count'||taskType==='riddle';
+    // Типы через модератора: open, photo_answer
+    const isManual=taskType==='open'||taskType==='photo_answer';
     let answerCorrect=false;
     if(isAutoCheck&&correctAnswer){
       if(!caption){
@@ -2349,15 +2351,18 @@ async function submitCheckpoint(){
       answerCorrect=false;
     }
     const answerPts=answerCorrect?PTS.ANSWER:0;
-    // Для ручных заданий — сохраняем photo_status=pending чтобы попало к модератору
     const needsModeration=isManual||(!!photoUrl);
     const photoStatus=needsModeration?'pending':null;
     const totalCpPts=PTS.CP+answerPts+photoBonusPts;
-    await sb('checkpoint_hits',{method:'POST',body:{user_id:currentUser.id,checkpoint_id:currentCheckpointData.id,quest_id:currentCheckpointData.quest_id,photo_url:photoUrl,photo_status:photoStatus,caption,lat:userGeo?.latitude||null,lng:userGeo?.longitude||null,hit_at:new Date().toISOString()},prefer:'return=minimal'});
+    // BUG-2 fix: проверяем дубль хита перед POST
+    const existHit=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=eq.${currentCheckpointData.id}&select=id`).catch(()=>[]);
+    if(!existHit.length){
+      await sb('checkpoint_hits',{method:'POST',body:{user_id:currentUser.id,checkpoint_id:currentCheckpointData.id,quest_id:currentCheckpointData.quest_id,photo_url:photoUrl,photo_status:photoStatus,caption,lat:userGeo?.latitude||null,lng:userGeo?.longitude||null,hit_at:new Date().toISOString()},prefer:'return=minimal'});
+    }
     // Фиксируем started_at при первом хите по квесту
     try{
       const prevHits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${currentCheckpointData.quest_id}&select=id`);
-      if(prevHits.length===1){ // только что создали первый хит
+      if(prevHits.length===1){
         const existComp=await sb(`quest_completions?user_id=eq.${currentUser.id}&quest_id=eq.${currentCheckpointData.quest_id}&select=id`);
         if(!existComp.length){
           await sb('quest_completions',{method:'POST',body:{user_id:currentUser.id,quest_id:currentCheckpointData.quest_id,started_at:new Date().toISOString(),finished_at:null,bonus_points:0,is_first:false},prefer:'return=minimal'});
@@ -2365,8 +2370,10 @@ async function submitCheckpoint(){
       }
     }catch(e){}
     const countGlobal=currentQuestData?.count_in_global!==false;
-    const newHits=(currentProfile?.checkpoints_hit||0)+1;
-    const newPts=(currentProfile?.points||0)+(countGlobal?totalCpPts:0);
+    const isDemo=currentQuestData?.is_demo===true;
+    // BUG-3 fix: checkpoints_hit только для реальных квестов
+    const newHits=(currentProfile?.checkpoints_hit||0)+(countGlobal&&!isDemo?1:0);
+    const newPts=(currentProfile?.points||0)+(countGlobal&&!isDemo?totalCpPts:0);
     await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{points:newPts,checkpoints_hit:newHits},prefer:'return=minimal'});
     currentProfile.points=newPts;currentProfile.checkpoints_hit=newHits;
     const msg=await checkQuestCompletion(currentCheckpointData.quest_id);

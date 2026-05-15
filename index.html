@@ -744,11 +744,20 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <button class="btn btn-primary" onclick="saveEditCheckpoint()">💾 Сохранить</button>
       <button class="btn btn-secondary" onclick="closeModal('editCheckpointModal')">Отмена</button>
     </div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px">📍 Координаты и радиус</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <div style="flex:1"><label class="form-label" style="font-size:11px">Широта</label><input class="form-input" id="editCpLat" placeholder="55.154321" inputmode="decimal"></div>
+        <div style="flex:1"><label class="form-label" style="font-size:11px">Долгота</label><input class="form-input" id="editCpLng" placeholder="61.401234" inputmode="decimal"></div>
+        <div style="width:80px"><label class="form-label" style="font-size:11px">Радиус (м)</label><input class="form-input" id="editCpRadius" type="number" placeholder="100" min="10" max="500"></div>
+      </div>
+      <button class="btn btn-secondary btn-sm" style="width:100%;font-size:12px" onclick="fillEditCpCoordsFromGPS()">📡 Взять мои текущие координаты</button>
+      <div id="editCpGpsStatus" style="font-size:11px;color:var(--text3);margin-top:6px;text-align:center;min-height:16px"></div>
+    </div>
   </div>
 </div>
 <div class="modal-overlay" id="corporateModal">
   <div class="modal">
-    <div class="modal-title">🏭 Корпоратив</div>
     <div id="corporateContent">
       <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">Введи код доступа от организатора чтобы попасть в корпоративный квест</div>
       <div class="form-group">
@@ -1603,11 +1612,11 @@ async function openEditCheckpointById(btn){
     const cps=await sb(`checkpoints?id=eq.${id}&select=*`);
     if(!cps.length)return showToast('Точка не найдена');
     const cp=cps[0];
-    openEditCheckpoint(cp.id,cp.name,cp.hint,cp.learning_text,cp.post_fact,cp.task_type,cp.task_text,cp.task_tip,cp.task_answer,questId);
+    openEditCheckpoint(cp.id,cp.name,cp.hint,cp.learning_text,cp.post_fact,cp.task_type,cp.task_text,cp.task_tip,cp.task_answer,questId,cp.lat,cp.lng,cp.radius_meters);
   }catch(e){showToast('Ошибка загрузки точки');}
 }
 
-function openEditCheckpoint(id,name,hint,learning,postFact,taskType,taskText,taskTip,taskAnswer,questId){
+function openEditCheckpoint(id,name,hint,learning,postFact,taskType,taskText,taskTip,taskAnswer,questId,lat,lng,radius){
   document.getElementById('editCpId').value=id;
   document.getElementById('editCpQuestId').value=questId;
   document.getElementById('editCpName').value=name||'';
@@ -1618,6 +1627,11 @@ function openEditCheckpoint(id,name,hint,learning,postFact,taskType,taskText,tas
   document.getElementById('editCpTaskText').value=taskText||'';
   document.getElementById('editCpTaskTip').value=taskTip||'';
   document.getElementById('editCpTaskAnswer').value=taskAnswer||'';
+  document.getElementById('editCpLat').value=lat||'';
+  document.getElementById('editCpLng').value=lng||'';
+  document.getElementById('editCpRadius').value=radius||100;
+  document.getElementById('editCpGpsStatus').textContent='';
+  document.getElementById('editCpGpsStatus').style.color='var(--text3)';
   toggleEditCpTask();
   document.getElementById('editCheckpointModal').classList.add('show');
 }
@@ -1637,20 +1651,63 @@ async function saveEditCheckpoint(){
   var learning=document.getElementById('editCpLearning').value.trim()||null;
   var postFact=document.getElementById('editCpPostFact').value.trim()||null;
   var taskType=document.getElementById('editCpTaskType').value||null;
-  // Если тип не выбран — принудительно очищаем все поля задания
   var taskText=taskType?document.getElementById('editCpTaskText').value.trim()||null:null;
   var taskTip=taskType?document.getElementById('editCpTaskTip').value.trim()||null:null;
   var taskAnswer=taskType?document.getElementById('editCpTaskAnswer').value.trim()||null:null;
+  var latRaw=document.getElementById('editCpLat').value.trim();
+  var lngRaw=document.getElementById('editCpLng').value.trim();
+  var radiusRaw=document.getElementById('editCpRadius').value.trim();
   if(!name)return showToast('Введи название точки');
+  // BUG-5 fix: lat и lng только вместе, не по одному
+  var hasLat=latRaw!=='', hasLng=lngRaw!=='';
+  if(hasLat!==hasLng)return showToast('Заполни и широту, и долготу вместе');
+  var lat=hasLat?parseFloat(latRaw):null;
+  var lng=hasLng?parseFloat(lngRaw):null;
+  if(lat!==null&&(isNaN(lat)||lat<-90||lat>90))return showToast('Широта должна быть от -90 до 90');
+  if(lng!==null&&(isNaN(lng)||lng<-180||lng>180))return showToast('Долгота должна быть от -180 до 180');
+  // BUG-2+3 fix: радиус пишем только если поле заполнено, валидируем через isNaN
+  var body={name,hint:hint||null,learning_text:learning,post_fact:postFact,task_type:taskType,task_text:taskText,task_tip:taskTip,task_answer:taskAnswer};
+  if(lat!==null){body.lat=lat;body.lng=lng;}
+  if(radiusRaw!==''){
+    var radius=parseInt(radiusRaw);
+    if(isNaN(radius)||radius<10||radius>500)return showToast('Радиус от 10 до 500 метров');
+    body.radius_meters=radius;
+  }
   try{
-    await sb(`checkpoints?id=eq.${id}`,{method:'PATCH',body:{
-      name,hint:hint||null,learning_text:learning,post_fact:postFact,
-      task_type:taskType,task_text:taskText,task_tip:taskTip,task_answer:taskAnswer
-    },prefer:'return=minimal'});
+    await sb(`checkpoints?id=eq.${id}`,{method:'PATCH',body,prefer:'return=minimal'});
     showToast('✅ Точка обновлена!');
     closeModal('editCheckpointModal');
     loadCheckpointsList2(questId);
   }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
+}
+
+function fillEditCpCoordsFromGPS(){
+  const status=document.getElementById('editCpGpsStatus');
+  const btn=document.querySelector('[onclick="fillEditCpCoordsFromGPS()"]');
+  if(!navigator.geolocation){status.style.color='var(--red)';return(status.textContent='GPS недоступен на этом устройстве');}
+  // BUG-6 fix: блокируем кнопку на время запроса
+  if(btn){btn.disabled=true;btn.textContent='⏳ Определяю...';}
+  status.style.color='var(--text3)';
+  status.textContent='Определяю координаты...';
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      const lat=pos.coords.latitude.toFixed(6);
+      const lng=pos.coords.longitude.toFixed(6);
+      const acc=Math.round(pos.coords.accuracy);
+      document.getElementById('editCpLat').value=lat;
+      document.getElementById('editCpLng').value=lng;
+      // BUG-4 fix: явно ставим цвет
+      status.style.color='var(--green)';
+      status.textContent=`✅ ${lat}, ${lng} (точность ±${acc}м)`;
+      if(btn){btn.disabled=false;btn.textContent='📡 Взять мои текущие координаты';}
+    },
+    err=>{
+      status.style.color='var(--red)';
+      status.textContent='Ошибка: '+({1:'нет доступа к GPS',2:'GPS недоступен',3:'таймаут'}[err.code]||err.message);
+      if(btn){btn.disabled=false;btn.textContent='📡 Взять мои текущие координаты';}
+    },
+    {enableHighAccuracy:true,timeout:10000,maximumAge:0}
+  );
 }
 
 function showCorporateModal(){

@@ -534,6 +534,18 @@ select.form-input option{background:var(--bg2);color:var(--text)}
         <input type="checkbox" id="qCompass" style="width:18px;height:18px;accent-color:#60a5fa;flex-shrink:0">
         <label for="qCompass" style="font-size:13px;color:var(--text2);cursor:pointer">🧭 Компас-навигация <span style="font-size:11px;color:var(--text3)">(стрелка вместо подсказки, QR не нужен)</span></label>
       </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px">
+        <input type="checkbox" id="qFreeMode" style="width:18px;height:18px;accent-color:var(--amber);flex-shrink:0">
+        <label for="qFreeMode" style="font-size:13px;color:var(--text2);cursor:pointer">🔓 Свободный режим <span style="font-size:11px;color:var(--text3)">(все основные точки активны одновременно, любой порядок)</span></label>
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px">
+        <input type="checkbox" id="qHideCount" style="width:18px;height:18px;accent-color:var(--amber);flex-shrink:0">
+        <label for="qHideCount" style="font-size:13px;color:var(--text2);cursor:pointer">🙈 Скрыть количество точек <span style="font-size:11px;color:var(--text3)">(игрок видит «Найдено: 3» вместо «3 из 7»)</span></label>
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px">
+        <input type="checkbox" id="qRomantic" style="width:18px;height:18px;accent-color:#f472b6;flex-shrink:0">
+        <label for="qRomantic" style="font-size:13px;color:#f472b6;cursor:pointer">💑 Романтический режим <span style="font-size:11px;color:var(--text3)">(убирает игровую терминологию, рейтинг скрыт)</span></label>
+      </div>
       <div class="form-group"><label class="form-label">Код доступа <span style="color:var(--text3);font-weight:400">(для корпоративных — необязательно)</span></label><input class="form-input" id="qAccessCode" placeholder="QWE123" style="text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase();document.getElementById('qGroupsBlock').style.display=this.value.trim()?'block':'none'"></div>
       <div class="form-group" id="qGroupsBlock" style="display:none">
         <label class="form-label">Группы участников <span style="color:var(--text3);font-weight:400">(через запятую)</span></label>
@@ -659,8 +671,10 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <input class="form-input" id="editQuestDesc" type="text"></div>
     <div class="form-group"><label class="form-label">Призовой фонд</label>
       <input class="form-input" id="editQuestPrize" type="text"></div>
-    <div class="form-group"><label class="form-label">Дата окончания</label>
-      <input class="form-input" id="editQuestDate" type="date"></div>
+    <div class="form-group"><label class="form-label">Дата и время окончания</label>
+      <input class="form-input" id="editQuestDate" type="datetime-local"></div>
+    <div class="form-group"><label class="form-label">⏱ Часов на проверку фото после окончания <span style="font-size:11px;color:var(--text3);font-weight:400">(default 48)</span></label>
+      <input class="form-input" id="editQuestReviewHours" type="number" value="48" min="1" max="168" style="width:100px"></div>
     <div class="form-group" style="display:flex;align-items:center;gap:10px">
       <input type="checkbox" id="editQuestGlobal" style="width:18px;height:18px;accent-color:var(--green);flex-shrink:0">
       <label for="editQuestGlobal" style="font-size:13px;color:var(--text2);cursor:pointer">🌍 Учитывать баллы в общем рейтинге <span style="font-size:11px;color:var(--text3)">(снять для корпоративных)</span></label>
@@ -668,6 +682,18 @@ select.form-input option{background:var(--bg2);color:var(--text)}
     <div class="form-group" style="display:flex;align-items:center;gap:10px">
       <input type="checkbox" id="editQuestCompass" style="width:18px;height:18px;accent-color:#60a5fa;flex-shrink:0">
       <label for="editQuestCompass" style="font-size:13px;color:var(--text2);cursor:pointer">🧭 Компас-навигация <span style="font-size:11px;color:var(--text3)">(стрелка вместо подсказки)</span></label>
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="editQuestFreeMode" style="width:18px;height:18px;accent-color:var(--amber);flex-shrink:0">
+      <label for="editQuestFreeMode" style="font-size:13px;color:var(--text2);cursor:pointer">🔓 Свободный режим <span style="font-size:11px;color:var(--text3)">(все основные точки активны одновременно)</span></label>
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="editQuestHideCount" style="width:18px;height:18px;accent-color:var(--amber);flex-shrink:0">
+      <label for="editQuestHideCount" style="font-size:13px;color:var(--text2);cursor:pointer">🙈 Скрыть количество точек <span style="font-size:11px;color:var(--text3)">(игрок видит «Найдено: 3» вместо «3 из 7»)</span></label>
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="editQuestRomantic" style="width:18px;height:18px;accent-color:#f472b6;flex-shrink:0">
+      <label for="editQuestRomantic" style="font-size:13px;color:#f472b6;cursor:pointer">💑 Романтический режим <span style="font-size:11px;color:var(--text3)">(убирает игровую терминологию, рейтинг скрыт)</span></label>
     </div>
     <button class="btn btn-primary" onclick="saveEditQuest()" style="margin-bottom:10px">Сохранить</button>
     <button class="btn btn-secondary" onclick="closeModal('editQuestModal')">Отмена</button>
@@ -744,6 +770,24 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <button class="btn btn-primary" onclick="saveEditCheckpoint()">💾 Сохранить</button>
       <button class="btn btn-secondary" onclick="closeModal('editCheckpointModal')">Отмена</button>
     </div>
+    <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);cursor:pointer">
+        <input type="checkbox" id="editCpCountsProgress" checked style="width:16px;height:16px;accent-color:var(--green)">
+        ✅ Основная точка <span style="font-size:11px;color:var(--text3)">(входит в счётчик и нужна для финиша; снять = бонусная)</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#f87171;cursor:pointer">
+        <input type="checkbox" id="editCpIsCritical" style="width:16px;height:16px;accent-color:#f87171">
+        🔴 Критическая точка <span style="font-size:11px;color:var(--text3)">(выделяется красным, всегда основная)</span>
+      </label>
+    </div>
+    <div style="margin-top:10px">
+      <label class="form-label" style="font-size:12px">👷 Только для должностей <span style="color:var(--text3);font-weight:400">(через запятую, пусто = для всех)</span></label>
+      <input class="form-input" id="editCpTargetGroups" placeholder="Оператор, Механик" style="font-size:13px">
+    </div>
+    <div style="margin-top:8px">
+      <label class="form-label" style="font-size:12px">⏰ Открыть точку с <span style="color:var(--text3);font-weight:400">(пусто = доступна сразу)</span></label>
+      <input class="form-input" type="datetime-local" id="editCpAvailableFrom" style="font-size:13px">
+    </div>
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px">📍 Координаты и радиус</div>
       <div style="display:flex;gap:8px;margin-bottom:8px">
@@ -814,6 +858,16 @@ const ACHIEVEMENT_DEFS={
 let currentUser=null,currentProfile=null,screenHistory=[],currentQuestId=null;
 let currentCheckpointToken=null,currentCheckpointData=null,selfieBlob=null,userGeo=null;
 let scanStream=null,scanInterval=null;
+let currentGroupName=null; // должность/группа участника в текущем квесте
+
+// Проверяет видима ли точка для текущей группы участника
+// target_groups: [] или null = для всех; ['Оператор','Механик'] = только для них
+function cpVisibleForGroup(cp){
+  if(!currentGroupName)return true; // нет группы — видим всё
+  const tg=cp.target_groups;
+  if(!tg||!Array.isArray(tg)||tg.length===0)return true; // точка для всех
+  return tg.includes(currentGroupName);
+}
 
 function toggleTheme(){
   const isLight=document.body.classList.toggle('light-theme');
@@ -1169,32 +1223,50 @@ async function openQuest(quest){
   if(_compassTarget&&_compassTarget.cp?.quest_id!==quest.id)stopCompass();
   currentQuestData=quest;
   currentQuestId=quest.id;
+  const isRomantic=quest.is_romantic===true;
+  // Сбрасываем группу при открытии нового квеста
+  currentGroupName=null;
   // Проверяем группу участника если корпоратив
   let groupBadge='';
   if(quest.access_code&&currentUser){
     try{
       const part=await sb(`quest_participants?quest_id=eq.${quest.id}&user_id=eq.${currentUser.id}&select=group_name`);
       if(part.length&&part[0].group_name){
+        currentGroupName=part[0].group_name;
         groupBadge=`<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,.15);border:1px solid var(--amber-dim);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--amber);margin-bottom:10px">👥 ${part[0].group_name}</div>`;
       }
     }catch(e){}
   }
+  const scoreLegend=isRomantic?'':`<div class="score-legend" style="margin-top:16px">
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:600;letter-spacing:.5px">СИСТЕМА ОЧКОВ</div>
+    <div class="score-row"><span>За каждую точку</span><span class="score-pts">+${PTS.CP}</span></div>
+    <div class="score-row"><span>Правильный ответ</span><span class="score-pts">+${PTS.ANSWER}</span></div>
+    <div class="score-row"><span>Фото на точке</span><span class="score-pts">+${PTS.PHOTO_BONUS} бонус</span></div>
+    <div class="score-row"><span>Прошёл все точки</span><span class="score-pts">+${PTS.COMPLETE}</span></div>
+    ${quest.with_speed_bonus!==false?`<div class="score-row"><span>🥇 Первый кто завершил</span><span class="score-pts amber">+${PTS.COMPLETE+PTS.FIRST+30} бонус</span></div>`:''}
+  </div>`;
+  const romanticBadge=isRomantic?`<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(244,114,182,.15);border:1px solid #f472b6;border-radius:20px;padding:4px 12px;font-size:12px;color:#f472b6;margin-bottom:10px">💑 Романтический маршрут</div>`:'';
   document.getElementById('questDetailHero').innerHTML=`
-    <div class="quest-detail-title">${quest.title}</div>
+    <div class="quest-detail-title">${isRomantic?'💑 '+quest.title:quest.title}</div>
+    ${romanticBadge}
     ${groupBadge}
     <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px">${quest.description||''}</div>
-    <div class="quest-meta"><div class="quest-meta-item">🏆 ${quest.prize_description||'Приз'}</div><div class="quest-meta-item">📅 До ${formatDate(quest.end_date)}</div></div>
+    ${isRomantic?'':`<div class="quest-meta"><div class="quest-meta-item">🏆 ${quest.prize_description||'Приз'}</div><div class="quest-meta-item">📅 До ${formatDate(quest.end_date)}</div></div>`}
     <div id="questTimer" style="font-size:13px;margin-top:8px;font-weight:600;transition:color .5s"></div>
-    <div class="score-legend" style="margin-top:16px">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:600;letter-spacing:.5px">СИСТЕМА ОЧКОВ</div>
-      <div class="score-row"><span>За каждую точку</span><span class="score-pts">+${PTS.CP}</span></div>
-      <div class="score-row"><span>Правильный ответ</span><span class="score-pts">+${PTS.ANSWER}</span></div>
-      <div class="score-row"><span>Фото на точке</span><span class="score-pts">+${PTS.PHOTO_BONUS} бонус</span></div>
-      <div class="score-row"><span>Прошёл все точки</span><span class="score-pts">+${PTS.COMPLETE}</span></div>
-      ${quest.with_speed_bonus!==false?`<div class="score-row"><span>🥇 Первый кто завершил</span><span class="score-pts amber">+${PTS.COMPLETE+PTS.FIRST+30} бонус</span></div>`:''}
-    </div>`;
+    ${scoreLegend}`;
   goScreen('questScreen');
-  const firstTab=document.querySelector('#questScreen .detail-tab');switchDetailTab('route',firstTab);
+  // Скрываем вкладки рейтинга и команды в романтическом режиме
+  const tabs=document.querySelectorAll('#questScreen .detail-tab');
+  tabs.forEach(t=>{
+    const tabName=t.textContent;
+    if(isRomantic&&(tabName.includes('Рейтинг')||tabName.includes('Команда'))){
+      t.style.display='none';
+    } else {
+      t.style.display='';
+    }
+  });
+  const firstTab=document.querySelector('#questScreen .detail-tab:not([style*="none"])');
+  switchDetailTab('route',firstTab);
   if(quest.end_date)setTimeout(function(){startQuestTimer(quest.end_date);},60);
   loadSponsors(quest.id);
 }
@@ -1274,65 +1346,162 @@ async function loadQuestGallery(questId){
 async function loadCheckpoints(questId){
   const el=document.getElementById('detailRoute');el.innerHTML='<div class="loader"><div class="spinner"></div></div>';
   try{
-    const cps=await sb(`checkpoints?quest_id=eq.${questId}&order=order_num.asc&select=*`);
+    const allCps=await sb(`checkpoints?quest_id=eq.${questId}&order=order_num.asc&select=*`);
+    // Фильтруем по группе участника (target_groups)
+    const cps=allCps.filter(cpVisibleForGroup);
     let hits=[];try{hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&select=checkpoint_id`);}catch(e){}
     const hitIds=new Set(hits.map(h=>h.checkpoint_id));
-    const pct=cps.length?Math.round(hitIds.size/cps.length*100):0;
-    // Текущая точка = первая непройденная
-    const nextIdx=cps.findIndex(cp=>!hitIds.has(cp.id));
+
+    // Параметры квеста
+    const quest=currentQuestData;
+    const isFree=quest?.free_mode===true;
+    const hideCount=quest?.hide_count===true;
+    const isCompass=quest?.navigation_mode==='compass';
+    const isRomantic=quest?.is_romantic===true;
+
+    // Хелпер: доступна ли точка по времени открытия
+    const nowMs=Date.now();
+    const cpAvailable=(cp)=>!cp.available_from||new Date(cp.available_from).getTime()<=nowMs;
+    const cpOpenTime=(cp)=>{
+      if(!cp.available_from)return '';
+      const d=new Date(cp.available_from);
+      const nowD=new Date();
+      const isToday=d.toDateString()===nowD.toDateString();
+      const tomorrow=new Date(nowD);tomorrow.setDate(tomorrow.getDate()+1);
+      const isTomorrow=d.toDateString()===tomorrow.toDateString();
+      const timeStr=d.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+      if(isToday)return 'сегодня в '+timeStr;
+      if(isTomorrow)return 'завтра в '+timeStr;
+      return d.toLocaleDateString('ru',{day:'2-digit',month:'2-digit'})+' в '+timeStr;
+    };
+
+    // Разделяем основные (counts_for_progress!=false, NULL = основная) и бонусные
+    const mainCps=cps.filter(cp=>cp.counts_for_progress!==false);
+    const bonusCps=cps.filter(cp=>cp.counts_for_progress===false);
+
+    const mainDone=mainCps.filter(cp=>hitIds.has(cp.id)).length;
+    const mainTotal=mainCps.length;
+    const pct=mainTotal?Math.round(mainDone/mainTotal*100):0;
+
+    // Прогресс-строка
+    const progressLabel=hideCount
+      ? (isRomantic?`Воспоминание ${mainDone}`:`Найдено: ${mainDone}`)
+      : (isRomantic?`${mainDone} из ${mainTotal} мест посещено`:`${mainDone} из ${mainTotal} точек пройдено`);
+
+    // Для подсказки "следующая точка открыта" в последовательном режиме
+    const nextIdx=isFree ? -1 : mainCps.findIndex(cp=>!hitIds.has(cp.id));
+    // В свободном — первая непройденная основная (для финиша)
+    const allMainDone=mainDone>=mainTotal&&mainTotal>0;
+
+    // Прогресс-точки показываем только основные
+    const dotsCps=hideCount ? [] : mainCps;
+
     el.innerHTML=`<div style="padding:16px 20px 8px">
-      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:10px">${cps.map(function(cp,idx){var done=hitIds.has(cp.id);var nxt=idx===cps.findIndex(function(x){return !hitIds.has(x.id);});var bc=done?"var(--green)":nxt?"var(--green-dim)":"var(--border)";var bg=done?"rgba(74,222,128,.2)":"transparent";var tc=done?"var(--green)":nxt?"var(--text2)":"var(--text3)";var lbl=done?"\u2713":(idx+1);return "<div style=\"width:26px;height:26px;border-radius:50%;border:2px solid "+bc+";background:"+bg+";display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:"+tc+";transition:all .5s cubic-bezier(.34,1.56,.64,1)\">"+lbl+"</div>";}).join("<div style=\"width:10px;height:2px;background:var(--border);border-radius:1px;flex-shrink:0\"></div>")}</div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-      <div class="progress-label">${hitIds.size} из ${cps.length} точек пройдено</div>
+      ${dotsCps.length?`<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:10px">${mainCps.map(function(cp,idx){var done=hitIds.has(cp.id);var nxt=!isFree&&idx===mainCps.findIndex(function(x){return !hitIds.has(x.id);});var bc=done?"var(--green)":nxt?"var(--green-dim)":isFree&&!done?"var(--amber-dim)":"var(--border)";var bg=done?"rgba(74,222,128,.2)":"transparent";var tc=done?"var(--green)":nxt||isFree?"var(--text2)":"var(--text3)";var lbl=done?"✓":(idx+1);return "<div style=\"width:26px;height:26px;border-radius:50%;border:2px solid "+bc+";background:"+bg+";display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:"+tc+";transition:all .5s cubic-bezier(.34,1.56,.64,1)\">"+lbl+"</div>";}).join("<div style=\"width:10px;height:2px;background:var(--border);border-radius:1px;flex-shrink:0\"></div>")}</div>`:''}
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="progress-label">${progressLabel}</div>
     </div>
-    ${nextIdx>=0?`<div style="padding:0 20px 8px;font-size:12px;color:var(--text3)">📍 Следующая точка открыта · Остальные откроются после прохождения</div>`:''}
+    ${isFree&&!allMainDone?`<div style="padding:0 20px 8px;font-size:12px;color:${isRomantic?'#f472b6':'var(--amber)'}">
+      ${isRomantic?'💑 Ваш маршрут — посещайте места в любом порядке':'🔓 Свободный режим · все точки открыты одновременно'}
+    </div>`:''}
+    ${!isFree&&nextIdx>=0?`<div style="padding:0 20px 8px;font-size:12px;color:var(--text3)">
+      ${isRomantic?'💕 Следующее место ждёт вас':'📍 Следующая точка открыта · Остальные откроются после прохождения'}
+    </div>`:''}
     <div style="padding:0 20px 20px" id="cpItemsContainer"></div>`;
+
     const container=document.getElementById('cpItemsContainer');
+
     cps.forEach((cp,i)=>{
       const done=hitIds.has(cp.id);
-      const isNext=i===nextIdx; // Текущая открытая точка
-      const isLocked=!done&&!isNext; // Ещё не открыта
+      const isBonus=cp.counts_for_progress===false;
+
+      // Видимость точки в списке
+      // Бонусные НЕ показываем в списке (скрытые)
+      if(isBonus)return;
+
+      let isLocked=false;
+      let isNext=false;
+      if(isFree){
+        // Свободный — все основные точки активны
+        isNext=!done;
+        isLocked=false;
+      } else {
+        // Последовательный — только одна открыта
+        const mainIdx=mainCps.findIndex(x=>x.id===cp.id);
+        const mainNextIdx=mainCps.findIndex(x=>!hitIds.has(x.id));
+        isNext=mainIdx===mainNextIdx&&!done;
+        isLocked=!done&&!isNext;
+      }
+
       const hasTask=cp.task_type&&cp.task_type!=='';
+      const isCritical=cp.is_critical===true;
+      const isTimeLocked=!cpAvailable(cp)&&!done;
       const div=document.createElement('div');
-      div.className=`checkpoint-item ${done?'done':isLocked?'locked':''}`;
+      div.className=`checkpoint-item ${done?'done':(isLocked||isTimeLocked)?'locked':''}`;
+      if(isCritical&&!done&&!isTimeLocked)div.style.cssText='border-color:#f87171;background:rgba(248,113,113,.06)';
+      if(isTimeLocked)div.style.cssText='border-color:var(--border);background:var(--bg3);opacity:.7';
       div.style.animationDelay=`${i*.07}s`;
+
       if(done){
-        div.innerHTML=`<div class="cp-num">✓</div><div class="cp-info"><div class="cp-name">${cp.name}</div><div class="cp-hint">✅ Пройдено</div></div>`;
-      } else if(isNext){
-        // Текущая точка — показываем подсказку и кнопку компаса
-        const isCompass=currentQuestData?.navigation_mode==='compass';
+        div.innerHTML=`<div class="cp-num" style="${isRomantic?'border-color:#f472b6;color:#f472b6':''}">✓</div><div class="cp-info"><div class="cp-name">${cp.name}</div><div class="cp-hint" style="${isRomantic?'color:#f472b6':''}">✅ ${isRomantic?'Были здесь 💕':'Пройдено'}</div></div>`;
+      } else if(isTimeLocked){
         div.innerHTML=`
-          <div class="cp-num" style="border-color:var(--green);color:var(--green);background:rgba(74,222,128,.1)">${i+1}</div>
+          <div class="cp-num" style="opacity:.4">⏰</div>
+          <div class="cp-info">
+            <div class="cp-name" style="opacity:.6">${cp.name}</div>
+            <div class="cp-hint" style="color:var(--amber)">⏰ Откроется ${cpOpenTime(cp)}</div>
+          </div>`;
+      } else if(isNext){
+        div.innerHTML=`
+          <div class="cp-num" style="border-color:${isCritical?'var(--red)':isRomantic?'#f472b6':'var(--green)'};color:${isCritical?'var(--red)':isRomantic?'#f472b6':'var(--green)'};background:${isCritical?'rgba(248,113,113,.1)':isRomantic?'rgba(244,114,182,.1)':'rgba(74,222,128,.1)'}">${cp.order_num}</div>
           <div class="cp-info">
             <div class="cp-name">${cp.name}</div>
+            ${isCritical?'<div style="font-size:11px;color:var(--red);font-weight:600;margin-bottom:2px">⚠️ Критическая точка — обязательно пройди</div>':''}
             ${isCompass
-              ? `<div class="cp-hint" style="color:var(--green2)">🧭 Нажми компас чтобы найти точку</div>`
-              : `<div class="cp-hint" style="color:var(--green2)">${cp.hint||'Найди QR-код и отсканируй'}</div>`
+              ? `<div class="cp-hint" style="color:${isRomantic?'#f472b6':'var(--green2)'}">🧭 ${isRomantic?'Нажмите компас — следуйте за стрелкой':'Нажми компас чтобы найти точку'}</div>`
+              : `<div class="cp-hint" style="color:${isCritical?'#fca5a5':isRomantic?'#f9a8d4':'var(--green2)'}">${isRomantic?cp.hint||'Найдите наклейку с сердечком 💕':cp.hint||'Найди QR-код и отсканируй'}</div>`
             }
-            ${hasTask?'<div class="cp-task-badge">📋 Есть задание</div>':''}
+            ${hasTask?`<div class="cp-task-badge" style="${isRomantic?'background:rgba(244,114,182,.1);color:#f472b6':''}">📋 ${isRomantic?'Вас ждёт сюрприз':'Есть задание'}</div>`:''}
           </div>
           ${isCompass
-            ? `<button onclick="event.stopPropagation();showCompassModal()" style="background:rgba(96,165,250,.15);border:1px solid #60a5fa;color:#60a5fa;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;white-space:nowrap">🧭</button>`
-            : `<div style="color:var(--green);font-size:20px">→</div>`
+            ? `<button onclick="event.stopPropagation();showCompassModal()" style="background:${isRomantic?'rgba(244,114,182,.15)':'rgba(96,165,250,.15)'};border:1px solid ${isRomantic?'#f472b6':'#60a5fa'};color:${isRomantic?'#f472b6':'#60a5fa'};border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;white-space:nowrap">🧭</button>`
+            : `<div style="color:${isCritical?'var(--red)':isRomantic?'#f472b6':'var(--green)'};font-size:20px">${isRomantic?'💕':'→'}</div>`
           }`;
-        if(!isCompass)div.onclick=()=>showToast('📷 Найди точку и отсканируй QR-код');
+        if(!isCompass)div.onclick=()=>showToast(isRomantic?'💕 Найдите наклейку с сердечком и отсканируйте':'📷 Найди точку и отсканируй QR-код');
       } else {
-        // Закрытая точка — только номер и замок
         div.innerHTML=`
-          <div class="cp-num" style="opacity:.4">${i+1}</div>
+          <div class="cp-num" style="opacity:.4">${cp.order_num}</div>
           <div class="cp-info">
-            <div class="cp-name" style="opacity:.4">Точка ${i+1}</div>
-            <div class="cp-hint">🔒 Откроется после прохождения предыдущей</div>
+            <div class="cp-name" style="opacity:.4">${isRomantic?'Место '+cp.order_num:'Точка '+cp.order_num}</div>
+            <div class="cp-hint">${isRomantic?'💕 Откроется после предыдущего места':'🔒 Откроется после прохождения предыдущей'}</div>
           </div>`;
       }
       container.appendChild(div);
     });
-    // Если всё пройдено
-    if(nextIdx===-1&&cps.length>0){
+
+    // Если все основные пройдены
+    if(allMainDone){
       const fin=document.createElement('div');
-      fin.style.cssText='text-align:center;padding:20px;color:var(--green)';
-      fin.innerHTML='<div style="font-size:32px">🏁</div><div style="font-size:14px;font-weight:700;margin-top:8px;color:var(--green)">Все точки пройдены!</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Смотри результат во вкладке Рейтинг</div>';
+      fin.style.cssText='text-align:center;padding:20px;';
+      fin.innerHTML=isRomantic
+        ?'<div style="font-size:40px">🥂</div><div style="font-size:16px;font-weight:700;margin-top:8px;color:#f472b6">Ваш вечер готов!</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Все места посещены — впереди финальный сюрприз 💑</div>'
+        :'<div style="font-size:32px">🏁</div><div style="font-size:14px;font-weight:700;margin-top:8px;color:var(--green)">Все точки пройдены!</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Смотри результат во вкладке Рейтинг</div>';
       container.appendChild(fin);
     }
+
+    // Показываем найденные бонусные точки отдельным блоком
+    const foundBonus=bonusCps.filter(cp=>hitIds.has(cp.id));
+    if(foundBonus.length){
+      const bonusBlock=document.createElement('div');
+      bonusBlock.style.cssText='padding:0 20px 16px';
+      bonusBlock.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--amber);letter-spacing:.5px;margin-bottom:8px">🎁 НАЙДЕННЫЕ БОНУСЫ (${foundBonus.length})</div>`
+        +foundBonus.map(cp=>`<div class="checkpoint-item done" style="border-color:var(--amber-dim);background:rgba(251,191,36,.05)">
+          <div class="cp-num" style="border-color:var(--amber);color:var(--amber);background:rgba(251,191,36,.1)">🎁</div>
+          <div class="cp-info"><div class="cp-name">${cp.name}</div><div class="cp-hint" style="color:var(--amber)">Бонусная точка найдена ✨</div></div>
+        </div>`).join('');
+      container.appendChild(bonusBlock);
+    }
+  }
   }catch(e){el.innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text" style="margin-bottom:12px">Ошибка загрузки</div><button class="btn btn-secondary btn-sm" onclick="this.closest(\'#questScreen\') && loadCheckpoints(currentQuestId)">🔄 Повторить</button></div>';}
 }
 
@@ -1340,41 +1509,84 @@ async function loadQuestRating(questId){
   const el=document.getElementById('detailRating');el.innerHTML='<div class="loader"><div class="spinner"></div></div>';
   try{
     const[hits,completions,cps,questData]=await Promise.all([
-      sb(`checkpoint_hits?quest_id=eq.${questId}&select=user_id`),
-      sb(`quest_completions?quest_id=eq.${questId}&select=user_id,bonus_points,is_first,finished_at`),
-      sb(`checkpoints?quest_id=eq.${questId}&select=id`),
+      sb(`checkpoint_hits?quest_id=eq.${questId}&select=user_id,checkpoint_id`),
+      sb(`quest_completions?quest_id=eq.${questId}&select=user_id,bonus_points,is_first,finished_at,started_at`),
+      sb(`checkpoints?quest_id=eq.${questId}&select=id,counts_for_progress,target_groups`),
       sb(`quests?id=eq.${questId}&select=*`)
     ]);
     const quest=questData[0]||{};
     const isEnded=quest.status==='ended'||new Date(quest.end_date)<new Date();
+    // Основные точки (с учётом групп не фильтруем — рейтинг общий)
+    const mainCps=cps.filter(c=>c.counts_for_progress!==false);
     const totalCps=cps.length;
-    const userHits={};hits.forEach(h=>{userHits[h.user_id]=(userHits[h.user_id]||0)+PTS.CP;});
-    const userBonus={};completions.forEach(c=>{userBonus[c.user_id]=c.bonus_points;});
-    const userIds=[...new Set([...Object.keys(userHits),...Object.keys(userBonus)])];
+
+    // Баллы за точки по участникам
+    const userHits={};
+    hits.forEach(h=>{userHits[h.user_id]=(userHits[h.user_id]||0)+PTS.CP;});
+
+    // Completion map
+    const compMap={};
+    completions.forEach(c=>{compMap[c.user_id]=c;});
+
+    const userIds=[...new Set([...Object.keys(userHits),...Object.keys(compMap)])];
     if(!userIds.length){el.innerHTML='<div class="empty"><div class="empty-icon">🏁</div><div class="empty-text">Пока нет участников</div></div>';return;}
+
     const profiles=await sb(`sledopyt_profiles?id=in.(${userIds.join(',')})&select=id,username`);
     const nameMap={};profiles.forEach(p=>nameMap[p.id]=p.username);
-    // Считаем время прохождения
-    const durationMap={};
-    completions.forEach(c=>{
-      if(c.started_at&&c.finished_at){
-        const mins=Math.round((new Date(c.finished_at)-new Date(c.started_at))/60000);
-        durationMap[c.user_id]=mins;
-      }
-    });
-    const ranked=userIds.map(uid=>({uid,name:nameMap[uid]||'—',pts:(userHits[uid]||0)+(userBonus[uid]||0),cps:Math.round((userHits[uid]||0)/PTS.CP),finished:!!userBonus[uid]&&(userBonus[uid]>0||(completions.find(x=>x.user_id===uid)?.finished_at)),isFirst:completions.find(x=>x.user_id===uid)?.is_first||false,duration:durationMap[uid]||null})).sort((a,b)=>b.pts-a.pts);
 
-    // Корпоративный — сначала групповой рейтинг
+    // Собираем данные участников
+    const ranked=userIds.map(uid=>{
+      const comp=compMap[uid];
+      const hitPts=userHits[uid]||0;
+      const bonusPts=comp?.bonus_points||0;
+      const totalPts=hitPts+bonusPts;
+      const finished=!!(comp?.finished_at);
+      // Время прохождения в секундах — для тайбрейкера
+      let durationSec=null;
+      if(comp?.started_at&&comp?.finished_at){
+        durationSec=Math.round((new Date(comp.finished_at)-new Date(comp.started_at))/1000);
+      }
+      const cpsCount=Math.round(hitPts/PTS.CP);
+      return {uid,name:nameMap[uid]||'—',pts:totalPts,cps:cpsCount,finished,durationSec,isFirst:comp?.is_first||false};
+    }).sort((a,b)=>{
+      // 1. Сначала по баллам убывание
+      if(b.pts!==a.pts)return b.pts-a.pts;
+      // 2. Тайбрейкер: оба финишировали — кто быстрее
+      if(a.finished&&b.finished){
+        const da=a.durationSec??Infinity;
+        const db=b.durationSec??Infinity;
+        return da-db;
+      }
+      // 3. Финишировавший выше нефинишировавшего при равных баллах
+      if(a.finished&&!b.finished)return -1;
+      if(!a.finished&&b.finished)return 1;
+      return 0;
+    });
+
+    // Назначаем места с учётом ничьих
+    // Ничья = одинаковые баллы И одинаковое время (или оба не финишировали)
+    let place=1;
+    ranked.forEach((r,i)=>{
+      if(i===0){r.place=1;return;}
+      const prev=ranked[i-1];
+      const samePts=r.pts===prev.pts;
+      const sameTime=r.finished&&prev.finished&&r.durationSec===prev.durationSec;
+      const bothNotFinished=!r.finished&&!prev.finished;
+      if(samePts&&(sameTime||bothNotFinished)){
+        r.place=prev.place; // реальная ничья
+      } else {
+        r.place=i+1;
+      }
+      place=r.place;
+    });
+
+    // Корпоративный — групповой рейтинг сверху
     const groups=(()=>{try{return quest.groups&&quest.groups!==''?JSON.parse(quest.groups):null;}catch(e){return null;}})();
     if(groups&&groups.length){
       const parts=await sb(`quest_participants?quest_id=eq.${questId}&select=user_id,group_name`).catch(()=>[]);
       const groupMap={};parts.forEach(p=>groupMap[p.user_id]=p.group_name);
-      const groupPts={};
-      groups.forEach(g=>{groupPts[g]=0;});
-      ranked.forEach(r=>{
-        const g=groupMap[r.uid];
-        if(g&&groupPts[g]!==undefined)groupPts[g]+=r.pts;
-      });
+      const groupPts={};groups.forEach(g=>{groupPts[g]=0;});
+      ranked.forEach(r=>{const g=groupMap[r.uid];if(g&&groupPts[g]!==undefined)groupPts[g]+=r.pts;});
       const groupRanked=groups.map(g=>({name:g,pts:groupPts[g]||0})).sort((a,b)=>b.pts-a.pts);
       el.innerHTML=`<div style="padding:12px 20px 0;font-size:11px;color:var(--amber);font-weight:700;letter-spacing:.5px">🏭 РЕЙТИНГ ГРУПП</div>`;
       groupRanked.forEach((g,i)=>{
@@ -1383,44 +1595,53 @@ async function loadQuestRating(questId){
       });
       el.innerHTML+='<div style="padding:8px 20px;font-size:11px;color:var(--text3);font-weight:600;margin-top:8px">ЛИЧНЫЙ РЕЙТИНГ</div>';
     } else {
-      el.innerHTML='<div style="padding:12px 20px;font-size:11px;color:var(--text3)">Живой рейтинг · Победитель определяется по окончании квеста</div>';
+      el.innerHTML=isEnded
+        ?`<div style="margin:16px 20px;background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--green-dim);border-radius:var(--radius);padding:20px">
+            <div style="font-size:11px;color:var(--green);font-weight:700;letter-spacing:1px;margin-bottom:8px">КВЕСТ ЗАВЕРШЁН</div>
+            <div style="font-family:'Arial Black',Arial,sans-serif;font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px">${quest.title||''}</div>
+            <div style="font-size:13px;color:var(--text3);margin-bottom:16px">👥 ${userIds.length} участников · 📍 ${totalCps} точек</div>
+            ${quest.prize_description?`<div style="background:rgba(251,191,36,.1);border:1px solid var(--amber-dim);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--amber)">🏆 ${quest.prize_description}</div>`:''}
+          </div>
+          <div style="padding:8px 20px;font-size:12px;color:var(--text3);font-weight:600">ИТОГОВЫЕ РЕЗУЛЬТАТЫ</div>`
+        :'<div style="padding:12px 20px;font-size:11px;color:var(--text3)">Живой рейтинг · Места по баллам, при ничьей — по скорости ⏱</div>';
     }
 
-    // Шапка — итоги или живой рейтинг
-    if(isEnded&&!groups){
-      el.innerHTML=`<div style="margin:16px 20px;background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--green-dim);border-radius:var(--radius);padding:20px">
-        <div style="font-size:11px;color:var(--green);font-weight:700;letter-spacing:1px;margin-bottom:8px">КВЕСТ ЗАВЕРШЁН</div>
-        <div style="font-family:'Arial Black',Arial,sans-serif;font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px">${quest.title||''}</div>
-        <div style="font-size:13px;color:var(--text3);margin-bottom:16px">👥 ${userIds.length} участников · 📍 ${totalCps} точек</div>
-        ${quest.prize_description?`<div style="background:rgba(251,191,36,.1);border:1px solid var(--amber-dim);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--amber)">🏆 ${quest.prize_description}</div>`:''}
-      </div>
-      <div style="padding:8px 20px;font-size:12px;color:var(--text3);font-weight:600">ИТОГОВЫЕ РЕЗУЛЬТАТЫ</div>`;
-      ranked.slice(0,3).forEach((r,i)=>{
-        const medals=['🥇','🥈','🥉'];const colors=['var(--amber)','#c0c0c0','#cd7f32'];
-        const isMe=r.uid===currentUser.id;
-        el.innerHTML+=`<div style="margin:0 20px 10px;background:var(--card);border:1px solid ${i===0?'var(--amber-dim)':'var(--border)'};border-radius:var(--radius);padding:16px;display:flex;align-items:center;gap:14px;animation:fadeIn .3s ease ${i*.1}s both">
-          <div style="font-size:36px">${medals[i]}</div>
+    // Рендер участников
+    const placeEmoji={1:'🥇',2:'🥈',3:'🥉'};
+    const placeColor={1:'var(--amber)',2:'#c0c0c0',3:'#cd7f32'};
+    ranked.forEach((r,i)=>{
+      const isMe=r.uid===currentUser?.id;
+      const medal=placeEmoji[r.place]||'';
+      const color=placeColor[r.place]||'';
+      const timeStr=r.durationSec!=null
+        ?` · ⏱ ${Math.floor(r.durationSec/60)}мин ${r.durationSec%60}с`
+        :'';
+      // Показываем тайбрейкер-подсказку при ничьей
+      const isTie=ranked.filter(x=>x.place===r.place).length>1;
+      const tieNote=isTie&&r.finished?' <span style="font-size:10px;color:var(--text3)">(ничья — учтено время)</span>':'';
+
+      if(isEnded&&r.place<=3){
+        el.innerHTML+=`<div style="margin:0 20px 10px;background:var(--card);border:1px solid ${r.place===1?'var(--amber-dim)':'var(--border)'};border-radius:var(--radius);padding:16px;display:flex;align-items:center;gap:14px;animation:fadeIn .3s ease ${i*.1}s both">
+          <div style="font-size:36px">${medal||'#'+r.place}</div>
           <div style="flex:1">
             <div style="font-size:15px;font-weight:600;color:var(--text)">${r.name} ${isMe?'<span class="me-badge">Я</span>':''}</div>
-            <div style="font-size:12px;color:var(--text3);margin-top:2px">${r.cps} из ${totalCps} точек ${r.finished?'· финишировал':''}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">${r.cps} из ${totalCps} точек${r.finished?' · финишировал':''}${timeStr}${tieNote}</div>
           </div>
-          <div style="font-family:'Arial Black',Arial,sans-serif;font-size:22px;font-weight:800;color:${colors[i]}">${r.pts}</div>
+          <div style="font-family:'Arial Black',Arial,sans-serif;font-size:22px;font-weight:800;color:${color||'var(--text)'}">${r.pts}</div>
         </div>`;
-      });
-      if(ranked.length>3){
-        el.innerHTML+='<div style="padding:8px 20px;font-size:12px;color:var(--text3)">ОСТАЛЬНЫЕ УЧАСТНИКИ</div>';
-        ranked.slice(3).forEach((r,i)=>{
-          const isMe=r.uid===currentUser.id;
-          el.innerHTML+=`<div class="leader-item"><div class="leader-rank">#${i+4}</div><div class="leader-avatar">${getEmoji(r.name)}</div><div class="leader-info"><div class="leader-name">${r.name} ${isMe?'<span class="me-badge">Я</span>':''}</div><div class="leader-meta">${r.cps} из ${totalCps} точек</div></div><div class="leader-pts">${r.pts}</div></div>`;
-        });
+      } else {
+        const rankLabel=medal||(r.place<=3?'#'+r.place:'#'+r.place);
+        el.innerHTML+=`<div class="leader-item" style="animation-delay:${i*.05}s">
+          <div class="leader-rank ${r.place===1?'top1':r.place===2?'top2':r.place===3?'top3':''}">${rankLabel}</div>
+          <div class="leader-avatar">${getEmoji(r.name)}</div>
+          <div class="leader-info">
+            <div class="leader-name">${r.name} ${isMe?'<span class="me-badge">Я</span>':''} ${r.isFirst?'<span style="font-size:11px;color:var(--amber)">⚡первый</span>':''}</div>
+            <div class="leader-meta">${r.cps} из ${totalCps} точек${r.finished?' · завершил':''}${timeStr}${tieNote}</div>
+          </div>
+          <div class="leader-pts">${r.pts}</div>
+        </div>`;
       }
-    } else {
-      ranked.forEach((r,i)=>{
-        const isMe=r.uid===currentUser.id;
-        const timeStr=r.duration?` · ⏱ ${r.duration}мин`:'';
-        el.innerHTML+=`<div class="leader-item" style="animation-delay:${i*.05}s"><div class="leader-rank ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div><div class="leader-avatar">${getEmoji(r.name)}</div><div class="leader-info"><div class="leader-name">${r.name} ${isMe?'<span class="me-badge">Я</span>':''} ${r.isFirst?'<span style="font-size:11px;color:var(--amber)">🏆первый</span>':''}</div><div class="leader-meta">${r.cps} из ${totalCps} точек ${r.finished?'· завершил':''}${timeStr}</div></div><div class="leader-pts">${r.pts}</div></div>`;
-      });
-    }
+    });
   }catch(e){
     const msg=e?.message||e?.hint||e?.code||JSON.stringify(e)||'неизвестная ошибка';
     el.innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text" style="font-size:12px;color:var(--red)">Ошибка: ${msg}</div></div>`;
@@ -1467,6 +1688,29 @@ async function showQuestPhotos(questId, questTitle){
   content.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px"><div class="spinner"></div></div>';
   document.getElementById('photosModal').classList.add('show');
   try{
+    // Автоначисление +5 просроченным pending фото (Баг 7)
+    // Проверяем: квест завершён + прошли review_hours
+    try{
+      const qData=await sb(`quests?id=eq.${questId}&select=end_date,review_hours,status`);
+      const q=qData[0];
+      if(q&&q.end_date){
+        const reviewHrs=q.review_hours||48;
+        const deadline=new Date(new Date(q.end_date).getTime()+reviewHrs*3600*1000);
+        if(deadline<new Date()){
+          // Находим все просроченные pending
+          const pendingHits=await sb(`checkpoint_hits?quest_id=eq.${questId}&photo_status=eq.pending&photo_url=not.is.null&select=id,user_id`);
+          for(const ph of pendingHits){
+            await sb(`checkpoint_hits?id=eq.${ph.id}`,{method:'PATCH',body:{photo_status:'approved'},prefer:'return=minimal'});
+            const prof=await sb(`sledopyt_profiles?id=eq.${ph.user_id}&select=points`).catch(()=>[]);
+            if(prof.length){
+              await sb(`sledopyt_profiles?id=eq.${ph.user_id}`,{method:'PATCH',body:{points:(prof[0].points||0)+5},prefer:'return=minimal'});
+            }
+          }
+          if(pendingHits.length)showToast(`⏱ Автоодобрено ${pendingHits.length} фото (+5 каждое)`);
+        }
+      }
+    }catch(e){console.warn('Auto-approve error:',e);}
+
     // Загружаем все хиты у которых есть фото ИЛИ ответ
     const hits=await sb(`checkpoint_hits?quest_id=eq.${questId}&or=(photo_url.not.is.null,caption.not.is.null)&order=hit_at.desc&select=id,user_id,checkpoint_id,photo_url,caption,hit_at,photo_status`);
     if(!hits.length){
@@ -1523,59 +1767,63 @@ function renderPhotoBadge(status){
   return '<span style="background:var(--bg3);color:var(--text3);font-size:10px;padding:2px 6px;border-radius:10px">⏳ Ожидает</span>';
 }
 
-async function moderatePhoto(hitId, status, userId){
+async function moderatePhoto(hitId, newStatus, userId){
   try{
     const card=document.getElementById('photo-card-'+hitId);
     const prevStatus=card?.dataset?.status||'pending';
-    if(prevStatus===status)return showToast('Статус уже установлен');
+    if(prevStatus===newStatus)return showToast('Статус уже установлен');
     const btns=card?.querySelectorAll('button');
     btns?.forEach(b=>b.disabled=true);
 
-    await sb(`checkpoint_hits?id=eq.${hitId}`,{method:'PATCH',body:{photo_status:status},prefer:'return=minimal'});
-
-    // Определяем сколько баллов начислить — для загадок это PTS.ANSWER, для фото PTS.PHOTO_BONUS
-    // Читаем checkpoint_id из хита чтобы понять тип задания
+    // Читаем тип задания — для загадок/открытых ответов баллы другие
     const hitData=await sb(`checkpoint_hits?id=eq.${hitId}&select=checkpoint_id`).catch(()=>[]);
-    let bonus=PTS.PHOTO_BONUS;
+    let isAnswerTask=false;
     if(hitData.length){
       const cp=await sb(`checkpoints?id=eq.${hitData[0].checkpoint_id}&select=task_type`).catch(()=>[]);
-      const taskType=cp[0]?.task_type;
-      if(taskType==='riddle'||taskType==='open'||taskType==='photo_answer')bonus=PTS.ANSWER;
+      const tt=cp[0]?.task_type;
+      isAnswerTask=tt==='riddle'||tt==='open'||tt==='photo_answer';
     }
 
-    const wasRewarded=prevStatus==='approved'||prevStatus==='featured';
-    const willReward=status==='approved'||status==='featured';
+    // Баллы по статусу
+    // Для ответных заданий: approved/featured = PTS.ANSWER
+    // Для фото: approved = 5, featured = 15
+    const ptsFor=(status)=>{
+      if(status==='approved')return isAnswerTask?PTS.ANSWER:5;
+      if(status==='featured')return isAnswerTask?PTS.ANSWER:15;
+      return 0;
+    };
 
-    if(willReward&&!wasRewarded){
-      const prof=await sb(`sledopyt_profiles?id=eq.${userId}&select=points`);
+    const prevPts=ptsFor(prevStatus);
+    const newPts=ptsFor(newStatus);
+    const diff=newPts-prevPts;
+
+    await sb(`checkpoint_hits?id=eq.${hitId}`,{method:'PATCH',body:{photo_status:newStatus},prefer:'return=minimal'});
+
+    if(diff!==0){
+      const prof=await sb(`sledopyt_profiles?id=eq.${userId}&select=points`).catch(()=>[]);
       if(prof.length){
-        await sb(`sledopyt_profiles?id=eq.${userId}`,{method:'PATCH',body:{points:(prof[0].points||0)+bonus},prefer:'return=minimal'});
+        const updated=Math.max(0,(prof[0].points||0)+diff);
+        await sb(`sledopyt_profiles?id=eq.${userId}`,{method:'PATCH',body:{points:updated},prefer:'return=minimal'});
       }
-      showToast(status==='featured'?'🌟 В галерею +'+bonus+' баллов':'✅ Одобрено +'+bonus+' баллов');
-    } else if(!willReward&&wasRewarded){
-      const prof=await sb(`sledopyt_profiles?id=eq.${userId}&select=points`);
-      if(prof.length){
-        await sb(`sledopyt_profiles?id=eq.${userId}`,{method:'PATCH',body:{points:Math.max(0,(prof[0].points||0)-bonus)},prefer:'return=minimal'});
-      }
-      showToast('❌ Отклонено −'+bonus+' баллов');
-    } else if(wasRewarded&&willReward){
-      showToast(status==='featured'?'🌟 Добавлено в галерею':'✅ Одобрено');
-    } else {
-      showToast(status==='rejected'?'❌ Отклонено':'⏳ Возвращено на проверку');
     }
+
+    // Тост
+    if(newStatus==='featured')showToast(isAnswerTask?'✅ Верно +'+ptsFor('featured')+' баллов':'🌟 В галерею +15 баллов'+(prevStatus==='approved'?' (+10 к предыдущим 5)':''));
+    else if(newStatus==='approved')showToast(isAnswerTask?'✅ Верно +'+PTS.ANSWER+' баллов':'✅ Одобрено +5 баллов'+(prevStatus==='featured'?' (−10, убрано из галереи)':''));
+    else if(newStatus==='rejected')showToast('❌ Отклонено'+(prevPts>0?' −'+prevPts+' баллов':''));
+    else showToast('⏳ Возвращено на проверку');
 
     if(card){
-      card.dataset.status=status;
+      card.dataset.status=newStatus;
       const badge=document.getElementById('photo-badge-'+hitId);
-      if(badge)badge.innerHTML=renderPhotoBadge(status);
+      if(badge)badge.innerHTML=renderPhotoBadge(newStatus);
     }
     btns?.forEach(b=>b.disabled=false);
   }catch(e){
+    showToast('Ошибка: '+(e.message||JSON.stringify(e)));
     const card=document.getElementById('photo-card-'+hitId);
     card?.querySelectorAll('button')?.forEach(b=>b.disabled=false);
-    showToast('Ошибка: '+(e?.message||JSON.stringify(e)));
   }
-}
 
 async function deleteHitPhoto(hitId, photoUrl){
   if(!confirm('Удалить это фото?'))return;
@@ -1610,11 +1858,11 @@ async function openEditCheckpointById(btn){
     const cps=await sb(`checkpoints?id=eq.${id}&select=*`);
     if(!cps.length)return showToast('Точка не найдена');
     const cp=cps[0];
-    openEditCheckpoint(cp.id,cp.name,cp.hint,cp.learning_text,cp.post_fact,cp.task_type,cp.task_text,cp.task_tip,cp.task_answer,questId,cp.lat,cp.lng,cp.radius_meters);
+    openEditCheckpoint(cp.id,cp.name,cp.hint,cp.learning_text,cp.post_fact,cp.task_type,cp.task_text,cp.task_tip,cp.task_answer,questId,cp.lat,cp.lng,cp.radius_meters,cp.counts_for_progress!==false,cp.is_critical===true,cp.target_groups,cp.available_from);
   }catch(e){showToast('Ошибка загрузки точки');}
 }
 
-function openEditCheckpoint(id,name,hint,learning,postFact,taskType,taskText,taskTip,taskAnswer,questId,lat,lng,radius){
+function openEditCheckpoint(id,name,hint,learning,postFact,taskType,taskText,taskTip,taskAnswer,questId,lat,lng,radius,countsProgress,isCritical,targetGroups,availableFrom){
   document.getElementById('editCpId').value=id;
   document.getElementById('editCpQuestId').value=questId;
   document.getElementById('editCpName').value=name||'';
@@ -1628,6 +1876,18 @@ function openEditCheckpoint(id,name,hint,learning,postFact,taskType,taskText,tas
   document.getElementById('editCpLat').value=lat||'';
   document.getElementById('editCpLng').value=lng||'';
   document.getElementById('editCpRadius').value=radius||50;
+  document.getElementById('editCpCountsProgress').checked=countsProgress!==false;
+  document.getElementById('editCpIsCritical').checked=isCritical===true;
+  var tgArr=Array.isArray(targetGroups)?targetGroups:[];
+  document.getElementById('editCpTargetGroups').value=tgArr.join(', ');
+  // available_from: ISO → datetime-local формат с учётом часового пояса
+  if(availableFrom){
+    const d=new Date(availableFrom);
+    const local=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+    document.getElementById('editCpAvailableFrom').value=local;
+  } else {
+    document.getElementById('editCpAvailableFrom').value='';
+  }
   document.getElementById('editCpGpsStatus').textContent='';
   document.getElementById('editCpGpsStatus').style.color='var(--text3)';
   toggleEditCpTask();
@@ -1664,7 +1924,14 @@ async function saveEditCheckpoint(){
   if(lat!==null&&(isNaN(lat)||lat<-90||lat>90))return showToast('Широта должна быть от -90 до 90');
   if(lng!==null&&(isNaN(lng)||lng<-180||lng>180))return showToast('Долгота должна быть от -180 до 180');
   // BUG-2+3 fix: радиус пишем только если поле заполнено, валидируем через isNaN
-  var body={name,hint:hint||null,learning_text:learning,post_fact:postFact,task_type:taskType,task_text:taskText,task_tip:taskTip,task_answer:taskAnswer};
+  var isCritical=document.getElementById('editCpIsCritical').checked;
+  var countsForProgress=document.getElementById('editCpCountsProgress').checked;
+  if(isCritical)countsForProgress=true;
+  var targetGroupsRaw=document.getElementById('editCpTargetGroups').value.trim();
+  var targetGroups=targetGroupsRaw?targetGroupsRaw.split(',').map(function(g){return g.trim();}).filter(Boolean):[];
+  var availableFromRaw=document.getElementById('editCpAvailableFrom').value||'';
+  var availableFrom=availableFromRaw?new Date(availableFromRaw).toISOString():null;
+  var body={name,hint:hint||null,learning_text:learning,post_fact:postFact,task_type:taskType,task_text:taskText,task_tip:taskTip,task_answer:taskAnswer,counts_for_progress:countsForProgress,is_critical:isCritical,target_groups:targetGroups,available_from:availableFrom};
   if(lat!==null){body.lat=lat;body.lng=lng;}
   if(radiusRaw!==''){
     var radius=parseInt(radiusRaw);
@@ -1821,37 +2088,96 @@ async function openCheckpointByToken(token){
       showToast('Зарегистрируйся чтобы пройти квест!');
       return;
     }
+    // Проверка времени открытия — ДО проверки дубля (иначе получим "уже засчитана" вместо "не открыта")
+    if(cp.available_from&&new Date(cp.available_from).getTime()>Date.now()){
+      const d=new Date(cp.available_from);
+      const timeStr=d.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+      const dateStr=d.toLocaleDateString('ru',{day:'2-digit',month:'2-digit'});
+      showToast(`⏰ Точка откроется ${dateStr} в ${timeStr}`);
+      if(quest)openQuest(quest);else showMain();
+      return;
+    }
     const hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=eq.${cp.id}`);
     if(hits.length){
       showToast('Эта точка уже засчитана ✅');
       if(quest)openQuest(quest);else showMain();
       return;
     }
-    // Проверка порядка — нельзя пропустить предыдущие точки
-    if(cp.order_num>1){
-      const allCps=await sb(`checkpoints?quest_id=eq.${cp.quest_id}&order=order_num.asc&select=id,order_num`);
-      const prevCps=allCps.filter(function(c){return c.order_num<cp.order_num;});
+    // Проверка группы — если у точки target_groups непустой, участник должен быть в нём
+    // currentGroupName обновляется при openQuest; если null — фильтрацию пропускаем
+    const tg=cp.target_groups;
+    const hasGroupRestriction=Array.isArray(tg)&&tg.length>0;
+    if(hasGroupRestriction&&currentGroupName&&!tg.includes(currentGroupName)){
+      showToast('Эта точка для другой должности — иди на свою 👷');
+      if(quest)openQuest(quest);else showMain();
+      return;
+    }
+    // Бонусная точка (counts_for_progress=false) — всегда доступна, порядок не проверяем
+    const isBonus=cp.counts_for_progress===false;
+    // Свободный режим — порядок не проверяем
+    const isFree=quest?.free_mode===true;
+
+    // Проверка порядка — только для последовательного режима и основных точек
+    if(!isBonus&&!isFree&&cp.order_num>1){
+      const allCpsRaw=await sb(`checkpoints?quest_id=eq.${cp.quest_id}&order=order_num.asc&select=id,order_num,counts_for_progress,target_groups,available_from`);
+      // Фильтруем: основные + видимые по группе + уже открытые по времени
+      const nowCheck=Date.now();
+      const mainCps=allCpsRaw.filter(c=>
+        c.counts_for_progress!==false&&
+        cpVisibleForGroup(c)&&
+        (!c.available_from||new Date(c.available_from).getTime()<=nowCheck)
+      );
+      const prevCps=mainCps.filter(function(c){return c.order_num<cp.order_num;});
       if(prevCps.length>0){
         const prevIds=prevCps.map(function(c){return c.id;}).join(',');
         const prevHits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&checkpoint_id=in.(${prevIds})&select=checkpoint_id`);
         if(prevHits.length<prevCps.length){
-          const need=cp.order_num-prevHits.length;
-          showToast('Сначала пройди точку №'+need+' этого квеста');
+          const myMainIdx=mainCps.findIndex(c=>c.id===cp.id);
+          const need=myMainIdx>0?myMainIdx:cp.order_num-prevHits.length;
+          showToast('Сначала пройди точку №'+need+' своего маршрута');
           if(quest)openQuest(quest);else showMain();
           return;
         }
       }
     }
     currentCheckpointData=cp;
-    const allCpsForIcon=await sb(`checkpoints?quest_id=eq.${cp.quest_id}&select=id&order=order_num.asc`);
-    const totalCpsCount=allCpsForIcon.length;
-    const iconEmoji=cp.order_num===1?'🚀':cp.order_num===totalCpsCount?'🏁':'📍';
-    document.getElementById('verifyIcon').textContent=iconEmoji;
-    document.getElementById('verifyTitle').textContent=cp.name;
-    document.getElementById('verifyQuestName').textContent='Квест: '+(cp.quests?.title||'');
+    // Иконки с учётом группы — берём только видимые точки участника
+    const allCpsForIcon=await sb(`checkpoints?quest_id=eq.${cp.quest_id}&select=id,order_num,counts_for_progress,target_groups&order=order_num.asc`);
+    const visibleCps=allCpsForIcon.filter(cpVisibleForGroup);
+    const totalCpsCount=visibleCps.length;
+    const isFreeMode=quest?.free_mode===true;
+    const isBonusCp=cp.counts_for_progress===false;
+    let iconEmoji='📍';
+    if(isBonusCp){
+      iconEmoji='🎁';
+    } else if(isFreeMode){
+      const mainIconCps=visibleCps.filter(c=>c.counts_for_progress!==false);
+      const alreadyHit=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${cp.quest_id}&select=checkpoint_id`).catch(()=>[]);
+      const hitIdSet=new Set(alreadyHit.map(h=>h.checkpoint_id));
+      const remainingMain=mainIconCps.filter(c=>!hitIdSet.has(c.id));
+      iconEmoji=remainingMain.length===1?'🏁':'📍';
+    } else {
+      // Последовательный — иконки относительно видимых точек участника
+      const myIdx=visibleCps.findIndex(c=>c.id===cp.id);
+      iconEmoji=myIdx===0?'🚀':myIdx===visibleCps.length-1?'🏁':'📍';
+    }
+    const isRomanticQuest=quest?.is_romantic===true;
+    document.getElementById('verifyIcon').textContent=cp.is_critical?'⚠️':isRomanticQuest?'💕':iconEmoji;
+    document.getElementById('verifyTitle').textContent=isRomanticQuest?'Вы здесь 💕':cp.name;
+    document.getElementById('verifyQuestName').textContent=(isRomanticQuest?'Маршрут: ':'Квест: ')+(cp.quests?.title||'');
+    // Критическая точка — красный заголовок и плашка
+    const verifyTitle=document.getElementById('verifyTitle');
+    verifyTitle.style.color=cp.is_critical?'var(--red)':isRomanticQuest?'#f472b6':'var(--text)';
+    // Плашка критической точки
+    let critBadge=document.getElementById('criticalBadge');
+    if(!critBadge){critBadge=document.createElement('div');critBadge.id='criticalBadge';critBadge.style.cssText='background:rgba(248,113,113,.15);border:1px solid var(--red);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--red);text-align:center;width:100%';document.getElementById('verifyQuestName').insertAdjacentElement('afterend',critBadge);}
+    critBadge.style.display=cp.is_critical?'block':'none';
+    critBadge.textContent='⚠️ Критическая точка — обязательна для прохождения квеста';
     const taskCard=document.getElementById('taskCard');
     const captionBlock=document.getElementById('captionBlock');
     const selfieArea=document.getElementById('selfieArea');
+    // Красная рамка task-card для критических
+    taskCard.style.borderLeftColor=cp.is_critical?'var(--red)':'var(--amber)';
     const hasTask=cp.task_type&&cp.task_type!=='';
     if(hasTask){
       document.getElementById('taskText').textContent=cp.task_text||'Выполни задание и сфотографируй';
@@ -2371,37 +2697,40 @@ async function submitCheckpoint(){
     }catch(e){}
     const countGlobal=currentQuestData?.count_in_global!==false;
     const isDemo=currentQuestData?.is_demo===true;
+    const isBonus=currentCheckpointData?.counts_for_progress===false;
     // BUG-3 fix: checkpoints_hit только для реальных квестов
     const newHits=(currentProfile?.checkpoints_hit||0)+(countGlobal&&!isDemo?1:0);
     const newPts=(currentProfile?.points||0)+(countGlobal&&!isDemo?totalCpPts:0);
     await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{points:newPts,checkpoints_hit:newHits},prefer:'return=minimal'});
     currentProfile.points=newPts;currentProfile.checkpoints_hit=newHits;
-    const msg=await checkQuestCompletion(currentCheckpointData.quest_id);
-    let ptsMsg=`+${PTS.CP}`;
+    // Бонусные точки не проверяют финиш
+    const msg=isBonus?null:await checkQuestCompletion(currentCheckpointData.quest_id);
+    let ptsMsg=isBonus?`🎁 Бонусная точка! +${PTS.CP} баллов`:`+${PTS.CP}`;
     if(answerPts)ptsMsg+=` +${answerPts} за ответ`;
     if(isManual&&caption)ptsMsg+=` (ответ +${PTS.ANSWER} после проверки организатором)`;
-    else if(photoUrl)ptsMsg+=` (фото +${PTS.PHOTO_BONUS} после одобрения)`;
-    document.getElementById('successSub').textContent=msg||(ptsMsg+' баллов!');
+    else if(photoUrl)ptsMsg+=` (фото: +5 после одобрения, +15 если в галерею 🌟)`;
+    const isRomanticSuccess=currentQuestData?.is_romantic===true;
+    document.getElementById('successSub').textContent=msg||(isRomanticSuccess?'Место засчитано 💕':(ptsMsg+(!isBonus?' баллов!':'')));
+    document.getElementById('successTitle').textContent=isRomanticSuccess?'Были здесь! 💑':'Точка засчитана!';
     var _fin=msg&&(msg.indexOf('\u0444\u0438\u043d\u0438\u0448')>=0||msg.indexOf('\u0437\u0430\u0432')>=0);
     // Место при финише и командная пометка
     const _placeBadge=document.getElementById('successPlaceBadge');
     const _teamNote=document.getElementById('successTeamNote');
     const _successIcon=document.getElementById('successIcon');
     if(_fin&&msg){
-      const placeMatch=msg.match(/^(🥇|🥈|🥉|🎯)/);
-      if(_successIcon)_successIcon.textContent=placeMatch?placeMatch[0]:'🏁';
+      if(_successIcon)_successIcon.textContent=isRomanticSuccess?'🥂':'🏁';
       if(_placeBadge){
-        const placeLabels={'🥇':'1-е место','🥈':'2-е место','🥉':'3-е место'};
-        const lbl=placeMatch?placeLabels[placeMatch[0]]:'';
-        _placeBadge.textContent=lbl||'';
-        _placeBadge.style.display=lbl?'block':'none';
+        _placeBadge.textContent='Место определится по итогам';
+        _placeBadge.style.display=isDemo?'none':'block';
+        _placeBadge.style.fontSize='11px';
+        _placeBadge.style.color='var(--text3)';
       }
       if(_teamNote&&msg.indexOf('×'+TEAM_COEF)>=0){
         _teamNote.textContent='Командный режим: в личный рейтинг ×'+TEAM_COEF+', полные очки — в рейтинг команды';
         _teamNote.style.display='block';
       } else if(_teamNote){_teamNote.style.display='none';}
     } else {
-      if(_successIcon)_successIcon.textContent='🎯';
+      if(_successIcon)_successIcon.textContent=isRomanticSuccess?'💕':'🎯';
       if(_placeBadge)_placeBadge.style.display='none';
       if(_teamNote)_teamNote.style.display='none';
     }
@@ -2425,34 +2754,42 @@ async function submitCheckpoint(){
 
 async function checkQuestCompletion(questId){
   try{
-    const[total,hits]=await Promise.all([sb(`checkpoints?quest_id=eq.${questId}&select=id`),sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&select=id`)]);
-    if(hits.length<total.length)return null;
+    // Берём все точки и фильтруем: основные + видимые для группы участника
+    const[allCps,hits]=await Promise.all([
+      sb(`checkpoints?quest_id=eq.${questId}&select=id,counts_for_progress,target_groups`),
+      sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&select=checkpoint_id`)
+    ]);
+    // NULL в counts_for_progress = основная; фильтруем по группе через cpVisibleForGroup
+    const total=allCps.filter(c=>c.counts_for_progress!==false&&cpVisibleForGroup(c));
+    if(!total.length)return null;
+    const mainIds=new Set(total.map(c=>c.id));
+    const mainHits=hits.filter(h=>mainIds.has(h.checkpoint_id));
+    if(mainHits.length<total.length)return null;
     const questInfo=currentQuestData?.id===questId?currentQuestData:null;
     const speedEnabled=questInfo?.with_speed_bonus!==false;
-    let place=1,speedBonus=0;
+    let speedPlace=1,speedBonus=0;
     try{
-      // BUG-4 fix: исключаем текущего пользователя из подсчёта места
-      const completions=await sb(`quest_completions?quest_id=eq.${questId}&user_id=neq.${currentUser.id}&finished_at=not.is.null&select=id&order=finished_at.asc`);
-      place=completions.length+1;
+      // Место по скорости финиша — только для бонуса скорости
+      const finishedBefore=await sb(`quest_completions?quest_id=eq.${questId}&user_id=neq.${currentUser.id}&finished_at=not.is.null&select=id&order=finished_at.asc`);
+      speedPlace=finishedBefore.length+1;
       if(speedEnabled){
-        if(place===1)speedBonus=PTS.FIRST+30;
-        else if(place===2)speedBonus=PTS.FIRST+10;
-        else if(place===3)speedBonus=PTS.FIRST;
+        if(speedPlace===1)speedBonus=PTS.FIRST+30;
+        else if(speedPlace===2)speedBonus=PTS.FIRST+10;
+        else if(speedPlace===3)speedBonus=PTS.FIRST;
         else speedBonus=0;
       }
       const bonus=PTS.COMPLETE+speedBonus;
-      const isFirst=place===1;
+      const isFirst=speedPlace===1;
       const existComp=await sb(`quest_completions?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&select=id,started_at`);
       const startedAt=existComp[0]?.started_at||new Date().toISOString();
       const finishedAt=new Date().toISOString();
       if(existComp.length){
-        await sb(`quest_completions?user_id=eq.${currentUser.id}&quest_id=eq.${questId}`,{method:'PATCH',body:{finished_at:finishedAt,is_first:isFirst,bonus_points:bonus,place},prefer:'return=minimal'});
+        await sb(`quest_completions?user_id=eq.${currentUser.id}&quest_id=eq.${questId}`,{method:'PATCH',body:{finished_at:finishedAt,is_first:isFirst,bonus_points:bonus,place:speedPlace},prefer:'return=minimal'});
       } else {
-        await sb('quest_completions',{method:'POST',body:{user_id:currentUser.id,quest_id:questId,started_at:startedAt,finished_at:finishedAt,is_first:isFirst,bonus_points:bonus,place},prefer:'return=minimal'});
+        await sb('quest_completions',{method:'POST',body:{user_id:currentUser.id,quest_id:questId,started_at:startedAt,finished_at:finishedAt,is_first:isFirst,bonus_points:bonus,place:speedPlace},prefer:'return=minimal'});
       }
       const questCountGlobal=currentQuestData?.count_in_global!==false;
       const isDemo=currentQuestData?.is_demo===true;
-      // BUG-5 fix: фильтруем team_members по teams.quest_id
       let isTeamMode=false;
       let activeTeamId=null;
       try{
@@ -2464,28 +2801,29 @@ async function checkQuestCompletion(questId){
       const personalBonus=Math.round(bonus*personalCoef);
       const newPts=(currentProfile?.points||0)+(questCountGlobal&&!isDemo?personalBonus:0),newQ=(currentProfile?.quests_completed||0)+1;
       await sb(`sledopyt_profiles?id=eq.${currentUser.id}`,{method:'PATCH',body:{quests_completed:newQ,points:newPts},prefer:'return=minimal'});
-      // BUG-6 fix: командные очки через RPC increment вместо read-modify-write
       if(isTeamMode&&activeTeamId&&questCountGlobal&&!isDemo){
         try{
           await sb('rpc/increment_team_points',{method:'POST',body:{p_team_id:activeTeamId,p_points:bonus}});
         }catch(e3){
-          // Фолбэк если RPC не создан — обычный PATCH (менее надёжно)
           const teamRow=await sb(`teams?id=eq.${activeTeamId}&select=points`).catch(()=>[]);
           const teamPts=(teamRow[0]?.points||0)+bonus;
           await sb(`teams?id=eq.${activeTeamId}`,{method:'PATCH',body:{points:teamPts},prefer:'return=minimal'}).catch(()=>{});
         }
       }
       currentProfile.points=newPts;currentProfile.quests_completed=newQ;
-      // Ачивки только для реальных (не демо) квестов
       if(!isDemo&&questCountGlobal){
-        await grantAchievements(questId,place,isTeamMode,finishedAt);
+        await grantAchievements(questId,speedPlace,isTeamMode,finishedAt);
       }
-      const medals=['🥇','🥈','🥉'];
-      const medal=place<=3?medals[place-1]:'🎯';
-      let msg=`${medal} Финиш! +${personalBonus} баллов`;
-      if(isDemo)msg='🧪 Демо завершено! Баллы не начислены';
-      else if(isTeamMode)msg+=` (×${TEAM_COEF} команда, +${bonus} в рейтинг команды)`;
-      if(speedBonus>0&&!isDemo)msg+=`, +${speedBonus} за скорость`;
+      // Итоговое сообщение — финиш подтверждён, место предварительное
+      let msg='';
+      if(isDemo){
+        msg='🧪 Демо завершено! Баллы не начислены';
+      } else {
+        msg=`🏁 Финиш! +${personalBonus} баллов`;
+        if(isTeamMode)msg+=` (×${TEAM_COEF} в личный, +${bonus} в команду)`;
+        if(speedBonus>0)msg+=` · +${speedBonus} за скорость`;
+        msg+=` · Место определится по итогам`;
+      }
       return msg;
     }catch(e2){return '🎉 Квест завершён!';}
   }catch(e){return '🎉 Квест завершён!';}
@@ -2871,7 +3209,7 @@ async function loadAdminQuestList(){
             ${isDraft||isDemo?`<button class="btn btn-sm btn-primary" style="font-size:11px" onclick="publishQuest('${q.id}')">🚀 Опубликовать</button>`:''}
             ${isDemo?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="copyDemoLink('${q.access_code}')">🔗 Ссылка</button>`:''}
             ${isActive||(!isDraft&&!isDemo&&!isArchived)?`<button class="btn btn-sm ${isActive?'btn-red':'btn-primary'}" onclick="toggleQuestStatus('${q.id}','${q.status}')">${isActive?'Завершить':'Активировать'}</button>`:''}
-            ${!isArchived?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="openEditQuest('${q.id}','${q.title}','${(q.description||'').replace(/'/g,"\\'")}','${(q.prize_description||'').replace(/'/g,"\\'")}','${q.end_date}',${q.count_in_global!==false},'${q.navigation_mode||'text'}')">✏️ Изменить</button>`:''}
+            ${!isArchived?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="openEditQuest('${q.id}','${q.title}','${(q.description||'').replace(/'/g,"\\'")}','${(q.prize_description||'').replace(/'/g,"\\'")}','${q.end_date}',${q.count_in_global!==false},'${q.navigation_mode||'text'}',${q.free_mode===true},${q.hide_count===true},${q.is_romantic===true},${q.review_hours||48})">✏️ Изменить</button>`:''}
             ${!isArchived&&!isDraft&&!isDemo?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="archiveQuest('${q.id}','${q.title.replace(/'/g,"\\'")}')">📦 В архив</button>`:''}
             ${isDraft||isDemo?`<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="deleteQuest('${q.id}','${q.title.replace(/'/g,"\\'")}')">🗑 Удалить</button>`:''}
             ${isArchived?`<button class="btn btn-sm btn-primary" style="font-size:11px" onclick="unarchiveQuest('${q.id}')">↩ Вернуть</button><button class="btn btn-sm btn-red" style="font-size:11px" onclick="deleteQuest('${q.id}','${q.title.replace(/'/g,"\\'")}')">🗑 Удалить</button>`:''}
@@ -3076,15 +3414,15 @@ function copyDemoLink(code){
 }
 
 async function createQuest(){
-  const title=document.getElementById('qTitle').value.trim(),desc=document.getElementById('qDesc').value.trim(),type=document.getElementById('qType').value,days=parseInt(document.getElementById('qDays').value)||7,prize=document.getElementById('qPrize').value.trim(),withLearning=document.getElementById('qLearning').checked,withSpeedBonus=document.getElementById('qSpeedBonus').checked,accessCode=document.getElementById('qAccessCode').value.trim()||null,countGlobal=document.getElementById('qCountGlobal').checked,compassMode=document.getElementById('qCompass').checked;
+  const title=document.getElementById('qTitle').value.trim(),desc=document.getElementById('qDesc').value.trim(),type=document.getElementById('qType').value,days=parseInt(document.getElementById('qDays').value)||7,prize=document.getElementById('qPrize').value.trim(),withLearning=document.getElementById('qLearning').checked,withSpeedBonus=document.getElementById('qSpeedBonus').checked,accessCode=document.getElementById('qAccessCode').value.trim()||null,countGlobal=document.getElementById('qCountGlobal').checked,compassMode=document.getElementById('qCompass').checked,freeMode=document.getElementById('qFreeMode').checked,hideCount=document.getElementById('qHideCount').checked,isRomantic=document.getElementById('qRomantic').checked;
   const groupsRaw=document.getElementById('qGroups').value.trim();
   const groups=accessCode&&groupsRaw?groupsRaw.split(',').map(g=>g.trim()).filter(Boolean):null;
   if(!title)return showToast('Введи название');
   const end=new Date();end.setDate(end.getDate()+days);
   try{
-    await sb('quests',{method:'POST',body:{title,description:desc,quest_type:type,status:'draft',end_date:end.toISOString(),prize_description:prize,with_learning:withLearning,with_speed_bonus:withSpeedBonus,access_code:accessCode,groups:groups?JSON.stringify(groups):null,created_by:currentUser.id,checkpoint_count:0,count_in_global:countGlobal,navigation_mode:compassMode?'compass':'text',is_demo:false},prefer:'return=minimal'});
+    await sb('quests',{method:'POST',body:{title,description:desc,quest_type:type,status:'draft',end_date:end.toISOString(),prize_description:prize,with_learning:withLearning,with_speed_bonus:withSpeedBonus,access_code:accessCode,groups:groups?JSON.stringify(groups):null,created_by:currentUser.id,checkpoint_count:0,count_in_global:countGlobal,navigation_mode:compassMode?'compass':'text',free_mode:freeMode,hide_count:hideCount,is_romantic:isRomantic,is_demo:false},prefer:'return=minimal'});
     showToast('✏️ Черновик создан — добавь точки и нажми «Тест» или «Опубликовать»');
-    document.getElementById('qTitle').value='';document.getElementById('qDesc').value='';document.getElementById('qLearning').checked=false;document.getElementById('qSpeedBonus').checked=true;document.getElementById('qCountGlobal').checked=true;document.getElementById('qCompass').checked=false;document.getElementById('qAccessCode').value='';document.getElementById('qGroups').value='';document.getElementById('qGroupsBlock').style.display='none';
+    document.getElementById('qTitle').value='';document.getElementById('qDesc').value='';document.getElementById('qLearning').checked=false;document.getElementById('qSpeedBonus').checked=true;document.getElementById('qCountGlobal').checked=true;document.getElementById('qCompass').checked=false;document.getElementById('qFreeMode').checked=false;document.getElementById('qHideCount').checked=false;document.getElementById('qRomantic').checked=false;document.getElementById('qAccessCode').value='';document.getElementById('qGroups').value='';document.getElementById('qGroupsBlock').style.display='none';
     hideCreateQuestForm();initAdminScreen();
   }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
 }
@@ -3183,14 +3521,25 @@ async function deleteQuest(id,title){
   }
 }
 
-function openEditQuest(id,title,desc,prize,endDate,countGlobal,navMode){
+function openEditQuest(id,title,desc,prize,endDate,countGlobal,navMode,freeMode,hideCount,isRomantic,reviewHours){
   document.getElementById("editQuestId").value=id;
   document.getElementById("editQuestTitle").value=title;
   document.getElementById("editQuestDesc").value=desc;
   document.getElementById("editQuestPrize").value=prize;
-  document.getElementById("editQuestDate").value=endDate?endDate.split("T")[0]:"";
+  // ISO → datetime-local с учётом часового пояса
+  if(endDate){
+    const d=new Date(endDate);
+    const local=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+    document.getElementById("editQuestDate").value=local;
+  } else {
+    document.getElementById("editQuestDate").value='';
+  }
+  document.getElementById("editQuestReviewHours").value=reviewHours||48;
   document.getElementById("editQuestGlobal").checked=countGlobal!==false;
   document.getElementById("editQuestCompass").checked=navMode==='compass';
+  document.getElementById("editQuestFreeMode").checked=freeMode===true||freeMode==='true';
+  document.getElementById("editQuestHideCount").checked=hideCount===true||hideCount==='true';
+  document.getElementById("editQuestRomantic").checked=isRomantic===true||isRomantic==='true';
   document.getElementById("editQuestModal").classList.add("show");
 }
 async function saveEditQuest(){
@@ -3199,15 +3548,23 @@ async function saveEditQuest(){
   const desc=document.getElementById("editQuestDesc").value.trim();
   const prize=document.getElementById("editQuestPrize").value.trim();
   const date=document.getElementById("editQuestDate").value;
+  const reviewHours=parseInt(document.getElementById("editQuestReviewHours").value)||48;
   const countGlobal=document.getElementById("editQuestGlobal").checked;
   const compassMode=document.getElementById("editQuestCompass").checked;
+  const freeMode=document.getElementById("editQuestFreeMode").checked;
+  const hideCount=document.getElementById("editQuestHideCount").checked;
+  const isRomantic=document.getElementById("editQuestRomantic").checked;
   if(!title)return showToast("Введи название");
   try{
     await sb(`quests?id=eq.${id}`,{method:"PATCH",body:{
       title,description:desc,prize_description:prize,
       end_date:date?new Date(date).toISOString():undefined,
+      review_hours:reviewHours,
       count_in_global:countGlobal,
-      navigation_mode:compassMode?'compass':'text'
+      navigation_mode:compassMode?'compass':'text',
+      free_mode:freeMode,
+      hide_count:hideCount,
+      is_romantic:isRomantic
     },prefer:"return=minimal"});
     showToast("✅ Квест обновлён");
     closeModal("editQuestModal");
@@ -3415,7 +3772,26 @@ function buildAddCpForm(questId){
         🧭 Задание без QR — участник отвечает прямо на экране компаса
       </label>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:8px">
+    <div style="margin-bottom:8px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);cursor:pointer">
+        <input type="checkbox" id="cpCountsProgress-${questId}" checked style="width:16px;height:16px;accent-color:var(--green)">
+        ✅ Основная точка <span style="font-size:11px;color:var(--text3)">(входит в счётчик и нужна для финиша; снять = бонусная)</span>
+      </label>
+    </div>
+    <div style="margin-bottom:8px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#f87171;cursor:pointer">
+        <input type="checkbox" id="cpIsCritical-${questId}" style="width:16px;height:16px;accent-color:#f87171">
+        🔴 Критическая точка <span style="font-size:11px;color:var(--text3)">(выделяется красным для участника, всегда основная)</span>
+      </label>
+    </div>
+    <div style="margin-bottom:8px">
+      <label class="form-label" style="font-size:12px">👷 Только для должностей <span style="color:var(--text3);font-weight:400">(через запятую, пусто = для всех)</span></label>
+      <input class="form-input" id="cpTargetGroups-${questId}" placeholder="Оператор, Механик" style="font-size:13px">
+    </div>
+    <div style="margin-bottom:8px">
+      <label class="form-label" style="font-size:12px">⏰ Открыть точку с <span style="color:var(--text3);font-weight:400">(пусто = доступна сразу)</span></label>
+      <input class="form-input" type="datetime-local" id="cpAvailableFrom-${questId}" style="font-size:13px">
+    </div>
       <input class="form-input" id="cpLat-${questId}" placeholder="Широта" style="flex:1">
       <input class="form-input" id="cpLng-${questId}" placeholder="Долгота" style="flex:1">
       <input class="form-input" id="cpRadius-${questId}" type="number" value="100" style="width:70px">
@@ -3462,13 +3838,21 @@ async function createCpForQuest(questId){
   var taskTip=document.getElementById('cpTaskTip-'+questId)?.value.trim();
   var taskAnswer=document.getElementById('cpTaskAnswer-'+questId)?.value.trim();
   var noQr=document.getElementById('cpNoQr-'+questId)?.checked||false;
+  var countsProgress=document.getElementById('cpCountsProgress-'+questId)?.checked!==false;
+  var isCritical=document.getElementById('cpIsCritical-'+questId)?.checked||false;
+  var targetGroupsRaw=document.getElementById('cpTargetGroups-'+questId)?.value.trim()||'';
+  var targetGroups=targetGroupsRaw?targetGroupsRaw.split(',').map(function(g){return g.trim();}).filter(Boolean):[];
+  var availableFromRaw=document.getElementById('cpAvailableFrom-'+questId)?.value||'';
+  var availableFrom=availableFromRaw?new Date(availableFromRaw).toISOString():null;
+  // Критическая точка всегда основная
+  if(isCritical)countsProgress=true;
   if(!name||isNaN(lat)||isNaN(lng))return showToast('Заполни название и координаты');
   if(taskType&&!taskText)return showToast('Введи текст задания');
   var token=generateToken();
   try{
     var existing=await sb(`checkpoints?quest_id=eq.${questId}&select=id`);
     var orderNum=existing.length+1;
-    await sb('checkpoints',{method:'POST',body:{quest_id:questId,name,hint,learning_text:learningText,post_fact:postFact,lat,lng,radius_meters:radius,token,order_num:orderNum,task_type:taskType||null,task_text:taskText||null,task_tip:taskTip||null,task_answer:taskAnswer||null,need_qr:!noQr},prefer:'return=minimal'});
+    await sb('checkpoints',{method:'POST',body:{quest_id:questId,name,hint,learning_text:learningText,post_fact:postFact,lat,lng,radius_meters:radius,token,order_num:orderNum,task_type:taskType||null,task_text:taskText||null,task_tip:taskTip||null,task_answer:taskAnswer||null,need_qr:!noQr,counts_for_progress:countsProgress,is_critical:isCritical,target_groups:targetGroups,available_from:availableFrom},prefer:'return=minimal'});
     await sb(`quests?id=eq.${questId}`,{method:'PATCH',body:{checkpoint_count:orderNum},prefer:'return=minimal'});
     var url=APP_URL+'?cp='+token;
     var box=document.getElementById('cpQRBox-'+questId);
@@ -3476,10 +3860,38 @@ async function createCpForQuest(questId){
     var cap=document.getElementById('cpQRCaption-'+questId);
     if(box&&res){box.innerHTML='';new QRCode(box,{text:url,width:160,height:160,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.H}); res.style.display='block';if(cap)cap.textContent='📍 '+name+(noQr?' (без QR)':'');}
     showToast('Точка добавлена!'+(noQr?' Задание без QR.':''));
-    ['cpName','cpHint','cpLearning','cpPostFact','cpTaskText','cpTaskTip','cpTaskAnswer'].forEach(function(id){var el=document.getElementById(id+'-'+questId);if(el)el.value='';});
+    ['cpName','cpHint','cpLearning','cpPostFact','cpTaskText','cpTaskTip','cpTaskAnswer','cpTargetGroups','cpAvailableFrom'].forEach(function(id){var el=document.getElementById(id+'-'+questId);if(el)el.value='';});;
     var noQrEl=document.getElementById('cpNoQr-'+questId);if(noQrEl)noQrEl.checked=false;
+    var critEl=document.getElementById('cpIsCritical-'+questId);if(critEl)critEl.checked=false;
     loadCheckpointsList2(questId);
   }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
+}
+var _moveCpLock=false;
+async function moveCp(cpId,questId,direction){
+  if(_moveCpLock)return;
+  _moveCpLock=true;
+  try{
+    var cps=await sb(`checkpoints?quest_id=eq.${questId}&order=order_num.asc&select=id,order_num`);
+    var idx=cps.findIndex(function(c){return c.id===cpId;});
+    if(idx===-1){_moveCpLock=false;return;}
+    var swapIdx=direction==='up'?idx-1:idx+1;
+    if(swapIdx<0||swapIdx>=cps.length){_moveCpLock=false;return;}
+    var a=cps[idx],b=cps[swapIdx];
+    // Если order_num совпадают (дубль в БД) — принудительно перенумеруем всё
+    if(a.order_num===b.order_num){
+      for(var k=0;k<cps.length;k++){
+        await sb(`checkpoints?id=eq.${cps[k].id}`,{method:'PATCH',body:{order_num:k+1},prefer:'return=minimal'});
+      }
+      _moveCpLock=false;
+      loadCheckpointsList2(questId);
+      return;
+    }
+    // Swap order_num между двумя точками последовательно (не Promise.all — избегаем конфликта)
+    await sb(`checkpoints?id=eq.${a.id}`,{method:'PATCH',body:{order_num:b.order_num},prefer:'return=minimal'});
+    await sb(`checkpoints?id=eq.${b.id}`,{method:'PATCH',body:{order_num:a.order_num},prefer:'return=minimal'});
+    loadCheckpointsList2(questId);
+  }catch(e){showToast('Ошибка перестановки: '+(e?.message||JSON.stringify(e)));}
+  finally{_moveCpLock=false;}
 }
 function downloadCpQR(questId){
   var box=document.getElementById('cpQRBox-'+questId);
@@ -3496,15 +3908,30 @@ async function loadCheckpointsList2(questId){
     if(!cps.length){container.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px">Точек пока нет</div>';return;}
     container.innerHTML=cps.map(function(cp,i){
       var esc=function(s){return (s||'').replace(/'/g,"\\'").replace(/\n/g,' ');};
-      return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px">'
+      var isCrit=cp.is_critical===true;
+      var isBonus=cp.counts_for_progress===false;
+      var borderColor=isCrit?'var(--red)':isBonus?'var(--amber-dim)':'var(--border)';
+      var bgColor=isCrit?'rgba(248,113,113,.06)':isBonus?'rgba(251,191,36,.04)':'var(--bg3)';
+      return '<div style="background:'+bgColor+';border:1px solid '+borderColor+';border-radius:10px;padding:10px;margin-bottom:8px">'
         +'<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">'
-        +'<div>'
-        +'<div style="font-size:13px;font-weight:600;color:var(--text)">'+(i+1)+'. '+cp.name+'</div>'
+        +'<div style="flex:1">'
+        +'<div style="font-size:13px;font-weight:600;color:var(--text)">'
+        +(isCrit?'<span style="color:var(--red)">🔴 </span>':'')
+        +(i+1)+'. '+cp.name+'</div>'
+        +(isCrit?'<div style="font-size:11px;color:var(--red);margin-top:2px;font-weight:600">⚠️ Критическая точка</div>':'')
+        +(isBonus?'<div style="font-size:11px;color:var(--amber);margin-top:2px">🎁 Бонусная (не входит в прогресс)</div>':'')
+        +(Array.isArray(cp.target_groups)&&cp.target_groups.length?'<div style="font-size:11px;color:#60a5fa;margin-top:2px">👷 '+cp.target_groups.join(', ')+'</div>':'')
         +(cp.hint?'<div style="font-size:11px;color:var(--text3);margin-top:2px">📍 '+cp.hint+'</div>':'')
         +(cp.learning_text?'<div style="font-size:11px;color:var(--green);margin-top:2px">📚 Обучение добавлено</div>':'')
         +(cp.post_fact?'<div style="font-size:11px;color:var(--amber);margin-top:2px">💡 Факт добавлен</div>':'')
-        +(cp.task_type?'<div style="font-size:11px;color:var(--blue);margin-top:2px">📋 '+( cp.task_type)+': '+(cp.task_text||'')+( cp.task_answer?' → '+cp.task_answer:'')+'</div>':'')
-        +'</div></div>'
+        +(cp.task_type?'<div style="font-size:11px;color:var(--blue);margin-top:2px">📋 '+cp.task_type+': '+(cp.task_text||'')+(cp.task_answer?' → '+cp.task_answer:'')+'</div>':'')
+        +'</div>'
+        // Кнопки ↑↓ для перестановки
+        +'<div style="display:flex;flex-direction:column;gap:3px;margin-left:6px;flex-shrink:0">'
+        +(i>0?'<button class="btn btn-secondary btn-sm" style="font-size:12px;padding:3px 8px;line-height:1" onclick="moveCp(\''+cp.id+'\',\''+questId+'\',\'up\')">↑</button>':'<div style="height:24px"></div>')
+        +(i<cps.length-1?'<button class="btn btn-secondary btn-sm" style="font-size:12px;padding:3px 8px;line-height:1" onclick="moveCp(\''+cp.id+'\',\''+questId+'\',\'down\')">↓</button>':'<div style="height:24px"></div>')
+        +'</div>'
+        +'</div>'
         +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
         +'<button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="generateQRAndDownload(\''+APP_URL+'?cp='+cp.token+'\',\''+esc(cp.name)+'\')">📥 QR</button>'
         +'<button class="btn btn-secondary btn-sm" style="font-size:11px" '

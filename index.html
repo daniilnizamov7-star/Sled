@@ -1823,6 +1823,7 @@ async function moderatePhoto(hitId, newStatus, userId){
     const card=document.getElementById('photo-card-'+hitId);
     card?.querySelectorAll('button')?.forEach(b=>b.disabled=false);
   }
+}
 
 async function deleteHitPhoto(hitId, photoUrl){
   if(!confirm('Удалить это фото?'))return;

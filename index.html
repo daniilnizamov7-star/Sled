@@ -224,8 +224,8 @@ select.form-input option{background:var(--bg2);color:var(--text)}
 <div id="splash" class="screen active">
   <video id="splashVideo" autoplay muted playsinline webkit-playsinline
     src="https://yiqipulgofoschkccaxr.supabase.co/storage/v1/object/public/sledopyt-assets/kling_20260513_VIDEO_Image1The__3514_0.mp4"
-    onended="onSplashVideoEnd()"
-    onerror="onSplashVideoEnd()">
+    onended="onSplashVideoEnd()">
+   
   </video>
   <button id="splashSkip" onclick="if(typeof hideSplash==='function'){_splashMinTime=true;hideSplash(_pendingShow||null);}">Пропустить →</button>
 </div>
@@ -1349,7 +1349,13 @@ async function loadCheckpoints(questId){
     const allCps=await sb(`checkpoints?quest_id=eq.${questId}&order=order_num.asc&select=*`);
     // Фильтруем по группе участника (target_groups)
     const cps=allCps.filter(cpVisibleForGroup);
-    let hits=[];try{hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&select=checkpoint_id`);}catch(e){}
+    let hits=[];
+	  try {
+		  hits=await sb(`checkpoint_hits?user_id=eq.${currentUser.id}&quest_id=eq.${questId}&select=checkpoint_id`);
+	  } catch(e) {
+		console.error('Ошибка загрузки hits:', e);
+  		hits = [];
+	  }
     const hitIds=new Set(hits.map(h=>h.checkpoint_id));
 
     // Параметры квеста

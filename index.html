@@ -793,7 +793,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <div style="display:flex;gap:8px;margin-bottom:8px">
         <div style="flex:1"><label class="form-label" style="font-size:11px">Широта</label><input class="form-input" id="editCpLat" placeholder="55.154321" inputmode="decimal"></div>
         <div style="flex:1"><label class="form-label" style="font-size:11px">Долгота</label><input class="form-input" id="editCpLng" placeholder="61.401234" inputmode="decimal"></div>
-        <div style="width:80px"><label class="form-label" style="font-size:11px">Радиус (м)</label><input class="form-input" id="editCpRadius" type="number" placeholder="50" min="1" max="500"></div>
+        <div style="width:80px"><label class="form-label" style="font-size:11px">Радиус (м)</label><input class="form-input" id="editCpRadius" type="number" placeholder="50" min="1" max="1000"></div>
       </div>
       <button class="btn btn-secondary btn-sm" style="width:100%;font-size:12px" onclick="fillEditCpCoordsFromGPS()">📡 Взять мои текущие координаты</button>
       <div id="editCpGpsStatus" style="font-size:11px;color:var(--text3);margin-top:6px;text-align:center;min-height:16px"></div>

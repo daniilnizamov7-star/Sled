@@ -1935,7 +1935,7 @@ async function saveEditCheckpoint(){
   if(lat!==null){body.lat=lat;body.lng=lng;}
   if(radiusRaw!==''){
     var radius=parseInt(radiusRaw);
-    if(isNaN(radius)||radius<1||radius>500)return showToast('Радиус от 1 до 500 метров');
+    if(isNaN(radius)||radius<1||radius>1000)return showToast('Радиус от 1 до 1000 метров');
     body.radius_meters=radius;
   }
   try{

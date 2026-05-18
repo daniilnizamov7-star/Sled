@@ -793,7 +793,7 @@ select.form-input option{background:var(--bg2);color:var(--text)}
       <div style="display:flex;gap:8px;margin-bottom:8px">
         <div style="flex:1"><label class="form-label" style="font-size:11px">Широта</label><input class="form-input" id="editCpLat" placeholder="55.154321" inputmode="decimal"></div>
         <div style="flex:1"><label class="form-label" style="font-size:11px">Долгота</label><input class="form-input" id="editCpLng" placeholder="61.401234" inputmode="decimal"></div>
-        <div style="width:80px"><label class="form-label" style="font-size:11px">Радиус (м)</label><input class="form-input" id="editCpRadius" type="number" placeholder="50" min="1" max="1000"></div>
+        <div style="width:80px"><label class="form-label" style="font-size:11px">Радиус (м)</label><input class="form-input" id="editCpRadius" type="number" placeholder="50" min="1" max="500"></div>
       </div>
       <button class="btn btn-secondary btn-sm" style="width:100%;font-size:12px" onclick="fillEditCpCoordsFromGPS()">📡 Взять мои текущие координаты</button>
       <div id="editCpGpsStatus" style="font-size:11px;color:var(--text3);margin-top:6px;text-align:center;min-height:16px"></div>
@@ -1935,7 +1935,7 @@ async function saveEditCheckpoint(){
   if(lat!==null){body.lat=lat;body.lng=lng;}
   if(radiusRaw!==''){
     var radius=parseInt(radiusRaw);
-    if(isNaN(radius)||radius<1||radius>1000)return showToast('Радиус от 1 до 1000 метров');
+    if(isNaN(radius)||radius<1||radius>500)return showToast('Радиус от 1 до 500 метров');
     body.radius_meters=radius;
   }
   try{
@@ -1993,6 +1993,11 @@ async function joinCorporateQuest(){
     const quests=await sb(`quests?access_code=eq.${code}&select=*`);
     const quest=quests.find(q=>q.status==='active'||q.status==='draft'&&q.is_demo);
     if(!quest)return showToast('Квест не найден или завершён');
+    // Регистрируем участника если ещё не зарегистрирован
+    const existing=await sb(`quest_participants?quest_id=eq.${quest.id}&user_id=eq.${currentUser.id}&select=id`);
+    if(!existing.length){
+      await sb('quest_participants',{method:'POST',body:{quest_id:quest.id,user_id:currentUser.id},prefer:'return=minimal'});
+    }
     // Если есть группы — показываем выбор
     const groups=(()=>{try{return quest.groups&&quest.groups!==''?JSON.parse(quest.groups):null;}catch(e){return null;}})();
     if(groups&&groups.length){
@@ -2000,7 +2005,9 @@ async function joinCorporateQuest(){
     } else {
       closeModal('corporateModal');
       showToast(`✅ Квест найден: ${quest.title}`);
-      openQuest(quest);
+      const pendingCp=sessionStorage.getItem('sb_pending_cp');
+      if(pendingCp){currentCheckpointToken=pendingCp;openCheckpointByToken(pendingCp);}
+      else openQuest(quest);
     }
   }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
 }
@@ -2034,7 +2041,9 @@ async function selectGroupAndJoin(questId, groupName){
     const quests=await sb(`quests?id=eq.${questId}&select=*`);
     closeModal('corporateModal');
     showToast(`✅ Ты в группе "${groupName}"!`);
-    if(quests.length)openQuest(quests[0]);
+    const pendingCp=sessionStorage.getItem('sb_pending_cp');
+    if(pendingCp){currentCheckpointToken=pendingCp;openCheckpointByToken(pendingCp);}
+    else if(quests.length)openQuest(quests[0]);
   }catch(e){
     document.querySelectorAll('#corporateContent .btn').forEach(b=>{b.disabled=false;b.style.opacity='1';});
     showToast('Ошибка: '+JSON.stringify(e));
@@ -2087,6 +2096,16 @@ async function openCheckpointByToken(token){
       goScreen('authScreen');
       showToast('Зарегистрируйся чтобы пройти квест!');
       return;
+    }
+    // Проверка доступа к корпоративному/закрытому квесту
+    if(quest?.access_code){
+      const participant=await sb(`quest_participants?quest_id=eq.${quest.id}&user_id=eq.${currentUser.id}&select=id`);
+      if(!participant.length){
+        sessionStorage.setItem('sb_pending_cp',token);
+        showCorporateModal();
+        showToast('Этот квест закрытый — введи код доступа');
+        return;
+      }
     }
     // Проверка времени открытия — ДО проверки дубля (иначе получим "уже засчитана" вместо "не открыта")
     if(cp.available_from&&new Date(cp.available_from).getTime()>Date.now()){

@@ -3397,28 +3397,31 @@ ${sponsorsHtml}
 }
 
 async function startDemoMode(id){
-  // Генерируем код вида DEMO-XXXX
-  const code='DEMO-'+Math.random().toString(36).substring(2,6).toUpperCase();
   try{
+    // Читаем текущий access_code чтобы не затирать корпоративный код
+    const q=await sb(`quests?id=eq.${id}&select=access_code`);
+    const originalCode=q[0]?.access_code;
+    // Если уже есть корпоративный код — не перезаписываем его, просто ставим is_demo
+    // Если кода нет — генерируем временный демо-код
+    const code=originalCode||('DEMO-'+Math.random().toString(36).substring(2,6).toUpperCase());
     await sb(`quests?id=eq.${id}`,{method:'PATCH',body:{is_demo:true,access_code:code,count_in_global:false},prefer:'return=minimal'});
-    showToast('🧪 Демо-режим активирован · Код: '+code);
+    showToast('🧪 Демо-режим · Код: '+code);
     loadAdminQuestList();
   }catch(e){showToast('Ошибка: '+JSON.stringify(e));}
 }
 
 async function publishQuest(id){
-  if(!confirm('Опубликовать квест? Он станет виден всем участникам.'))return;
+  if(!confirm('Опубликовать квест? Он станет виден участникам.'))return;
   try{
-    // Сбрасываем демо-флаг, убираем код если он был демо-кодом
-    const q=await sb(`quests?id=eq.${id}&select=access_code,is_demo`);
+    const q=await sb(`quests?id=eq.${id}&select=access_code,is_demo,count_in_global`);
     const wasDemo=q[0]?.is_demo;
-    const demoCode=q[0]?.access_code?.startsWith('DEMO-');
+    const currentCode=q[0]?.access_code;
+    // Убираем код только если он был авто-сгенерированным (начинается DEMO- и квест без корпоративного кода)
+    const isAutoDemo=currentCode?.startsWith('DEMO-');
     await sb(`quests?id=eq.${id}`,{method:'PATCH',body:{
       status:'active',
       is_demo:false,
-      // Убираем код доступа только если он был авто-сгенерированным демо-кодом
-      access_code:demoCode?null:undefined,
-      // Восстанавливаем глобальный рейтинг если был принудительно выключен
+      access_code:isAutoDemo?null:undefined,
       count_in_global:wasDemo?true:undefined
     },prefer:'return=minimal'});
     showToast('🚀 Квест опубликован!');
